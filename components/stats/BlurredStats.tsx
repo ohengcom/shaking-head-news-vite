@@ -11,7 +11,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth-client'
 import { Lock, TrendingUp, Calendar, Target, Loader2 } from 'lucide-react'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { Button } from '@/components/ui/button'

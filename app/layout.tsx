@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Noto_Sans_SC } from 'next/font/google'
+import { Inter, Noto_Sans } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Header } from '@/components/layout/header'
@@ -20,7 +20,7 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const notoSansSC = Noto_Sans_SC({
+const notoSansSC = Noto_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'optional', // Don't block if font fails to load

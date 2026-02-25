@@ -7,7 +7,7 @@
 
 import { X, Sparkles, LogIn } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth-client'
 import { useState } from 'react'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { Button } from '@/components/ui/button'

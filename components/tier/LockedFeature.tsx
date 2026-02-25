@@ -7,7 +7,7 @@
 
 import { Lock } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth-client'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { FeatureConfig, getRequiredTierForFeature } from '@/lib/config/features'
 import { Button } from '@/components/ui/button'

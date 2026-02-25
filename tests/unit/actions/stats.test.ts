@@ -18,6 +18,7 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/storage', () => ({
   getStorageItem: vi.fn(),
+  getMultipleStorageItems: vi.fn(),
   setStorageItem: vi.fn(),
   StorageKeys: {
     userStats: (userId: string, date: string) => `user:${userId}:stats:${date}`,
@@ -44,7 +45,7 @@ vi.mock('@/lib/utils/error-handler', () => ({
 }))
 
 import { auth } from '@/lib/auth'
-import { getStorageItem, setStorageItem } from '@/lib/storage'
+import { getStorageItem, getMultipleStorageItems, setStorageItem } from '@/lib/storage'
 import { rateLimitByUser } from '@/lib/rate-limit'
 
 describe('Stats Actions', () => {
@@ -56,6 +57,7 @@ describe('Stats Actions', () => {
       remaining: 99,
       reset: Date.now() + 60000,
     })
+    vi.mocked(getMultipleStorageItems).mockResolvedValue([])
     process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io'
     process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token'
   })
@@ -205,12 +207,16 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([
+        mockUserStats,
+        mockUserStats,
+        mockUserStats,
+      ])
 
       const result = await getStats('2024-01-01', '2024-01-03')
 
       expect(result).toHaveLength(3)
-      expect(getStorageItem).toHaveBeenCalledTimes(3)
+      expect(getMultipleStorageItems).toHaveBeenCalledTimes(1)
     })
 
     it('should return empty array when rate limit would normally block (rate limit disabled)', async () => {
@@ -224,7 +230,6 @@ describe('Stats Actions', () => {
         remaining: 0,
         reset: Date.now() + 60000,
       })
-      vi.mocked(getStorageItem).mockResolvedValue(null)
 
       // Since rate limiting returns false, it should throw an error
       await expect(getStats('2024-01-01', '2024-01-07')).rejects.toThrow('Too many requests')
@@ -264,10 +269,11 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem)
-        .mockResolvedValueOnce(mockUserStats)
-        .mockResolvedValueOnce({ invalid: 'data' })
-        .mockResolvedValueOnce(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValueOnce([
+        mockUserStats,
+        { invalid: 'data' },
+        mockUserStats,
+      ])
 
       const result = await getStats('2024-01-01', '2024-01-03')
 
@@ -283,12 +289,12 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([mockUserStats])
 
       const result = await getTodayStats()
 
       expect(result).toBeTruthy()
-      expect(getStorageItem).toHaveBeenCalled()
+      expect(getMultipleStorageItems).toHaveBeenCalled()
     })
 
     it('should return null when no stats exist', async () => {
@@ -296,7 +302,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(null)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([null])
 
       const result = await getTodayStats()
 
@@ -310,7 +316,9 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue(
+        Array.from({ length: 7 }, () => mockUserStats)
+      )
 
       const result = await getWeekStats()
 
@@ -324,7 +332,9 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue(
+        Array.from({ length: 30 }, () => mockUserStats)
+      )
 
       const result = await getMonthStats()
 
@@ -358,7 +368,9 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserStats)
+      vi.mocked(getMultipleStorageItems).mockImplementation(async (keys: string[]) =>
+        keys.map(() => mockUserStats)
+      )
 
       const result = await getSummaryStats()
 
@@ -384,7 +396,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(null)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([null])
 
       const result = await checkHealthReminder()
 
@@ -408,7 +420,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(oldStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([oldStats])
 
       const result = await checkHealthReminder()
 
@@ -431,7 +443,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(recentStats)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([recentStats])
 
       const result = await checkHealthReminder()
 
@@ -445,7 +457,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(null)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([null])
 
       const result = await checkDailyGoal(30)
 
@@ -464,7 +476,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(statsWithGoal)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsWithGoal])
 
       const result = await checkDailyGoal(30)
 
@@ -483,7 +495,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(statsWithProgress)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsWithProgress])
 
       const result = await checkDailyGoal(30)
 
@@ -502,7 +514,7 @@ describe('Stats Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(statsExceedingGoal)
+      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsExceedingGoal])
 
       const result = await checkDailyGoal(30)
 

@@ -69,7 +69,7 @@ export default async function AboutPage() {
               <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">TypeScript 5.7</span>
               <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">Tailwind CSS 4</span>
               <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">Framer Motion</span>
-              <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">NextAuth.js v5</span>
+              <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">Better Auth</span>
               <span className="bg-primary/10 rounded-full px-3 py-1 text-sm">Upstash Redis</span>
             </div>
           </div>

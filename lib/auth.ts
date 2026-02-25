@@ -1,96 +1,77 @@
-import NextAuth from 'next-auth'
-import { Buffer } from 'buffer'
-import Google from 'next-auth/providers/google'
-import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id'
+import { betterAuth } from 'better-auth'
+import { headers } from 'next/headers'
 import { getStorageItem, setStorageItem, StorageKeys } from './storage'
 import { defaultSettings } from '@/types/settings'
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: 'consent',
-          access_type: 'offline',
-          response_type: 'code',
+const socialProviders = {
+  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         },
-      },
-    }),
-    MicrosoftEntraID({
-      clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
-      clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-      issuer: `https://login.microsoftonline.com/${process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID}/v2.0`,
-      authorization: {
-        params: {
-          scope: 'openid profile email User.Read',
+      }
+    : {}),
+  ...(process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
+    ? {
+        microsoft: {
+          clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
+          clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
+          tenantId: process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || 'common',
         },
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      // Fetch Microsoft profile photo on sign in
-      if (account && account.provider === 'microsoft-entra-id' && account.access_token) {
-        try {
-          // Fetch smallest thumbnail to stay under ~4KB JWT cookie limit (NextAuth default is 48x48)
-          const response = await fetch('https://graph.microsoft.com/v1.0/me/photos/48x48/$value', {
-            headers: { Authorization: `Bearer ${account.access_token}` },
-          })
-
-          if (response.ok) {
-            const buffer = await response.arrayBuffer()
-            const base64 = Buffer.from(buffer).toString('base64')
-            token.picture = `data:image/jpeg;base64,${base64}`
-          }
-        } catch (error) {
-          console.error('Failed to fetch Microsoft profile photo:', error)
-        }
       }
+    : {}),
+}
 
-      // 使用Google的sub作为稳定的用户ID
-      if (user) {
-        token.id = account?.providerAccountId || user.email || user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-      }
-      return session
-    },
-    async signIn({ user, account }) {
-      try {
-        // 使用稳定的用户标识符
-        const userId = account?.providerAccountId || user.email || user.id
-
-        // 首次登录时初始化用户设置
-        const key = StorageKeys.userSettings(userId!)
-        const existingSettings = await getStorageItem(key)
-
-        if (!existingSettings) {
-          await setStorageItem(key, {
-            ...defaultSettings,
-            userId,
-          })
-        }
-
-        return true
-      } catch (error) {
-        console.error('Error during sign in:', error)
-        return false
-      }
-    },
-  },
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
-  trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
+export const authServer = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL,
+  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  socialProviders,
 })
+
+export interface AppSession {
+  user: {
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  }
+}
+
+async function ensureUserSettings(userId: string) {
+  const key = StorageKeys.userSettings(userId)
+  const existingSettings = await getStorageItem(key)
+
+  if (!existingSettings) {
+    await setStorageItem(key, {
+      ...defaultSettings,
+      userId,
+    })
+  }
+}
+
+export async function auth(): Promise<AppSession | null> {
+  const session = await authServer.api.getSession({
+    headers: await headers(),
+  })
+
+  if (!session?.user) {
+    return null
+  }
+
+  const userId = session.user.id || session.user.email
+  if (!userId) {
+    return null
+  }
+
+  await ensureUserSettings(userId)
+
+  return {
+    user: {
+      id: userId,
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+    },
+  }
+}

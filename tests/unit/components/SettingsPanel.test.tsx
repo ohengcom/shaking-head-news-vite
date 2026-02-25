@@ -10,8 +10,8 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
 
-// Mock next-auth/react
-vi.mock('next-auth/react', () => ({
+// Mock auth client wrapper
+vi.mock('@/lib/auth-client', () => ({
   useSession: () => ({
     data: {
       user: {

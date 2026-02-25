@@ -30,7 +30,7 @@ const RSS_REVALIDATE = 1800 // 30 minutes - faster updates for RSS
  * @param source - Optional specific news source
  * @returns News response with items
  */
-export const getNews = cache(async (language: 'zh' | 'en' = 'zh', source?: string) => {
+const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string) => {
   const url = source
     ? `${NEWS_API_BASE_URL}/${source}.json?lang=${language}`
     : `${NEWS_API_BASE_URL}/latest.json?lang=${language}`
@@ -94,6 +94,10 @@ export const getNews = cache(async (language: 'zh' | 'en' = 'zh', source?: strin
     throw new NewsAPIError('Failed to fetch news. Please try again later.', 500, source)
   }
 })
+
+export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
+  return getNewsCached(language, source)
+}
 
 /**
  * Manually refresh news cache

@@ -17,6 +17,23 @@ vi.mock('next/cache', () => ({
 vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
   validateOrThrow: vi.fn((schema, data) => data),
+  retryWithBackoff: vi.fn(async (fn: () => Promise<unknown>, options = {}) => {
+    const { maxRetries = 3 } = options as { maxRetries?: number }
+    let lastError: unknown
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        return await fn()
+      } catch (error) {
+        lastError = error
+        if (attempt === maxRetries) {
+          throw error
+        }
+      }
+    }
+
+    throw lastError
+  }),
   AuthError: class AuthError extends Error {},
   ValidationError: class ValidationError extends Error {},
   NotFoundError: class NotFoundError extends Error {},

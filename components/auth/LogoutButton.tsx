@@ -1,6 +1,6 @@
 'use client'
 
-import { signOut } from 'next-auth/react'
+import { signOut } from '@/lib/auth-client'
 import { LogOut } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'

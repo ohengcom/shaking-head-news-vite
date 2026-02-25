@@ -5,6 +5,21 @@ All notable changes to Shaking Head News will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0 (vite版)] - 2026-02-25
+
+### Changed
+
+- **Version Label**: Marked this release as `vite版` to distinguish it from earlier Next.js-only iteration
+- **Auth Migration**: Replaced NextAuth route with Better Auth route handler at `app/api/auth/[...all]/route.ts`
+- **Build Paths**: Kept both Next.js and vinext build scripts to support migration verification
+- **Environment Docs**: Updated `.env.example` to match currently used variables (auth, ads, analytics, monitoring)
+- **Project Docs**: Rebuilt core documentation under `docs/` (setup, architecture, deployment, testing, monitoring, known issues)
+
+### Fixed
+
+- **Stale Labels**: Updated About page tech stack label from `NextAuth.js v5` to `Better Auth`
+- **Testing Guide Script**: Updated auth env var names in `scripts/start-testing.ps1`
+
 ## [2.2.0] - 2026-01-26
 
 ### Added

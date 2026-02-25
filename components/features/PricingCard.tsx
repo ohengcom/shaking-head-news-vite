@@ -7,7 +7,7 @@
 
 import { Check, X, Eye, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
