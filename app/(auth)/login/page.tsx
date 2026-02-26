@@ -1,11 +1,37 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { signIn } from '@/lib/auth-client'
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signInError, setSignInError] = useState<string | null>(null)
+
+  const handleSocialSignIn = async (provider: 'google' | 'microsoft-entra-id') => {
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setSignInError(null)
+
+    try {
+      const result = await signIn(provider, { redirectTo: callbackUrl })
+      const errorMessage =
+        result && typeof result === 'object' && 'error' in result ? String(result.error ?? '') : ''
+
+      if (errorMessage) {
+        setSignInError(errorMessage)
+      }
+    } catch (error) {
+      setSignInError(error instanceof Error ? error.message : '登录失败，请稍后重试。')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -18,8 +44,9 @@ export default function LoginPage() {
         <div className="mt-8 space-y-4">
           <button
             type="button"
-            className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-            onClick={() => signIn('google', { redirectTo: callbackUrl })}
+            className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => void handleSocialSignIn('google')}
+            disabled={isSubmitting}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -32,8 +59,9 @@ export default function LoginPage() {
 
           <button
             type="button"
-            className="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-            onClick={() => signIn('microsoft-entra-id', { redirectTo: callbackUrl })}
+            className="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+            onClick={() => void handleSocialSignIn('microsoft-entra-id')}
+            disabled={isSubmitting}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 21 21" fill="currentColor">
               <path fill="#f25022" d="M1 1h9v9H1z" />
@@ -43,6 +71,12 @@ export default function LoginPage() {
             </svg>
             使用 Microsoft 登录
           </button>
+
+          {signInError ? (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              {signInError}
+            </div>
+          ) : null}
 
           <div className="text-center text-xs text-gray-500 dark:text-gray-400">
             登录即表示您同意我们的服务条款和隐私政策
