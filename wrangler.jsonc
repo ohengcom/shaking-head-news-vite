@@ -4,6 +4,13 @@
   "compatibility_date": "2026-02-25",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "main": "./worker/index.ts",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "sn.oheng.com/*",
+      "zone_name": "oheng.com"
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist/client",
