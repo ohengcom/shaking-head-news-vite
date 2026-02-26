@@ -64,7 +64,7 @@ export default {
 
       if (url.pathname === '/_vinext/image') {
         const handleImageOptimization = await getImageOptimizationHandler()
-        return handleImageOptimization(request, {
+        return await handleImageOptimization(request, {
           fetchAsset: (assetPath) => env.ASSETS.fetch(new Request(new URL(assetPath, request.url))),
           transformImage: async (body, { width, format, quality }) => {
             const result = await env.IMAGES.input(body)
@@ -76,7 +76,7 @@ export default {
       }
 
       const appHandler = await getAppHandler()
-      return appHandler.fetch(request)
+      return await appHandler.fetch(request)
     } catch (error) {
       const message = toErrorMessage(error)
       console.error('Worker request failed', message)
