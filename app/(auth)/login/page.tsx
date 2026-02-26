@@ -4,9 +4,87 @@ import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { signIn } from '@/lib/auth-client'
 
+function toSafeCallbackUrl(callbackUrl: string | null): string {
+  if (!callbackUrl) {
+    return '/'
+  }
+
+  if (callbackUrl.startsWith('/')) {
+    return callbackUrl
+  }
+
+  if (typeof window === 'undefined') {
+    return '/'
+  }
+
+  try {
+    const parsed = new URL(callbackUrl)
+    if (parsed.origin !== window.location.origin) {
+      return '/'
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/'
+  } catch {
+    return '/'
+  }
+}
+
+function parseAuthError(error: unknown): string | null {
+  if (!error) {
+    return null
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'object') {
+    const candidate = error as {
+      message?: unknown
+      code?: unknown
+      error?: unknown
+      data?: { message?: unknown }
+    }
+
+    if (typeof candidate.message === 'string' && candidate.message.trim()) {
+      return candidate.message
+    }
+
+    if (
+      candidate.data &&
+      typeof candidate.data.message === 'string' &&
+      candidate.data.message.trim()
+    ) {
+      return candidate.data.message
+    }
+
+    if (candidate.error) {
+      return parseAuthError(candidate.error)
+    }
+
+    if (typeof candidate.code === 'string' && candidate.code.trim()) {
+      return candidate.code
+    }
+  }
+
+  return '登录失败，请稍后重试。'
+}
+
+interface SignInResult {
+  data?: {
+    url?: string
+    redirect?: boolean
+  } | null
+  error?: unknown
+}
+
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const callbackUrl = toSafeCallbackUrl(searchParams.get('callbackUrl'))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signInError, setSignInError] = useState<string | null>(null)
 
@@ -19,15 +97,21 @@ export default function LoginPage() {
     setSignInError(null)
 
     try {
-      const result = await signIn(provider, { redirectTo: callbackUrl })
-      const errorMessage =
-        result && typeof result === 'object' && 'error' in result ? String(result.error ?? '') : ''
+      const result = (await signIn(provider, { redirectTo: callbackUrl })) as
+        | SignInResult
+        | undefined
 
+      const errorMessage = parseAuthError(result?.error)
       if (errorMessage) {
         setSignInError(errorMessage)
+        return
+      }
+
+      if (result?.data?.redirect && result.data.url && typeof window !== 'undefined') {
+        window.location.href = result.data.url
       }
     } catch (error) {
-      setSignInError(error instanceof Error ? error.message : '登录失败，请稍后重试。')
+      setSignInError(parseAuthError(error) || '登录失败，请稍后重试。')
     } finally {
       setIsSubmitting(false)
     }
