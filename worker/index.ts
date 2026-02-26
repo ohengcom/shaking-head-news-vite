@@ -1,5 +1,3 @@
-import { handleImageOptimization } from 'vinext/server/image-optimization'
-
 interface Env {
   ASSETS: {
     fetch(request: Request): Promise<Response>
@@ -19,7 +17,11 @@ type AppHandler = {
   fetch(request: Request): Promise<Response>
 }
 
+type HandleImageOptimization =
+  (typeof import('vinext/server/image-optimization'))['handleImageOptimization']
+
 let appHandlerPromise: Promise<AppHandler> | null = null
+let imageOptimizationPromise: Promise<HandleImageOptimization> | null = null
 
 async function getAppHandler(): Promise<AppHandler> {
   if (!appHandlerPromise) {
@@ -35,6 +37,19 @@ async function getAppHandler(): Promise<AppHandler> {
   return appHandlerPromise
 }
 
+async function getImageOptimizationHandler(): Promise<HandleImageOptimization> {
+  if (!imageOptimizationPromise) {
+    imageOptimizationPromise = import('vinext/server/image-optimization').then((module) => {
+      if (typeof module.handleImageOptimization !== 'function') {
+        throw new Error('Invalid image optimization handler export')
+      }
+      return module.handleImageOptimization
+    })
+  }
+
+  return imageOptimizationPromise
+}
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.stack || `${error.name}: ${error.message}`
@@ -48,6 +63,7 @@ export default {
       const url = new URL(request.url)
 
       if (url.pathname === '/_vinext/image') {
+        const handleImageOptimization = await getImageOptimizationHandler()
         return handleImageOptimization(request, {
           fetchAsset: (assetPath) => env.ASSETS.fetch(new Request(new URL(assetPath, request.url))),
           transformImage: async (body, { width, format, quality }) => {
