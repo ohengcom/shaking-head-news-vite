@@ -42,8 +42,6 @@ const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string
           revalidate: DEFAULT_REVALIDATE,
           tags: ['news', `news-${language}`, source ? `news-${source}` : 'news-latest'],
         },
-        // Enable stale-while-revalidate for better performance
-        cache: 'force-cache',
       })
 
       if (!res.ok) {
@@ -300,8 +298,6 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
         headers: {
           'User-Agent': 'ShakingHeadNews/1.0',
         },
-        // Enable stale-while-revalidate for RSS feeds
-        cache: 'force-cache',
       })
 
       if (!res.ok) {
