@@ -11,6 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': rootDir,
+      'next-intl/config': path.resolve(rootDir, 'i18n/request.ts'),
     },
   },
   plugins: [

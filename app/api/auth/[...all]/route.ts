@@ -1,4 +1,20 @@
 import { toNextJsHandler } from 'better-auth/next-js'
-import { authServer } from '@/lib/auth'
+import { getAuthServer } from '@/lib/auth'
+import { NextResponse } from 'next/server'
 
-export const { GET, POST } = toNextJsHandler(authServer)
+const authServer = getAuthServer()
+const authHandler = authServer ? toNextJsHandler(authServer) : null
+
+export async function GET(request: Request) {
+  if (!authHandler) {
+    return NextResponse.json({ error: 'Auth is not configured' }, { status: 503 })
+  }
+  return authHandler.GET(request)
+}
+
+export async function POST(request: Request) {
+  if (!authHandler) {
+    return NextResponse.json({ error: 'Auth is not configured' }, { status: 503 })
+  }
+  return authHandler.POST(request)
+}

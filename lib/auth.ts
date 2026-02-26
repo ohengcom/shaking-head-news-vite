@@ -23,11 +23,38 @@ const socialProviders = {
     : {}),
 }
 
-export const authServer = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  socialProviders,
-})
+const authBaseURL = process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL
+const authSecret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET
+
+type AuthServer = ReturnType<typeof betterAuth>
+let authServerInstance: AuthServer | null | undefined
+
+export function getAuthServer(): AuthServer | null {
+  if (authServerInstance !== undefined) {
+    return authServerInstance
+  }
+
+  if (!authBaseURL || !authSecret) {
+    console.warn(
+      '[Auth] BETTER_AUTH_URL/NEXTAUTH_URL or BETTER_AUTH_SECRET/NEXTAUTH_SECRET is missing'
+    )
+    authServerInstance = null
+    return null
+  }
+
+  try {
+    authServerInstance = betterAuth({
+      baseURL: authBaseURL,
+      secret: authSecret,
+      socialProviders,
+    })
+    return authServerInstance
+  } catch (error) {
+    console.error('[Auth] Failed to initialize Better Auth', error)
+    authServerInstance = null
+    return null
+  }
+}
 
 export interface AppSession {
   user: {
@@ -51,9 +78,20 @@ async function ensureUserSettings(userId: string) {
 }
 
 export async function auth(): Promise<AppSession | null> {
-  const session = await authServer.api.getSession({
-    headers: await headers(),
-  })
+  const authServer = getAuthServer()
+  if (!authServer) {
+    return null
+  }
+
+  let session: Awaited<ReturnType<typeof authServer.api.getSession>>
+  try {
+    session = await authServer.api.getSession({
+      headers: await headers(),
+    })
+  } catch (error) {
+    console.error('[Auth] Failed to get session', error)
+    return null
+  }
 
   if (!session?.user) {
     return null
