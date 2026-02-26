@@ -33,7 +33,7 @@ export function Footer() {
               沪ICP备2022000575号
             </a>
             <a
-              href="https://github.com/024812/shaking-head-news"
+              href="https://github.com/ohengcom/shaking-head-news-vite"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary flex items-center gap-2 transition-colors duration-200"
