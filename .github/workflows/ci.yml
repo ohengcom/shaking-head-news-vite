@@ -38,7 +38,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --include=dev --include=optional
+        run: npm install --include=dev --include=optional
 
       - name: Run ESLint
         run: npm run lint
@@ -62,7 +62,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --include=dev --include=optional
+        run: npm install --include=dev --include=optional
 
       - name: Run type check
         run: npm run type-check
@@ -83,7 +83,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --include=dev --include=optional
+        run: npm install --include=dev --include=optional
 
       - name: Run tests with coverage
         run: |
@@ -137,7 +137,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --include=dev --include=optional
+        run: npm install --include=dev --include=optional
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
@@ -192,7 +192,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --include=dev --include=optional
+        run: npm install --include=dev --include=optional
 
       - name: Build application
         run: npm run build
