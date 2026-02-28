@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Run ESLint
         run: npm run lint
@@ -66,7 +66,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Run type check
         run: npm run type-check
@@ -89,7 +89,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Run tests with coverage
         run: |
@@ -145,7 +145,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
@@ -202,10 +202,24 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Build application
-        run: npm run build
+        run: |
+          set -euo pipefail
+          set +e
+          build_output="$(npm run build 2>&1)"
+          build_code=$?
+          set -e
+
+          if [ "$build_code" -ne 0 ]; then
+            echo "$build_output"
+            build_snippet="$(printf '%s\n' "$build_output" | head -n 25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Build application failed::$build_snippet"
+            exit "$build_code"
+          fi
+
+          echo "$build_output"
         env:
           # Required for build
           NEXTAUTH_SECRET: build-secret
