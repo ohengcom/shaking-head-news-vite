@@ -25,6 +25,8 @@ interface AdBannerProps {
   adSlot?: string
   /** 初始 Pro 状态 (用于服务端渲染) */
   initialIsPro?: boolean
+  /** 初始广告偏好（用于服务端渲染） */
+  initialAdsEnabled?: boolean
 }
 
 /**
@@ -37,9 +39,10 @@ export function AdBanner({
   className,
   adSlot,
   initialIsPro,
+  initialAdsEnabled = true,
 }: AdBannerProps) {
   const { isPro, features } = useUserTier({ initialIsPro })
-  const [adsEnabled, setAdsEnabled] = useState(true)
+  const [adsEnabled, setAdsEnabled] = useState(initialAdsEnabled)
   const [isClient, setIsClient] = useState(false)
 
   // 确保在客户端渲染
@@ -47,27 +50,15 @@ export function AdBanner({
     setIsClient(true)
   }, [])
 
-  // Pro 用户可以关闭广告
+  // Pro 用户可以根据云端设置隐藏广告
   useEffect(() => {
-    const checkAdsPreference = () => {
-      if (isPro && features.adsDisableable) {
-        // 从用户设置中获取广告偏好
-        const savedPreference = localStorage.getItem('adsEnabled')
-        if (savedPreference !== null) {
-          setAdsEnabled(savedPreference === 'true')
-        }
-      } else {
-        // Guest 和 Member 强制显示广告
-        setAdsEnabled(true)
-      }
+    if (isPro && features.adsDisableable) {
+      setAdsEnabled(initialAdsEnabled)
+      return
     }
-
-    checkAdsPreference()
-
-    // Listen for setting changes
-    window.addEventListener('ads-preference-changed', checkAdsPreference)
-    return () => window.removeEventListener('ads-preference-changed', checkAdsPreference)
-  }, [isPro, features.adsDisableable])
+    // Guest 和 Member 强制显示广告
+    setAdsEnabled(true)
+  }, [features.adsDisableable, initialAdsEnabled, isPro])
 
   // 如果 Pro 用户关闭了广告，不渲染
   if (isPro && features.adsDisableable && !adsEnabled) {

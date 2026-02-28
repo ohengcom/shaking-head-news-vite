@@ -22,15 +22,24 @@ export async function getUserSettings(): Promise<UserSettings> {
   }
 
   try {
-    const settings = await getStorageItem<UserSettings>(StorageKeys.userSettings(session.user.id))
+    const settings = await getStorageItem<Partial<UserSettings>>(
+      StorageKeys.userSettings(session.user.id)
+    )
 
     if (!settings) {
       // 用户首次访问，返回默认设置
       return { ...defaultSettings, userId: session.user.id }
     }
 
+    // 合并默认值，确保新增字段向后兼容
+    const mergedSettings = {
+      ...defaultSettings,
+      ...settings,
+      userId: session.user.id,
+    }
+
     // 验证并返回存储的设置
-    return validateOrThrow(UserSettingsSchema, settings)
+    return validateOrThrow(UserSettingsSchema, mergedSettings)
   } catch (error) {
     logError(error, {
       action: 'getUserSettings',
@@ -85,12 +94,14 @@ export async function updateSettings(
     // 验证数据
     const validatedSettings = validateOrThrow(UserSettingsSchema, newSettings)
 
-    // 存储到 Vercel Marketplace Storage
+    // 存储到 Cloudflare KV
     await setStorageItem(StorageKeys.userSettings(session.user.id), validatedSettings)
 
-    // 重新验证相关页面
+    // 重新验证依赖用户设置的页面
     revalidatePath('/')
     revalidatePath('/settings')
+    revalidatePath('/stats')
+    revalidatePath('/rss')
 
     return {
       success: true,
@@ -141,9 +152,11 @@ export async function resetSettings(): Promise<{
 
     await setStorageItem(StorageKeys.userSettings(session.user.id), resetSettings)
 
-    // 重新验证相关页面
+    // 重新验证依赖用户设置的页面
     revalidatePath('/')
     revalidatePath('/settings')
+    revalidatePath('/stats')
+    revalidatePath('/rss')
 
     return {
       success: true,

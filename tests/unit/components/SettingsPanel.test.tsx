@@ -71,6 +71,7 @@ describe('SettingsPanel', () => {
     layoutMode: 'normal',
     dailyGoal: 30,
     notificationsEnabled: true,
+    adsEnabled: true,
     newsSources: ['everydaynews'],
     activeSource: 'everydaynews',
     isPro: true,

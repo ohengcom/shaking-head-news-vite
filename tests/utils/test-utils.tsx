@@ -35,8 +35,10 @@ export const mockUserSettings = {
   layoutMode: 'normal' as const,
   dailyGoal: 30,
   notificationsEnabled: true,
+  adsEnabled: true,
   newsSources: ['everydaynews'],
   activeSource: 'everydaynews',
+  isPro: false,
 }
 
 /**

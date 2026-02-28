@@ -61,6 +61,7 @@ describe('Settings Actions', () => {
       expect(settings.userId).toBe('')
       expect(settings.language).toBe('zh')
       expect(settings.theme).toBe('system')
+      expect(settings.adsEnabled).toBe(true)
     })
 
     it('should return default settings when Redis is not configured', async () => {
@@ -74,6 +75,7 @@ describe('Settings Actions', () => {
 
       expect(settings.userId).toBe('test-user-id')
       expect(settings.language).toBe('zh')
+      expect(settings.adsEnabled).toBe(true)
     })
 
     it('should return stored settings for authenticated users', async () => {
@@ -87,6 +89,21 @@ describe('Settings Actions', () => {
 
       expect(settings).toEqual(mockUserSettings)
       expect(getStorageItem).toHaveBeenCalledWith('user:test-user-id:settings')
+    })
+
+    it('should merge defaults for legacy settings payloads', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      const legacySettings = { ...mockUserSettings }
+      delete (legacySettings as Partial<typeof legacySettings>).adsEnabled
+      vi.mocked(getStorageItem).mockResolvedValue(legacySettings)
+
+      const settings = await getUserSettings()
+
+      expect(settings.adsEnabled).toBe(true)
+      expect(settings.language).toBe(mockUserSettings.language)
     })
 
     it('should return default settings when no stored settings exist', async () => {

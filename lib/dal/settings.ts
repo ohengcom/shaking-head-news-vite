@@ -3,7 +3,7 @@
  * 设置数据访问层
  *
  * 在数据访问层进行认证检查
- * 支持云存储回退到 localStorage
+ * 使用 Cloudflare KV 存储用户设置
  */
 
 import { getCurrentUser } from './auth'

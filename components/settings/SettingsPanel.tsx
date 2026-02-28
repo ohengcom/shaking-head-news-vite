@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
@@ -69,8 +69,8 @@ function LockedSettingItem({
 
 export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   const [settings, setSettings] = useState<UserSettings>(initialSettings)
-  const [isPending, startTransition] = useTransition()
-  const [isResetting, startResetTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
   const { toast } = useToast()
   const t = useTranslations('settings')
   const tTier = useTranslations('tier')
@@ -85,17 +85,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   const { isGuest, isPro, features, togglePro, isTogglingPro } = useUserTier({
     initialIsPro: initialSettings.isPro ?? false,
   })
-
-  // Local state for client-side settings
-  const [localAdsEnabled, setLocalAdsEnabled] = useState(true)
-
-  // Initialize local settings from localStorage
-  useEffect(() => {
-    const savedAds = localStorage.getItem('adsEnabled')
-    if (savedAds !== null) {
-      setLocalAdsEnabled(savedAds === 'true')
-    }
-  }, [])
 
   // Sync UI store, rotation store, and theme with settings on mount and when settings change
   useEffect(() => {
@@ -117,59 +106,71 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     setRotationInterval,
   ])
 
-  const handleSave = () => {
-    startTransition(async () => {
-      try {
-        const result = await updateSettings(settings)
+  const handleSave = async () => {
+    if (isPending || isResetting) {
+      return
+    }
 
-        if (result.success) {
-          toast({
-            title: t('saveSuccess'),
-            description: t('saveSuccessDescription'),
-          })
-        } else {
-          toast({
-            title: t('saveError'),
-            description: result.error || t('saveErrorDescription'),
-            variant: 'destructive',
-          })
-        }
-      } catch {
+    setIsPending(true)
+    try {
+      const result = await updateSettings(settings)
+
+      if (result?.success) {
         toast({
-          title: t('saveError'),
-          description: t('saveErrorDescription'),
-          variant: 'destructive',
+          title: t('saveSuccess'),
+          description: t('saveSuccessDescription'),
         })
+        return
       }
-    })
+
+      toast({
+        title: t('saveError'),
+        description: result?.error || t('saveErrorDescription'),
+        variant: 'destructive',
+      })
+    } catch {
+      toast({
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsPending(false)
+    }
   }
 
-  const handleReset = () => {
-    startResetTransition(async () => {
-      try {
-        const result = await resetSettings()
+  const handleReset = async () => {
+    if (isPending || isResetting) {
+      return
+    }
 
-        if (result.success && result.settings) {
-          setSettings(result.settings)
-          toast({
-            title: t('saveSuccess'),
-            description: t('saveSuccessDescription'),
-          })
-        } else {
-          toast({
-            title: t('saveError'),
-            description: result.error || t('saveErrorDescription'),
-            variant: 'destructive',
-          })
-        }
-      } catch {
+    setIsResetting(true)
+    try {
+      const result = await resetSettings()
+
+      if (result?.success && result.settings) {
+        setSettings(result.settings)
         toast({
-          title: t('saveError'),
-          description: t('saveErrorDescription'),
-          variant: 'destructive',
+          title: t('saveSuccess'),
+          description: t('saveSuccessDescription'),
         })
+        return
       }
-    })
+
+      toast({
+        title: t('saveError'),
+        description: result?.error || t('saveErrorDescription'),
+        variant: 'destructive',
+      })
+    } catch {
+      toast({
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
@@ -561,13 +562,9 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
               </div>
               <Switch
                 id="adsEnabled"
-                checked={localAdsEnabled}
+                checked={settings.adsEnabled}
                 onCheckedChange={(checked) => {
-                  setLocalAdsEnabled(checked)
-                  localStorage.setItem('adsEnabled', String(checked))
-                  // Dispatch event for immediate UI update
-
-                  window.dispatchEvent(new Event('ads-preference-changed'))
+                  updateSetting('adsEnabled', checked)
 
                   toast({
                     title: t('saveSuccess'),

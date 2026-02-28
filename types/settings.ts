@@ -11,6 +11,7 @@ export const UserSettingsSchema = z.object({
   layoutMode: z.enum(['normal', 'compact']),
   dailyGoal: z.number().min(10).max(100),
   notificationsEnabled: z.boolean(),
+  adsEnabled: z.boolean(),
   newsSources: z.array(z.string()),
   activeSource: z.string().optional(),
   // Pro 订阅状态（临时测试用）
@@ -29,6 +30,7 @@ export const defaultSettings: Omit<UserSettings, 'userId'> = {
   layoutMode: 'normal',
   dailyGoal: 30,
   notificationsEnabled: true,
+  adsEnabled: true,
   newsSources: ['everydaynews'],
   activeSource: 'everydaynews',
   isPro: false,

@@ -71,6 +71,7 @@ export default async function HomePage() {
               size="large"
               className="min-h-[600px] w-full"
               initialIsPro={false}
+              initialAdsEnabled={true}
             />
           </aside>
 
@@ -92,6 +93,7 @@ export default async function HomePage() {
               size="large"
               className="min-h-[600px] w-full"
               initialIsPro={false}
+              initialAdsEnabled={true}
             />
           </aside>
         </div>
@@ -111,6 +113,7 @@ export default async function HomePage() {
             size="large"
             className="min-h-[600px] w-full"
             initialIsPro={isPro}
+            initialAdsEnabled={settings?.adsEnabled ?? true}
           />
         </aside>
 
@@ -194,6 +197,7 @@ export default async function HomePage() {
             size="large"
             className="min-h-[600px] w-full"
             initialIsPro={isPro}
+            initialAdsEnabled={settings?.adsEnabled ?? true}
           />
         </aside>
       </div>

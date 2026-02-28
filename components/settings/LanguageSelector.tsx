@@ -11,7 +11,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { updateSettings } from '@/lib/actions/settings'
 import { useToast } from '@/hooks/use-toast'
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { Globe } from 'lucide-react'
 
 interface LanguageSelectorProps {
@@ -22,43 +22,48 @@ export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
   const t = useTranslations('settings')
   const { toast } = useToast()
   const [language, setLanguage] = useState<'zh' | 'en'>(currentLanguage)
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
 
   const handleLanguageChange = async (newLanguage: 'zh' | 'en') => {
+    if (isPending) {
+      return
+    }
+
     setLanguage(newLanguage)
+    setIsPending(true)
 
-    startTransition(async () => {
-      try {
-        // Update settings in storage
-        await updateSettings({ language: newLanguage })
+    try {
+      // Update settings in storage
+      await updateSettings({ language: newLanguage })
 
-        // Set cookie for next-intl (client-side only)
-        if (typeof document !== 'undefined') {
-          document.cookie = `locale=${newLanguage}; path=/; max-age=31536000`
-        }
-
-        toast({
-          title: t('saveSuccess'),
-          description: t('saveSuccessDescription'),
-        })
-
-        // Reload page to apply new language (client-side only)
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            window.location.reload()
-          }, 500)
-        }
-      } catch (error) {
-        console.error('Failed to update language:', error)
-        toast({
-          title: t('saveError'),
-          description: t('saveErrorDescription'),
-          variant: 'destructive',
-        })
-        // Revert on error
-        setLanguage(currentLanguage)
+      // Set cookie for next-intl (client-side only)
+      if (typeof document !== 'undefined') {
+        document.cookie = `locale=${newLanguage}; path=/; max-age=31536000`
       }
-    })
+
+      toast({
+        title: t('saveSuccess'),
+        description: t('saveSuccessDescription'),
+      })
+
+      // Reload page to apply new language (client-side only)
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      }
+    } catch (error) {
+      console.error('Failed to update language:', error)
+      toast({
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
+        variant: 'destructive',
+      })
+      // Revert on error
+      setLanguage(currentLanguage)
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (

@@ -1,45 +1,124 @@
-import { Redis } from '@upstash/redis'
-
-// 检查环境变量
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
-
-const isRedisConfigured = !!(redisUrl && redisToken)
-
-if (!isRedisConfigured) {
-  console.warn('[Storage] Redis not configured, using in-memory storage (data will not persist)')
+interface KVNamespaceLike {
+  get(key: string, type?: 'text'): Promise<string | null>
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
+  delete(key: string): Promise<void>
 }
 
-// 内存存储备选方案（仅用于开发/测试）
-const memoryStorage = new Map<string, { value: unknown; expiry?: number }>()
+interface CloudflareWorkersModule {
+  env?: {
+    APP_SETTINGS_KV?: KVNamespaceLike
+  }
+}
 
-// 创建 Storage 客户端（使用 Upstash Redis）
-export const storage = isRedisConfigured
-  ? new Redis({
-      url: redisUrl,
-      token: redisToken,
-    })
-  : null
+interface LegacyRateLimitStorageLike {
+  incr(key: string): Promise<number>
+  expire(key: string, seconds: number): Promise<void>
+  ttl(key: string): Promise<number>
+}
 
-// 类型安全的存储操作
+interface StoredEnvelope<T> {
+  value: T
+  expiry?: number
+}
+
+let kvNamespaceCache: KVNamespaceLike | null | undefined
+
+async function getKVNamespace(): Promise<KVNamespaceLike | null> {
+  if (kvNamespaceCache !== undefined) {
+    return kvNamespaceCache
+  }
+
+  const globalKV = (globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV
+  if (globalKV) {
+    kvNamespaceCache = globalKV
+    return kvNamespaceCache
+  }
+
+  try {
+    const workersModuleId = 'cloudflare:workers'
+    const cloudflareModule = (await import(
+      /* @vite-ignore */ workersModuleId
+    )) as CloudflareWorkersModule
+    kvNamespaceCache = cloudflareModule?.env?.APP_SETTINGS_KV ?? null
+  } catch {
+    kvNamespaceCache = null
+  }
+
+  return kvNamespaceCache
+}
+
+function parseEnvelope<T>(raw: string): StoredEnvelope<T> | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+
+    if (typeof parsed === 'object' && parsed !== null && 'value' in parsed) {
+      const envelope = parsed as StoredEnvelope<T>
+      return envelope
+    }
+
+    return { value: parsed as T }
+  } catch {
+    return null
+  }
+}
+
+async function readKVEnvelope<T>(
+  kv: KVNamespaceLike,
+  key: string
+): Promise<StoredEnvelope<T> | null> {
+  const raw = await kv.get(key, 'text')
+  if (!raw) {
+    return null
+  }
+
+  const envelope = parseEnvelope<T>(raw)
+  if (!envelope) {
+    return null
+  }
+
+  if (envelope.expiry && Date.now() > envelope.expiry) {
+    await kv.delete(key)
+    return null
+  }
+
+  return envelope
+}
+
+async function writeKVValue<T>(
+  kv: KVNamespaceLike,
+  key: string,
+  value: T,
+  expirationSeconds?: number
+): Promise<void> {
+  const expiry =
+    typeof expirationSeconds === 'number' && expirationSeconds > 0
+      ? Date.now() + expirationSeconds * 1000
+      : undefined
+
+  const payload: StoredEnvelope<T> = {
+    value,
+    ...(expiry ? { expiry } : {}),
+  }
+
+  if (typeof expirationSeconds === 'number' && expirationSeconds > 0) {
+    await kv.put(key, JSON.stringify(payload), { expirationTtl: expirationSeconds })
+    return
+  }
+
+  await kv.put(key, JSON.stringify(payload))
+}
+
+// Kept for backward compatibility with existing rate-limit branch logic.
+export const storage: LegacyRateLimitStorageLike | null = null
+
 export async function getStorageItem<T>(key: string): Promise<T | null> {
   try {
-    // 使用 Redis
-    if (storage) {
-      return await storage.get<T>(key)
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
     }
-
-    // 使用内存存储
-    const item = memoryStorage.get(key)
-    if (!item) return null
-
-    // 检查是否过期
-    if (item.expiry && Date.now() > item.expiry) {
-      memoryStorage.delete(key)
-      return null
-    }
-
-    return item.value as T
+    const envelope = await readKVEnvelope<T>(kv, key)
+    return envelope ? envelope.value : null
   } catch (error) {
     console.error(`Failed to get storage item: ${key}`, error)
     return null
@@ -52,20 +131,11 @@ export async function setStorageItem<T>(
   expirationSeconds?: number
 ): Promise<void> {
   try {
-    // 使用 Redis
-    if (storage) {
-      if (expirationSeconds) {
-        await storage.set(key, value, { ex: expirationSeconds })
-      } else {
-        await storage.set(key, value)
-      }
-      return
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
     }
-
-    // 使用内存存储
-    const expiry = expirationSeconds ? Date.now() + expirationSeconds * 1000 : undefined
-
-    memoryStorage.set(key, { value, expiry })
+    await writeKVValue(kv, key, value, expirationSeconds)
   } catch (error) {
     console.error(`Failed to set storage item: ${key}`, error)
     throw error
@@ -74,60 +144,48 @@ export async function setStorageItem<T>(
 
 export async function deleteStorageItem(key: string): Promise<void> {
   try {
-    // 使用 Redis
-    if (storage) {
-      await storage.del(key)
-      return
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
     }
-
-    // 使用内存存储
-    memoryStorage.delete(key)
+    await kv.delete(key)
   } catch (error) {
     console.error(`Failed to delete storage item: ${key}`, error)
     throw error
   }
 }
 
-// 批量操作
 export async function getMultipleStorageItems(keys: string[]): Promise<unknown[]> {
   try {
-    // 使用 Redis
-    if (storage) {
-      return await storage.mget(...keys)
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
     }
-
-    // 使用内存存储
-    return keys.map((key) => {
-      const item = memoryStorage.get(key)
-      if (!item) return null
-
-      // 检查是否过期
-      if (item.expiry && Date.now() > item.expiry) {
-        memoryStorage.delete(key)
-        return null
-      }
-
-      return item.value
-    })
+    const values = await Promise.all(
+      keys.map(async (key) => {
+        const envelope = await readKVEnvelope<unknown>(kv, key)
+        return envelope ? envelope.value : null
+      })
+    )
+    return values
   } catch (error) {
     console.error('Failed to get multiple storage items', error)
     return keys.map(() => null)
   }
 }
 
-// 获取 TTL（剩余过期时间，秒）
 export async function getTTL(key: string): Promise<number> {
   try {
-    // 使用 Redis
-    if (storage) {
-      return await storage.ttl(key)
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
+    }
+    const envelope = await readKVEnvelope<unknown>(kv, key)
+    if (!envelope?.expiry) {
+      return -1
     }
 
-    // 使用内存存储
-    const item = memoryStorage.get(key)
-    if (!item || !item.expiry) return -1
-
-    const remaining = Math.floor((item.expiry - Date.now()) / 1000)
+    const remaining = Math.floor((envelope.expiry - Date.now()) / 1000)
     return remaining > 0 ? remaining : -2
   } catch (error) {
     console.error(`Failed to get TTL for key: ${key}`, error)
@@ -135,42 +193,36 @@ export async function getTTL(key: string): Promise<number> {
   }
 }
 
-// 设置带选项的存储项（支持 keepTtl）
 export async function setStorageItemWithOptions<T>(
   key: string,
   value: T,
   options?: { ex?: number; keepTtl?: boolean }
 ): Promise<void> {
   try {
-    // 使用 Redis
-    if (storage) {
-      // 根据选项构建 Redis 命令
-      if (options?.keepTtl) {
-        await storage.set(key, value, { keepTtl: true })
-      } else if (options?.ex) {
-        await storage.set(key, value, { ex: options.ex })
-      } else {
-        await storage.set(key, value)
-      }
+    const kv = await getKVNamespace()
+    if (!kv) {
+      throw new Error('APP_SETTINGS_KV is not available')
+    }
+    if (options?.keepTtl) {
+      const existing = await readKVEnvelope<unknown>(kv, key)
+      const remaining = existing?.expiry
+        ? Math.floor((existing.expiry - Date.now()) / 1000)
+        : undefined
+      const expirationSeconds = remaining && remaining > 0 ? remaining : undefined
+      await writeKVValue(kv, key, value, expirationSeconds)
       return
     }
-
-    // 使用内存存储
-    if (options?.keepTtl) {
-      // 保持现有的过期时间
-      const existing = memoryStorage.get(key)
-      memoryStorage.set(key, { value, expiry: existing?.expiry })
-    } else {
-      const expiry = options?.ex ? Date.now() + options.ex * 1000 : undefined
-      memoryStorage.set(key, { value, expiry })
+    if (options?.ex) {
+      await writeKVValue(kv, key, value, options.ex)
+      return
     }
+    await writeKVValue(kv, key, value)
   } catch (error) {
     console.error(`Failed to set storage item: ${key}`, error)
     throw error
   }
 }
 
-// 存储键格式化函数
 export const StorageKeys = {
   userSettings: (userId: string) => `user:${userId}:settings`,
   userStats: (userId: string, date: string) => `user:${userId}:stats:${date}`,

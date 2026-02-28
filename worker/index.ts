@@ -1,4 +1,11 @@
+interface KVNamespaceLike {
+  get(key: string, type?: 'text'): Promise<string | null>
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
+  delete(key: string): Promise<void>
+}
+
 interface Env {
+  APP_SETTINGS_KV: KVNamespaceLike
   ASSETS: {
     fetch(request: Request): Promise<Response>
   }
@@ -60,6 +67,7 @@ function toErrorMessage(error: unknown): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
+      ;(globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV = env.APP_SETTINGS_KV
       const url = new URL(request.url)
 
       if (url.pathname === '/_vinext/image') {

@@ -44,6 +44,7 @@ describe('LanguageSelector', () => {
         layoutMode: 'normal',
         dailyGoal: 30,
         notificationsEnabled: true,
+        adsEnabled: true,
         newsSources: ['everydaynews'],
       },
     })
