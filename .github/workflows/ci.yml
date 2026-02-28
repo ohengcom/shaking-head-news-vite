@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
 
       - name: Run ESLint
         run: npm run lint
@@ -66,7 +66,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
 
       - name: Run type check
         run: npm run type-check
@@ -89,7 +89,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
 
       - name: Run tests with coverage
         run: |
@@ -145,7 +145,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
@@ -202,7 +202,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1
 
       - name: Build application
         run: npm run build
