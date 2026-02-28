@@ -103,5 +103,8 @@ jobs:
           put_secret_if_present NEWS_API_BASE_URL
           put_secret_if_present NEXT_PUBLIC_LOG_LEVEL
 
+      - name: Build vinext output
+        run: npm run build:vinext
+
       - name: Deploy to Cloudflare Workers
-        run: npx vinext deploy --name shaking-head-news-vite
+        run: npx wrangler deploy
