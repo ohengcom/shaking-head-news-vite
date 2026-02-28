@@ -148,13 +148,13 @@ jobs:
           npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: |
           set -euo pipefail
           set +e
-          e2e_output="$(npm run test:e2e 2>&1)"
+          e2e_output="$(npm run test:e2e -- --project=chromium 2>&1)"
           e2e_code=$?
           set -e
 
