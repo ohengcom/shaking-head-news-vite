@@ -86,7 +86,21 @@ jobs:
         run: npm ci --include=dev --include=optional
 
       - name: Run tests with coverage
-        run: npm run test:coverage
+        run: |
+          set -euo pipefail
+          set +e
+          test_output="$(npm run test:coverage 2>&1)"
+          test_code=$?
+          set -e
+
+          if [ "$test_code" -ne 0 ]; then
+            echo "$test_output"
+            test_snippet="$(printf '%s\n' "$test_output" | head -n 25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Run tests with coverage failed::$test_snippet"
+            exit "$test_code"
+          fi
+
+          echo "$test_output"
         env:
           # Mock environment variables for tests
           NEXTAUTH_SECRET: test-secret
@@ -129,7 +143,21 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run E2E tests
-        run: npm run test:e2e
+        run: |
+          set -euo pipefail
+          set +e
+          e2e_output="$(npm run test:e2e 2>&1)"
+          e2e_code=$?
+          set -e
+
+          if [ "$e2e_code" -ne 0 ]; then
+            echo "$e2e_output"
+            e2e_snippet="$(printf '%s\n' "$e2e_output" | head -n 25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Run E2E tests failed::$e2e_snippet"
+            exit "$e2e_code"
+          fi
+
+          echo "$e2e_output"
         env:
           # Mock environment variables for E2E tests
           NEXTAUTH_SECRET: test-secret

@@ -104,7 +104,21 @@ jobs:
           put_secret_if_present NEXT_PUBLIC_LOG_LEVEL
 
       - name: Build vinext output
-        run: npm run build:vinext
+        run: |
+          set -euo pipefail
+          set +e
+          build_output="$(npm run build:vinext 2>&1)"
+          build_code=$?
+          set -e
+
+          if [ "$build_code" -ne 0 ]; then
+            echo "$build_output"
+            build_snippet="$(printf '%s\n' "$build_output" | head -n 25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Build vinext output failed::$build_snippet"
+            exit "$build_code"
+          fi
+
+          echo "$build_output"
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
