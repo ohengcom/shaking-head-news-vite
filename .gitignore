@@ -56,3 +56,8 @@ worker-*-response.txt
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Local debug artifacts
+tmp-*.png
+tmp-*.jpg
+tmp-*.jpeg
