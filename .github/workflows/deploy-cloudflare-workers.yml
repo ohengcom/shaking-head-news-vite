@@ -77,6 +77,19 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$NEXT_PUBLIC_ADSENSE_CLIENT_ID" ]; then
+            echo "Missing secret: NEXT_PUBLIC_ADSENSE_CLIENT_ID"
+            exit 1
+          fi
+
+          if [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR" ] && \
+             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_HEADER" ] && \
+             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_FOOTER" ] && \
+             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_INLINE" ]; then
+            echo "Missing AdSense slot secrets: set at least one NEXT_PUBLIC_ADSENSE_SLOT_*"
+            exit 1
+          fi
+
       - name: Sync runtime auth secrets to Worker
         run: |
           put_secret_if_present () {
@@ -104,6 +117,11 @@ jobs:
           put_secret_if_present UPSTASH_REDIS_REST_TOKEN
           put_secret_if_present NEWS_API_BASE_URL
           put_secret_if_present NEXT_PUBLIC_LOG_LEVEL
+          put_secret_if_present NEXT_PUBLIC_ADSENSE_CLIENT_ID
+          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR
+          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_HEADER
+          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_FOOTER
+          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_INLINE
 
       - name: Build vinext output
         run: |
