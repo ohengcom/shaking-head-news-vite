@@ -40,7 +40,7 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
-  validateOrThrow: vi.fn((schema, data) => data),
+  validateOrThrow: vi.fn((_schema, data) => data),
   AuthError: class AuthError extends Error {},
 }))
 
@@ -58,8 +58,6 @@ describe('Stats Actions', () => {
       reset: Date.now() + 60000,
     })
     vi.mocked(getMultipleStorageItems).mockResolvedValue([])
-    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io'
-    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token'
   })
 
   afterEach(() => {
@@ -86,10 +84,11 @@ describe('Stats Actions', () => {
 
       const result = await recordRotation(5, 30)
 
+      expect(result).not.toHaveProperty('error')
       expect(result).toBeTruthy()
-      expect(result?.rotationCount).toBe(1)
-      expect(result?.totalDuration).toBe(30)
-      expect(result?.records).toHaveLength(1)
+      expect('rotationCount' in result && result.rotationCount).toBe(1)
+      expect('totalDuration' in result && result.totalDuration).toBe(30)
+      expect('records' in result && result.records.length).toBe(1)
       expect(setStorageItem).toHaveBeenCalled()
     })
 
@@ -117,10 +116,11 @@ describe('Stats Actions', () => {
 
       const result = await recordRotation(5, 30)
 
+      expect(result).not.toHaveProperty('error')
       // rotationCount should be incremented by 1
-      expect(result?.rotationCount).toBe(11)
+      expect('rotationCount' in result && result.rotationCount).toBe(11)
       // totalDuration should be increased by the new duration
-      expect(result?.totalDuration).toBe(330)
+      expect('totalDuration' in result && result.totalDuration).toBe(330)
     })
 
     it('should record rotation even when rate limit would normally block (rate limit disabled)', async () => {
@@ -191,7 +191,8 @@ describe('Stats Actions', () => {
 
       const result = await recordRotation(5, 30)
 
-      expect(result?.records).toHaveLength(100)
+      expect(result).not.toHaveProperty('error')
+      expect('records' in result && result.records.length).toBe(100)
     })
   })
 
@@ -349,8 +350,7 @@ describe('Stats Actions', () => {
       await expect(getSummaryStats()).rejects.toThrow('sign in')
     })
 
-    it('should return empty stats when Redis is not configured', async () => {
-      delete process.env.UPSTASH_REDIS_REST_URL
+    it('should return empty stats when persistent storage is unavailable', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),

@@ -1,34 +1,22 @@
-import js from '@eslint/js'
-import tsParser from '@typescript-eslint/parser'
-import tsPlugin from '@typescript-eslint/eslint-plugin'
+import nextVitals from 'eslint-config-next/core-web-vitals'
 import globals from 'globals'
 
 export default [
-  js.configs.recommended,
+  ...nextVitals,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      parser: tsParser,
       parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-        },
+        projectService: true,
       },
       globals: {
         ...globals.browser,
         ...globals.nodeBuiltin,
-        React: 'readonly',
         JSX: 'readonly',
         NodeJS: 'readonly',
       },
     },
-    plugins: {
-      '@typescript-eslint': tsPlugin,
-    },
     rules: {
-      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -46,9 +34,11 @@ export default [
       'out/**',
       'dist/**',
       'build/**',
+      'coverage/**',
+      'playwright-report/**',
       'public/**',
+      'test-results/**',
       '*.config.js',
-      '*.config.ts',
     ],
   },
 ]

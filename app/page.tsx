@@ -15,10 +15,14 @@ import { RefreshButton } from '@/components/common/RefreshButton'
 export const revalidate = 3600 // ISR: 每小时重新验证一次
 
 export default async function HomePage() {
-  const t = await getTranslations('home')
-  const tNews = await getTranslations('news')
-  const tPage = await getTranslations('page')
-  const session = await auth()
+  const [t, tNews, tPage, session, dailyResponse, aiNews] = await Promise.all([
+    getTranslations('home'),
+    getTranslations('news'),
+    getTranslations('page'),
+    auth(),
+    getNews('zh').catch(() => ({ items: [], total: 0 })),
+    getAiNewsItems().catch(() => []),
+  ])
   const settings = session?.user ? await getUserSettings() : null
   const isPro = settings?.isPro ?? false
   const isMember = !!session?.user
@@ -36,9 +40,7 @@ export default async function HomePage() {
   // Fetch data
   // For guests: Daily + AI merged
   // For members: Daily, AI, Trending, + Dynamic Sources
-  const [dailyResponse, aiNews, customNews, ...dynamicSourcesData] = await Promise.all([
-    getNews('zh').catch(() => ({ items: [], total: 0 })), // Fetch standard daily news explicitly
-    getAiNewsItems().catch(() => []),
+  const [customNews, ...dynamicSourcesData] = await Promise.all([
     isPro ? getUserCustomNews().catch(() => []) : Promise.resolve([]), // Fetch user custom RSS only for Pro
     ...enabledSourceIds.map((id) => {
       const sourceName = HOT_LIST_SOURCES.find((s) => s.id === id)?.name || id
@@ -82,6 +84,15 @@ export default async function HomePage() {
             </div>
 
             <div className="space-y-6">
+              <div className="xl:hidden">
+                <AdBanner
+                  position="inline"
+                  size="medium"
+                  className="w-full"
+                  initialIsPro={false}
+                  initialAdsEnabled={true}
+                />
+              </div>
               <NewsList news={mergedNews} showLoginCTA={true} />
             </div>
           </main>
@@ -125,6 +136,16 @@ export default async function HomePage() {
           </div>
 
           <Tabs defaultValue={isPro ? 'custom' : 'daily'} className="w-full">
+            <div className="mb-6 xl:hidden">
+              <AdBanner
+                position="inline"
+                size="medium"
+                className="w-full"
+                initialIsPro={isPro}
+                initialAdsEnabled={settings?.adsEnabled ?? true}
+              />
+            </div>
+
             <TabsList className="scrollbar-hide mb-6 flex h-auto w-full justify-start overflow-x-auto whitespace-nowrap sm:w-auto">
               {/* Pro Custom Feed */}
               {isPro && <TabsTrigger value="custom">{tPage('myFeed')}</TabsTrigger>}

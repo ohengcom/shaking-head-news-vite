@@ -1,38 +1,81 @@
 import { betterAuth } from 'better-auth'
 import { headers } from 'next/headers'
-import { getStorageItem, setStorageItem, StorageKeys } from './storage'
-import { defaultSettings } from '@/types/settings'
+
+const authBaseURL = process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL
+const authSecret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.AUTH_GOOGLE_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_SECRET
+
+const microsoftClientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID || process.env.MICROSOFT_CLIENT_ID
+const microsoftClientSecret =
+  process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET || process.env.MICROSOFT_CLIENT_SECRET
+const microsoftTenantId =
+  process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || process.env.MICROSOFT_TENANT_ID || 'common'
+const microsoftRedirectPath =
+  process.env.AUTH_MICROSOFT_REDIRECT_PATH || '/api/auth/callback/microsoft-entra-id'
+
+function toAbsoluteURL(baseURL: string | undefined, pathOrURL: string): string | undefined {
+  if (!baseURL || !pathOrURL) {
+    return undefined
+  }
+
+  try {
+    return new URL(pathOrURL).toString()
+  } catch {
+    const normalizedPath = pathOrURL.startsWith('/') ? pathOrURL : `/${pathOrURL}`
+    try {
+      return new URL(normalizedPath, baseURL).toString()
+    } catch {
+      return undefined
+    }
+  }
+}
+
+const microsoftRedirectURI = toAbsoluteURL(authBaseURL, microsoftRedirectPath)
+
+function createAuthServer() {
+  return betterAuth({
+    baseURL: authBaseURL!,
+    secret: authSecret!,
+    socialProviders,
+  })
+}
 
 const socialProviders = {
-  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+  ...(googleClientId && googleClientSecret
     ? {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
         },
       }
     : {}),
-  ...(process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
+  ...(microsoftClientId && microsoftClientSecret
     ? {
         microsoft: {
-          clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
-          clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-          tenantId: process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || 'common',
+          clientId: microsoftClientId,
+          clientSecret: microsoftClientSecret,
+          tenantId: microsoftTenantId,
+          disableDefaultScope: true,
+          disableProfilePhoto: false,
+          scope: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
+          ...(microsoftRedirectURI ? { redirectURI: microsoftRedirectURI } : {}),
         },
       }
     : {}),
 }
 
-const authBaseURL = process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL
-const authSecret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET
-
-type AuthServer = ReturnType<typeof betterAuth>
-let authServerInstance: AuthServer | null | undefined
+type AuthServer = ReturnType<typeof createAuthServer>
+let authServerInstance: AuthServer | null = null
+let authServerInitialized = false
 
 export function getAuthServer(): AuthServer | null {
-  if (authServerInstance !== undefined) {
+  if (authServerInitialized) {
     return authServerInstance
   }
+
+  authServerInitialized = true
 
   if (!authBaseURL || !authSecret) {
     console.warn(
@@ -43,11 +86,7 @@ export function getAuthServer(): AuthServer | null {
   }
 
   try {
-    authServerInstance = betterAuth({
-      baseURL: authBaseURL,
-      secret: authSecret,
-      socialProviders,
-    })
+    authServerInstance = createAuthServer()
     return authServerInstance
   } catch (error) {
     console.error('[Auth] Failed to initialize Better Auth', error)
@@ -59,22 +98,12 @@ export function getAuthServer(): AuthServer | null {
 export interface AppSession {
   user: {
     id: string
+    providerUserId?: string
     name?: string | null
     email?: string | null
     image?: string | null
   }
-}
-
-async function ensureUserSettings(userId: string) {
-  const key = StorageKeys.userSettings(userId)
-  const existingSettings = await getStorageItem(key)
-
-  if (!existingSettings) {
-    await setStorageItem(key, {
-      ...defaultSettings,
-      userId,
-    })
-  }
+  expires?: string
 }
 
 export async function auth(): Promise<AppSession | null> {
@@ -97,19 +126,24 @@ export async function auth(): Promise<AppSession | null> {
     return null
   }
 
-  const userId = session.user.id || session.user.email
-  if (!userId) {
+  const providerUserId = session.user.id
+  const normalizedEmail = session.user.email?.trim().toLowerCase()
+  const stableUserId = normalizedEmail || providerUserId
+
+  if (!stableUserId) {
     return null
   }
 
-  await ensureUserSettings(userId)
-
   return {
     user: {
-      id: userId,
+      id: stableUserId,
+      providerUserId,
       name: session.user.name,
       email: session.user.email,
       image: session.user.image,
     },
+    expires: session.session?.expiresAt
+      ? new Date(session.session.expiresAt).toISOString()
+      : undefined,
   }
 }

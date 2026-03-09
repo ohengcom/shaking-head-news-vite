@@ -61,7 +61,7 @@ export function DailyBriefCard({ data }: DailyBriefCardProps) {
 
       <CardFooter className="bg-muted/20 flex-col items-start gap-4 border-t pt-4">
         <blockquote className="border-primary text-muted-foreground w-full border-l-2 pl-4 text-xs italic">
-          "{data.tip}"
+          “{data.tip}”
         </blockquote>
 
         <div className="flex w-full justify-end">

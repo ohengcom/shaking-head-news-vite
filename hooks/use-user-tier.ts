@@ -6,14 +6,14 @@
 'use client'
 
 import { useSession } from '@/lib/auth-client'
-import { useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import {
   UserTier,
   FeatureConfig,
   getFeaturesForTier,
   isFeatureEnabled,
 } from '@/lib/config/features'
-import { toggleProStatus } from '@/lib/actions/settings'
+import { toggleProViaApi } from '@/lib/api/settings-client'
 
 export interface UseUserTierReturn {
   /** 用户层级 */
@@ -40,7 +40,7 @@ export interface UseUserTierReturn {
   /** 检查特定功能是否可用 */
   hasFeature: (feature: keyof FeatureConfig) => boolean
   /** 切换 Pro 状态（临时测试用） */
-  togglePro: () => Promise<void>
+  togglePro: () => Promise<{ success: boolean; error?: string; isPro?: boolean }>
   /** 是否正在切换 Pro 状态 */
   isTogglingPro: boolean
 }
@@ -56,18 +56,35 @@ interface UseUserTierProps {
 export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
   const { data: session, status } = useSession()
   const [isProEnabled, setIsProEnabled] = useState(props?.initialIsPro ?? false)
-  const [isPending, startTransition] = useTransition()
+  const [isTogglingPro, setIsTogglingPro] = useState(false)
+
+  useEffect(() => {
+    if (typeof props?.initialIsPro === 'boolean') {
+      setIsProEnabled(props.initialIsPro)
+    }
+  }, [props?.initialIsPro])
 
   // 切换 Pro 状态（调用 Server Action）
   const togglePro = async () => {
-    startTransition(async () => {
-      const result = await toggleProStatus()
+    if (isTogglingPro) {
+      return { success: false, error: 'Pro update is already in progress' }
+    }
+
+    setIsTogglingPro(true)
+    try {
+      const result = await toggleProViaApi()
       if (result.success && result.isPro !== undefined) {
         setIsProEnabled(result.isPro)
-        // 刷新页面以更新所有服务端组件（Header、RSS 页面等）
-        window.location.reload()
       }
-    })
+      return result
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update Pro status',
+      }
+    } finally {
+      setIsTogglingPro(false)
+    }
   }
 
   // 判断用户层级
@@ -107,6 +124,6 @@ export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
     user,
     hasFeature,
     togglePro,
-    isTogglingPro: isPending,
+    isTogglingPro,
   }
 }

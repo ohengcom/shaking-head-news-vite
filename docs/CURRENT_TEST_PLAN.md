@@ -31,4 +31,4 @@ Required:
 
 Recommended:
 
-- Upstash Redis env vars to test persistence
+- `APP_SETTINGS_KV` binding available when testing persistence

@@ -20,7 +20,11 @@ vi.mock('next/cache', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimitByUser: vi.fn().mockResolvedValue({ success: true }),
+  rateLimitByUser: vi.fn().mockResolvedValue({
+    success: true,
+    remaining: 10,
+    reset: Date.now() + 60000,
+  }),
   RateLimitTiers: {
     STANDARD: { limit: 30, window: 60 },
     STRICT: { limit: 5, window: 900 },
@@ -39,11 +43,13 @@ import { rateLimitByUser } from '@/lib/rate-limit'
 describe('Settings Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Set default environment variables
-    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io'
-    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token'
+    process.env.ENABLE_SETTINGS_REVALIDATE = 'false'
     // Reset rateLimitByUser mock to return success by default
-    vi.mocked(rateLimitByUser).mockResolvedValue({ success: true })
+    vi.mocked(rateLimitByUser).mockResolvedValue({
+      success: true,
+      remaining: 10,
+      reset: Date.now() + 60000,
+    })
     // Suppress console.error for expected errors
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -64,12 +70,12 @@ describe('Settings Actions', () => {
       expect(settings.adsEnabled).toBe(true)
     })
 
-    it('should return default settings when Redis is not configured', async () => {
-      delete process.env.UPSTASH_REDIS_REST_URL
+    it('should return default settings when persistent storage is unavailable', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
+      vi.mocked(getStorageItem).mockResolvedValue(null)
 
       const settings = await getUserSettings()
 
@@ -119,6 +125,60 @@ describe('Settings Actions', () => {
       expect(settings.language).toBe('zh')
     })
 
+    it('should migrate legacy provider-id settings to stable user id', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'test@example.com',
+          providerUserId: 'legacy-provider-id',
+          name: 'Test User',
+          email: 'test@example.com',
+        },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...mockUserSettings, userId: 'legacy-provider-id' })
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+
+      const settings = await getUserSettings()
+
+      expect(getStorageItem).toHaveBeenNthCalledWith(1, 'user:test@example.com:settings')
+      expect(getStorageItem).toHaveBeenNthCalledWith(2, 'user:legacy-provider-id:settings')
+      expect(setStorageItem).toHaveBeenCalledWith(
+        'user:test@example.com:settings',
+        expect.objectContaining({ userId: 'test@example.com' })
+      )
+      expect(settings.userId).toBe('test@example.com')
+    })
+
+    it('should migrate legacy mixed-case email key to normalized user id', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: {
+          id: 'test@example.com',
+          providerUserId: 'legacy-provider-id',
+          name: 'Test User',
+          email: 'Test@Example.com',
+        },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...mockUserSettings, userId: 'Test@Example.com' })
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+
+      const settings = await getUserSettings()
+
+      expect(getStorageItem).toHaveBeenNthCalledWith(1, 'user:test@example.com:settings')
+      expect(getStorageItem).toHaveBeenNthCalledWith(2, 'user:legacy-provider-id:settings')
+      expect(getStorageItem).toHaveBeenNthCalledWith(3, 'user:Test@Example.com:settings')
+      expect(setStorageItem).toHaveBeenCalledWith(
+        'user:test@example.com:settings',
+        expect.objectContaining({ userId: 'test@example.com' })
+      )
+      expect(settings.userId).toBe('test@example.com')
+    })
+
     it('should return default settings on storage error', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
@@ -156,8 +216,7 @@ describe('Settings Actions', () => {
       expect(result.success).toBe(true)
       expect(result.settings?.language).toBe('en')
       expect(setStorageItem).toHaveBeenCalled()
-      expect(revalidatePath).toHaveBeenCalledWith('/')
-      expect(revalidatePath).toHaveBeenCalledWith('/settings')
+      expect(revalidatePath).not.toHaveBeenCalled()
     })
 
     it('should respect rate limits', async () => {
@@ -165,7 +224,11 @@ describe('Settings Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(rateLimitByUser).mockResolvedValue({ success: false })
+      vi.mocked(rateLimitByUser).mockResolvedValue({
+        success: false,
+        remaining: 0,
+        reset: Date.now() + 60000,
+      })
 
       const result = await updateSettings({ language: 'en' })
 
@@ -200,6 +263,23 @@ describe('Settings Actions', () => {
       expect(result.success).toBe(false)
       expect(result.error).toBeTruthy()
     })
+
+    it('should return success even when revalidatePath throws', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem).mockResolvedValue(mockUserSettings)
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+      vi.mocked(revalidatePath).mockImplementation(() => {
+        throw new Error('revalidate failed')
+      })
+
+      const result = await updateSettings({ language: 'en' })
+
+      expect(result.success).toBe(true)
+      expect(result.settings?.language).toBe('en')
+    })
   })
 
   describe('resetSettings', () => {
@@ -232,12 +312,32 @@ describe('Settings Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(rateLimitByUser).mockResolvedValue({ success: false })
+      vi.mocked(rateLimitByUser).mockResolvedValue({
+        success: false,
+        remaining: 0,
+        reset: Date.now() + 60000,
+      })
 
       const result = await resetSettings()
 
       expect(result.success).toBe(false)
       expect(result.error).toContain('Too many')
+    })
+
+    it('should return success even when revalidatePath throws', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+      vi.mocked(revalidatePath).mockImplementation(() => {
+        throw new Error('revalidate failed')
+      })
+
+      const result = await resetSettings()
+
+      expect(result.success).toBe(true)
+      expect(result.settings?.language).toBe('zh')
     })
   })
 })

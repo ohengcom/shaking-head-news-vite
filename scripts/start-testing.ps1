@@ -11,10 +11,10 @@ Write-Host ""
 
 Write-Host "Testing Steps:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Step 1: Check Vercel Deployment" -ForegroundColor White
-Write-Host "  1. Visit https://vercel.com/dashboard" -ForegroundColor Gray
-Write-Host "  2. Find shaking-head-news project" -ForegroundColor Gray
-Write-Host "  3. Confirm latest deployment succeeded (green check)" -ForegroundColor Gray
+Write-Host "Step 1: Check Cloudflare Deployment" -ForegroundColor White
+Write-Host "  1. Visit Cloudflare Workers dashboard" -ForegroundColor Gray
+Write-Host "  2. Find shaking-head-news-vite worker" -ForegroundColor Gray
+Write-Host "  3. Confirm latest deployment succeeded" -ForegroundColor Gray
 Write-Host "  4. Copy deployment URL" -ForegroundColor Gray
 Write-Host ""
 
@@ -38,8 +38,7 @@ Write-Host "    - BETTER_AUTH_SECRET" -ForegroundColor Gray
 Write-Host "    - GOOGLE_CLIENT_ID" -ForegroundColor Gray
 Write-Host "    - GOOGLE_CLIENT_SECRET" -ForegroundColor Gray
 Write-Host "  Recommended:" -ForegroundColor Gray
-Write-Host "    - UPSTASH_REDIS_REST_URL" -ForegroundColor Gray
-Write-Host "    - UPSTASH_REDIS_REST_TOKEN" -ForegroundColor Gray
+Write-Host "    - APP_SETTINGS_KV binding in wrangler.jsonc" -ForegroundColor Gray
 Write-Host ""
 
 Write-Host "Detailed Test Plan:" -ForegroundColor Yellow
@@ -52,7 +51,7 @@ Write-Host ""
 
 Write-Host "Tips:" -ForegroundColor Yellow
 Write-Host "  - Login required for stats testing" -ForegroundColor Gray
-Write-Host "  - Data stored in memory without Redis" -ForegroundColor Gray
+Write-Host "  - Settings and stats persist only when APP_SETTINGS_KV is bound" -ForegroundColor Gray
 Write-Host "  - Use Chrome DevTools to check console" -ForegroundColor Gray
 Write-Host ""
 

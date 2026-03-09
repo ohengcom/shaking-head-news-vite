@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { UserSettings } from '@/types/settings'
-import * as settingsActions from '@/lib/actions/settings'
+import * as settingsClient from '@/lib/api/settings-client'
 import { useUIStore } from '@/lib/stores/ui-store'
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}))
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -32,10 +38,10 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }))
 
-// Mock settings actions
-vi.mock('@/lib/actions/settings', () => ({
-  updateSettings: vi.fn(),
-  resetSettings: vi.fn(),
+// Mock settings API client
+vi.mock('@/lib/api/settings-client', () => ({
+  updateSettingsViaApi: vi.fn(),
+  resetSettingsViaApi: vi.fn(),
 }))
 
 // Mock UI store
@@ -85,11 +91,11 @@ describe('SettingsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(useUIStore).mockReturnValue(mockUIStore as unknown as ReturnType<typeof useUIStore>)
-    vi.mocked(settingsActions.updateSettings).mockResolvedValue({
+    vi.mocked(settingsClient.updateSettingsViaApi).mockResolvedValue({
       success: true,
       settings: mockSettings,
     })
-    vi.mocked(settingsActions.resetSettings).mockResolvedValue({
+    vi.mocked(settingsClient.resetSettingsViaApi).mockResolvedValue({
       success: true,
       settings: mockSettings,
     })
@@ -135,7 +141,7 @@ describe('SettingsPanel', () => {
     })
   })
 
-  it('should call updateSettings when save button is clicked', async () => {
+  it('should call updateSettings API when save button is clicked', async () => {
     render(<SettingsPanel initialSettings={mockSettings} />)
 
     const saveButton = screen.getByRole('button', { name: /保存/i })
@@ -143,11 +149,11 @@ describe('SettingsPanel', () => {
     fireEvent.click(saveButton)
 
     await waitFor(() => {
-      expect(settingsActions.updateSettings).toHaveBeenCalledWith(mockSettings)
+      expect(settingsClient.updateSettingsViaApi).toHaveBeenCalledWith(mockSettings)
     })
   })
 
-  it('should call resetSettings when reset button is clicked', async () => {
+  it('should call resetSettings API when reset button is clicked', async () => {
     render(<SettingsPanel initialSettings={mockSettings} />)
 
     const resetButton = screen.getByRole('button', { name: /重置/i })
@@ -155,7 +161,7 @@ describe('SettingsPanel', () => {
     fireEvent.click(resetButton)
 
     await waitFor(() => {
-      expect(settingsActions.resetSettings).toHaveBeenCalled()
+      expect(settingsClient.resetSettingsViaApi).toHaveBeenCalled()
     })
   })
 
@@ -212,7 +218,7 @@ describe('SettingsPanel', () => {
     fireEvent.click(notificationsSwitch)
 
     // updateSetting should be called
-    expect(settingsActions.updateSettings).not.toHaveBeenCalled()
+    expect(settingsClient.updateSettingsViaApi).not.toHaveBeenCalled()
 
     // Check that multiple switches exist (implies Pro features rendered)
     const switches = screen.getAllByRole('switch')

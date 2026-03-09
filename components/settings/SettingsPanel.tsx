@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { updateSettings, resetSettings } from '@/lib/actions/settings'
 import { useToast } from '@/hooks/use-toast'
 import { UserSettings } from '@/types/settings'
 import { Loader2, RotateCcw, Lock } from 'lucide-react'
@@ -29,6 +28,7 @@ import { DEFAULT_SETTINGS } from '@/lib/config/defaults'
 import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
 import { Reorder, AnimatePresence, motion } from 'framer-motion'
 import { Plus, X, GripVertical, Check } from 'lucide-react'
+import { updateSettingsViaApi, resetSettingsViaApi } from '@/lib/api/settings-client'
 
 interface SettingsPanelProps {
   initialSettings: UserSettings
@@ -86,6 +86,14 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     initialIsPro: initialSettings.isPro ?? false,
   })
 
+  const message = (key: string, fallback: string) => {
+    try {
+      return t(key as never)
+    } catch {
+      return fallback
+    }
+  }
+
   // Sync UI store, rotation store, and theme with settings on mount and when settings change
   useEffect(() => {
     setFontSize(settings.fontSize)
@@ -106,6 +114,10 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     setRotationInterval,
   ])
 
+  useEffect(() => {
+    setSettings((prev) => (prev.isPro === isPro ? prev : { ...prev, isPro }))
+  }, [isPro])
+
   const handleSave = async () => {
     if (isPending || isResetting) {
       return
@@ -113,25 +125,29 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
 
     setIsPending(true)
     try {
-      const result = await updateSettings(settings)
+      const payload: UserSettings = {
+        ...settings,
+        isPro,
+      }
+      const result = await updateSettingsViaApi(payload)
 
       if (result?.success) {
         toast({
-          title: t('saveSuccess'),
-          description: t('saveSuccessDescription'),
+          title: message('saveSuccess', '设置已保存'),
+          description: message('saveSuccessDescription', '您的偏好设置已成功更新'),
         })
         return
       }
 
       toast({
-        title: t('saveError'),
-        description: result?.error || t('saveErrorDescription'),
+        title: message('saveError', '保存失败'),
+        description: result?.error || message('saveErrorDescription', '请稍后重试'),
         variant: 'destructive',
       })
     } catch {
       toast({
-        title: t('saveError'),
-        description: t('saveErrorDescription'),
+        title: message('saveError', '保存失败'),
+        description: message('saveErrorDescription', '请稍后重试'),
         variant: 'destructive',
       })
     } finally {
@@ -146,26 +162,26 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
 
     setIsResetting(true)
     try {
-      const result = await resetSettings()
+      const result = await resetSettingsViaApi()
 
       if (result?.success && result.settings) {
         setSettings(result.settings)
         toast({
-          title: t('saveSuccess'),
-          description: t('saveSuccessDescription'),
+          title: message('saveSuccess', '设置已保存'),
+          description: message('saveSuccessDescription', '您的偏好设置已成功更新'),
         })
         return
       }
 
       toast({
-        title: t('saveError'),
-        description: result?.error || t('saveErrorDescription'),
+        title: message('saveError', '保存失败'),
+        description: result?.error || message('saveErrorDescription', '请稍后重试'),
         variant: 'destructive',
       })
     } catch {
       toast({
-        title: t('saveError'),
-        description: t('saveErrorDescription'),
+        title: message('saveError', '保存失败'),
+        description: message('saveErrorDescription', '请稍后重试'),
         variant: 'destructive',
       })
     } finally {
@@ -190,8 +206,80 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     }
   }
 
+  const handleTogglePro = async () => {
+    if (isPending || isResetting || isTogglingPro) {
+      return
+    }
+
+    try {
+      const result = await togglePro()
+
+      if (!result || !result.success || typeof result.isPro !== 'boolean') {
+        toast({
+          title: message('saveError', 'Save failed'),
+          description: result?.error || message('saveErrorDescription', 'Please try again later'),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      setSettings((prev) => ({
+        ...prev,
+        isPro: result.isPro,
+        ...(result.isPro ? {} : { adsEnabled: true }),
+      }))
+    } catch {
+      toast({
+        title: message('saveError', 'Save failed'),
+        description: message('saveErrorDescription', 'Please try again later'),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleAdsEnabledChange = async (checked: boolean) => {
+    const previousValue = settings.adsEnabled
+    updateSetting('adsEnabled', checked)
+
+    try {
+      const result = await updateSettingsViaApi({
+        adsEnabled: checked,
+        isPro,
+      })
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update ads preference')
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('adsEnabled', String(checked))
+        window.dispatchEvent(new CustomEvent('ads-preference-changed', { detail: checked }))
+      }
+
+      toast({
+        title: message('saveSuccess', '设置已保存'),
+        description: checked ? '广告已开启' : '广告已关闭',
+      })
+    } catch (error) {
+      updateSetting('adsEnabled', previousValue)
+      toast({
+        title: message('saveError', 'Save failed'),
+        description:
+          error instanceof Error
+            ? error.message
+            : message('saveErrorDescription', 'Please try again later'),
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      onSubmit={(event) => {
+        event.preventDefault()
+      }}
+    >
       {/* 语言和主题设置 */}
       <Card>
         <CardHeader>
@@ -506,7 +594,12 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={togglePro}
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                void handleTogglePro()
+              }}
               disabled={isTogglingPro}
               variant={isPro ? 'outline' : 'default'}
               className={
@@ -563,14 +656,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
               <Switch
                 id="adsEnabled"
                 checked={settings.adsEnabled}
-                onCheckedChange={(checked) => {
-                  updateSetting('adsEnabled', checked)
-
-                  toast({
-                    title: t('saveSuccess'),
-                    description: checked ? '广告已开启' : '广告已关闭',
-                  })
-                }}
+                disabled={isPending || isResetting || isTogglingPro}
+                onCheckedChange={(checked) => void handleAdsEnabledChange(checked)}
               />
             </div>
           </CardContent>
@@ -622,11 +709,29 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
       {/* 操作按钮 - 仅登录用户可保存 */}
       {!isGuest ? (
         <div className="flex gap-4">
-          <Button onClick={handleSave} disabled={isPending || isResetting} className="flex-1">
+          <Button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void handleSave()
+            }}
+            disabled={isPending || isResetting}
+            className="flex-1"
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             保存
           </Button>
-          <Button onClick={handleReset} disabled={isPending || isResetting} variant="outline">
+          <Button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void handleReset()
+            }}
+            disabled={isPending || isResetting}
+            variant="outline"
+          >
             {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {!isResetting && <RotateCcw className="mr-2 h-4 w-4" />}
             重置

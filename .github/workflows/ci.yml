@@ -17,7 +17,6 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '8'
 
 jobs:
   # Job 1: Lint and Format Check
@@ -38,9 +37,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
+        run: npm ci --include=dev --include=optional
 
       - name: Run ESLint
         run: npm run lint
@@ -64,9 +61,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
+        run: npm ci --include=dev --include=optional
 
       - name: Run type check
         run: npm run type-check
@@ -87,9 +82,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
+        run: npm ci --include=dev --include=optional
 
       - name: Run tests with coverage
         run: |
@@ -109,12 +102,11 @@ jobs:
           echo "$test_output"
         env:
           # Mock environment variables for tests
+          BETTER_AUTH_URL: http://localhost:3001
           NEXTAUTH_SECRET: test-secret
           NEXTAUTH_URL: http://localhost:3000
           GOOGLE_CLIENT_ID: test-client-id
           GOOGLE_CLIENT_SECRET: test-client-secret
-          UPSTASH_REDIS_REST_URL: http://localhost:8079
-          UPSTASH_REDIS_REST_TOKEN: test-token
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -131,7 +123,6 @@ jobs:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -144,9 +135,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
+        run: npm ci --include=dev --include=optional
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -169,12 +158,11 @@ jobs:
           echo "$e2e_output"
         env:
           # Mock environment variables for E2E tests
+          BETTER_AUTH_URL: http://localhost:3001
           NEXTAUTH_SECRET: test-secret
           NEXTAUTH_URL: http://localhost:3000
           GOOGLE_CLIENT_ID: test-client-id
           GOOGLE_CLIENT_SECRET: test-client-secret
-          UPSTASH_REDIS_REST_URL: http://localhost:8079
-          UPSTASH_REDIS_REST_TOKEN: test-token
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -201,9 +189,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6 @tailwindcss/oxide-linux-x64-gnu@4.2.1 @swc/core-linux-x64-gnu@1.15.10 @unrs/resolver-binding-linux-x64-gnu@1.11.1
+        run: npm ci --include=dev --include=optional
 
       - name: Build application
         run: |
@@ -223,19 +209,18 @@ jobs:
           echo "$build_output"
         env:
           # Required for build
+          BETTER_AUTH_URL: https://example.com
           NEXTAUTH_SECRET: build-secret
           NEXTAUTH_URL: https://example.com
           GOOGLE_CLIENT_ID: build-client-id
           GOOGLE_CLIENT_SECRET: build-client-secret
-          UPSTASH_REDIS_REST_URL: https://example.upstash.io
-          UPSTASH_REDIS_REST_TOKEN: build-token
           NEXT_PUBLIC_APP_URL: https://example.com
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-output
-          path: .next/
+          path: dist/
           retention-days: 7
 
   # Job 6: Security Audit
@@ -252,6 +237,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --include=dev --include=optional
 
       - name: Run npm audit
         run: npm audit --audit-level=moderate

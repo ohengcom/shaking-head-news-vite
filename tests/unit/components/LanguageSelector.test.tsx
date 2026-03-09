@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LanguageSelector } from '@/components/settings/LanguageSelector'
-import * as settingsActions from '@/lib/actions/settings'
+import * as settingsClient from '@/lib/api/settings-client'
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -15,23 +15,16 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }))
 
-// Mock settings actions
-vi.mock('@/lib/actions/settings', () => ({
-  updateSettings: vi.fn(),
+// Mock settings API client
+vi.mock('@/lib/api/settings-client', () => ({
+  updateSettingsViaApi: vi.fn(),
 }))
-
-// Mock window.location.reload
-const mockReload = vi.fn()
-Object.defineProperty(window, 'location', {
-  value: { reload: mockReload },
-  writable: true,
-})
 
 describe('LanguageSelector', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
-    vi.mocked(settingsActions.updateSettings).mockResolvedValue({
+    vi.mocked(settingsClient.updateSettingsViaApi).mockResolvedValue({
       success: true,
       settings: {
         userId: 'test-user',

@@ -6,6 +6,8 @@ import { BlurredStats } from '@/components/stats/BlurredStats'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getUserTier } from '@/lib/tier-server'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 /**
  * 统计页面加载骨架屏
@@ -55,33 +57,33 @@ async function StatsContent() {
     return <BlurredStats tier={tier} />
   }
 
-  // Pro 用户显示完整统计
+  let dailyGoal = 30
+  let stats: Awaited<ReturnType<typeof getSummaryStats>> | null = null
+  let errorMessage: string | null = null
+
   try {
-    // 获取用户设置（获取每日目标）
     const settings = await getUserSettings()
-    const dailyGoal = settings.dailyGoal || 30
-
-    // 获取统计数据
-    const stats = await getSummaryStats()
-
-    return <StatsDisplay initialStats={stats} dailyGoal={dailyGoal} />
+    dailyGoal = settings.dailyGoal || 30
+    stats = await getSummaryStats()
   } catch (error) {
     console.error('[StatsPage] Error loading stats:', error)
+    errorMessage = error instanceof Error ? error.message : '请稍后重试'
+  }
 
-    // 返回错误提示而不是崩溃
+  if (!stats) {
     return (
       <Card>
         <CardContent className="pt-6">
           <div className="py-8 text-center">
             <p className="text-destructive mb-2">加载统计数据时出错</p>
-            <p className="text-muted-foreground text-sm">
-              {error instanceof Error ? error.message : '请稍后重试'}
-            </p>
+            <p className="text-muted-foreground text-sm">{errorMessage}</p>
           </div>
         </CardContent>
       </Card>
     )
   }
+
+  return <StatsDisplay initialStats={stats} dailyGoal={dailyGoal} />
 }
 
 /**
@@ -89,7 +91,12 @@ async function StatsContent() {
  * 需求: 8.2 - 创建统计页面展示运动数据
  * 需求: 8.5 - 提供可视化图表
  */
-export default function StatsPage() {
+export default async function StatsPage() {
+  const session = await auth()
+  if (!session?.user) {
+    redirect('/login?callbackUrl=%2Fstats')
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">

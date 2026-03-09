@@ -20,6 +20,30 @@ const DEFAULT_STATE = {
   interval: 10,
 }
 
+function sanitizeAngle(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_STATE.angle
+  }
+
+  return Math.max(-25, Math.min(25, value))
+}
+
+function sanitizeInterval(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_STATE.interval
+  }
+
+  return Math.max(5, Math.min(60, Math.round(value)))
+}
+
+function sanitizeMode(value: unknown): 'fixed' | 'continuous' {
+  return value === 'fixed' || value === 'continuous' ? value : DEFAULT_STATE.mode
+}
+
+function sanitizePaused(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : DEFAULT_STATE.isPaused
+}
+
 export const useRotationStore = create<RotationState>()(
   persist(
     (set) => ({
@@ -35,6 +59,17 @@ export const useRotationStore = create<RotationState>()(
       // Skip automatic hydration for SSR compatibility
       // Manual rehydration is triggered in TiltWrapper after mount
       skipHydration: true,
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<RotationState>
+
+        return {
+          ...currentState,
+          angle: sanitizeAngle(persisted.angle),
+          interval: sanitizeInterval(persisted.interval),
+          mode: sanitizeMode(persisted.mode),
+          isPaused: sanitizePaused(persisted.isPaused),
+        }
+      },
     }
   )
 )

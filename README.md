@@ -13,14 +13,14 @@
 - 生产域名：`https://sn.oheng.com`
 - 主发布路径：`vinext + Vite + Cloudflare Workers`
 - Auth：`Better Auth`（`/api/auth/[...all]`）
-- `npm run dev` / `npm run build`（Next.js）为兼容脚本，主开发/发布建议使用 vinext 路径
+- `npm run dev` / `npm run build` / `npm run start` 默认走 vinext，保留 `*:next` 兼容脚本
 
 ## 核心功能
 
 - 新闻阅读：每日简报、AI 资讯、热门榜单
 - 订阅能力：Pro 用户支持自定义 RSS 与 OPML 导入导出
 - 健康模式：支持固定/连续旋转，角度、间隔和目标可配置
-- 账号与同步：Google / Microsoft OAuth，设置可同步到 Upstash Redis
+- 账号与同步：Google / Microsoft OAuth，设置可同步到 Cloudflare KV
 - 国际化与主题：中英文切换，Light / Dark / System 主题
 
 ## 技术栈
@@ -28,7 +28,7 @@
 - Runtime: Cloudflare Workers
 - Framework: vinext, Vite 7, React 19
 - Auth: Better Auth
-- State/Data: Zustand, Upstash Redis
+- State/Data: Zustand, Cloudflare KV
 - UI: Tailwind CSS 4, Radix UI, Framer Motion
 - Quality: TypeScript, ESLint, Vitest, Playwright
 
@@ -54,17 +54,18 @@ cp .env.example .env.local
 3. 启动本地开发（推荐）
 
 ```bash
-npm run dev:vinext
+npm run dev
 ```
 
 访问 `http://localhost:3001`。
 
 ## 常用命令
 
-- `npm run dev:vinext`：vinext 开发模式（推荐）
-- `npm run build:vinext`：vinext 生产构建（推荐）
-- `npm run dev`：Next.js 开发模式（兼容）
-- `npm run build`：Next.js 构建（兼容）
+- `npm run dev`：vinext 开发模式（默认）
+- `npm run build`：vinext 生产构建（默认）
+- `npm run start`：vinext 本地生产预览
+- `npm run dev:next`：Next.js 开发模式（兼容）
+- `npm run build:next`：Next.js 构建（兼容）
 - `npm run type-check`：TypeScript 检查
 - `npm run lint`：ESLint 检查
 - `npm run test`：Vitest 单元测试

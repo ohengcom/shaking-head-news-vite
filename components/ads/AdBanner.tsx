@@ -10,9 +10,13 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useUserTier } from '@/hooks/use-user-tier'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { cn } from '@/lib/utils'
+import { getAdSenseClientId, getAdSenseSlot } from '@/lib/config/adsense'
+
+const subscribeToClient = () => () => {}
+const getClientSnapshot = () => true
+const getServerSnapshot = () => false
 
 interface AdBannerProps {
   /** 广告位置 */
@@ -41,27 +45,16 @@ export function AdBanner({
   initialIsPro,
   initialAdsEnabled = true,
 }: AdBannerProps) {
-  const { isPro, features } = useUserTier({ initialIsPro })
-  const [adsEnabled, setAdsEnabled] = useState(initialAdsEnabled)
-  const [isClient, setIsClient] = useState(false)
-
-  // 确保在客户端渲染
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Pro 用户可以根据云端设置隐藏广告
-  useEffect(() => {
-    if (isPro && features.adsDisableable) {
-      setAdsEnabled(initialAdsEnabled)
-      return
-    }
-    // Guest 和 Member 强制显示广告
-    setAdsEnabled(true)
-  }, [features.adsDisableable, initialAdsEnabled, isPro])
+  const adSenseClientId = getAdSenseClientId()
+  const isProUser = Boolean(initialIsPro)
+  const adsEnabled = isProUser ? initialAdsEnabled : true
+  const isClient = useSyncExternalStore(subscribeToClient, getClientSnapshot, getServerSnapshot)
+  const adDimensions = getAdDimensions(position, size)
+  const resolvedAdSlot = adSlot || getDefaultAdSlot(position)
+  const hasAdSenseConfig = Boolean(adSenseClientId)
 
   // 如果 Pro 用户关闭了广告，不渲染
-  if (isPro && features.adsDisableable && !adsEnabled) {
+  if (isProUser && !adsEnabled) {
     return null
   }
 
@@ -71,8 +64,6 @@ export function AdBanner({
   }
 
   // 根据位置和尺寸确定广告尺寸
-  const adDimensions = getAdDimensions(position, size)
-
   return (
     <div
       className={cn(
@@ -80,14 +71,19 @@ export function AdBanner({
         adDimensions.containerClass,
         className
       )}
+      style={adDimensions.style}
       data-ad-position={position}
       data-ad-size={size}
     >
       {/* 开发环境显示占位符 */}
-      {process.env.NODE_ENV === 'development' ? (
+      {process.env.NODE_ENV === 'development' || !hasAdSenseConfig ? (
         <AdPlaceholder position={position} size={size} />
       ) : (
-        <GoogleAdSense adSlot={adSlot || getDefaultAdSlot(position)} style={adDimensions.style} />
+        <GoogleAdSense
+          adClient={adSenseClientId}
+          adSlot={resolvedAdSlot}
+          style={adDimensions.style}
+        />
       )}
     </div>
   )
@@ -132,27 +128,112 @@ function AdPlaceholder({
 /**
  * Google AdSense 组件
  */
-function GoogleAdSense({ adSlot, style }: { adSlot: string; style: React.CSSProperties }) {
+function GoogleAdSense({
+  adClient,
+  adSlot,
+  style,
+}: {
+  adClient: string
+  adSlot: string
+  style: React.CSSProperties
+}) {
+  const adRef = useRef<HTMLModElement | null>(null)
+
   useEffect(() => {
-    try {
-      // 加载 AdSense 脚本
-      if (
-        typeof window !== 'undefined' &&
-        (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle
-      ) {
-        ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
-      }
-    } catch (error) {
-      console.error('AdSense error:', error)
+    if (!adClient) {
+      return
     }
-  }, [])
+
+    let isCancelled = false
+    let retryTimer: ReturnType<typeof setInterval> | null = null
+    let retryCount = 0
+
+    const maxRetryCount = 20
+    const retryIntervalMs = 500
+
+    const pushAd = () => {
+      if (isCancelled) {
+        return true
+      }
+
+      const element = adRef.current
+      if (!element) {
+        return false
+      }
+
+      const adStatus = element.getAttribute('data-adsbygoogle-status')
+      if (adStatus === 'done') {
+        return true
+      }
+
+      const rect = element.getBoundingClientRect()
+      const isVisible = rect.width >= 120 && rect.height >= 50 && element.offsetParent !== null
+      if (!isVisible) {
+        return false
+      }
+
+      const adsQueue = (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle
+      if (!adsQueue) {
+        return false
+      }
+
+      try {
+        adsQueue.push({})
+        return true
+      } catch (error) {
+        console.error('AdSense error:', error)
+        return true
+      }
+    }
+
+    if (!pushAd()) {
+      retryTimer = setInterval(() => {
+        retryCount += 1
+
+        if (pushAd() || retryCount >= maxRetryCount) {
+          if (retryTimer) {
+            clearInterval(retryTimer)
+          }
+        }
+      }, retryIntervalMs)
+    }
+
+    try {
+      const script = document.getElementById('adsense-script') as HTMLScriptElement | null
+      if (script) {
+        const onLoad = () => {
+          void pushAd()
+        }
+
+        script.addEventListener('load', onLoad, { once: true })
+
+        return () => {
+          isCancelled = true
+          script.removeEventListener('load', onLoad)
+          if (retryTimer) {
+            clearInterval(retryTimer)
+          }
+        }
+      }
+    } catch {
+      // Ignore listener setup errors.
+    }
+
+    return () => {
+      isCancelled = true
+      if (retryTimer) {
+        clearInterval(retryTimer)
+      }
+    }
+  }, [adClient, adSlot])
 
   return (
     <ins
+      ref={adRef}
       className="adsbygoogle"
-      style={{ display: 'block', ...style }}
-      data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
-      data-ad-slot={adSlot}
+      style={{ display: 'block', width: '100%', ...style }}
+      data-ad-client={adClient}
+      data-ad-slot={adSlot || ''}
       data-ad-format="auto"
       data-full-width-responsive="true"
     />
@@ -199,14 +280,7 @@ function getAdDimensions(
  * 获取默认广告位 ID
  */
 function getDefaultAdSlot(position: AdBannerProps['position']): string {
-  const slots: Record<string, string> = {
-    sidebar: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR || '',
-    header: process.env.NEXT_PUBLIC_ADSENSE_SLOT_HEADER || '',
-    footer: process.env.NEXT_PUBLIC_ADSENSE_SLOT_FOOTER || '',
-    inline: process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE || '',
-  }
-
-  return slots[position || 'sidebar']
+  return getAdSenseSlot(position || 'sidebar')
 }
 
 export default AdBanner

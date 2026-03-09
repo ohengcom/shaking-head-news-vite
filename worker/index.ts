@@ -64,7 +64,7 @@ function toErrorMessage(error: unknown): string {
   return String(error)
 }
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
       ;(globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV = env.APP_SETTINGS_KV
@@ -95,3 +95,5 @@ export default {
     }
   },
 }
+
+export default worker

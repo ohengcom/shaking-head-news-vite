@@ -37,11 +37,11 @@ npm run test
 npm run build:vinext
 ```
 
-## 3. 必做配置：补齐 Cloudflare Vite 插件
+## 3. 核对 Cloudflare Vite 插件
 
-当前仓库的 `vite.config.ts` 还没有 `@cloudflare/vite-plugin`，需要先补上。
+当前仓库已经接入 `@cloudflare/vite-plugin` 与 `vinext`，发布前只需要确认配置没有漂移。
 
-先安装依赖（`vinext deploy` 会自动补，但建议显式安装）：
+如需重新安装或升级，可执行：
 
 ```bash
 npm i -D @cloudflare/vite-plugin wrangler
@@ -87,7 +87,7 @@ export default defineConfig({
 说明：
 
 - 你现在是 App Router，Cloudflare 构建需要 `cloudflare()` 插件参与。
-- `vinext deploy` 只会在“没有 `vite.config.*`”时自动生成文件；当前仓库已有该文件，所以这一步要手动加。
+- 仓库默认开发/构建脚本已切到 vinext；`*:next` 仅保留兼容验证用途。
 
 ## 4. 首次生成部署骨架（不真正发布）
 
@@ -97,12 +97,12 @@ export default defineConfig({
 npx vinext deploy --dry-run --name shaking-head-news-vite
 ```
 
-通常会生成：
+首次接入时通常会生成：
 
 - `wrangler.jsonc`
 - `worker/index.ts`
 
-并可能自动安装缺失依赖（如 `wrangler`、`@cloudflare/vite-plugin`）。
+如果仓库已经存在 `wrangler.jsonc` 与 `worker/index.ts`，dry-run 主要用于校验而不是补文件。
 
 ## 5. 检查并完善 `wrangler.jsonc`
 
@@ -124,7 +124,7 @@ npx vinext deploy --dry-run --name shaking-head-news-vite
   },
   "kv_namespaces": [
     {
-      "binding": "VINEXT_CACHE",
+      "binding": "APP_SETTINGS_KV",
       "id": "<prod-kv-id>",
       "preview_id": "<preview-kv-id>",
     },
@@ -150,7 +150,6 @@ npx vinext deploy --dry-run --name shaking-head-news-vite
 npx wrangler secret put BETTER_AUTH_SECRET
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put AUTH_MICROSOFT_ENTRA_ID_SECRET
-npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
 ```
 
 如果你使用 `--env preview`，对应地加 `--env preview` 写入预览环境密钥。
@@ -160,15 +159,15 @@ npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
 - `NEXT_PUBLIC_*` 用在前端时，必须在构建阶段可用（CI 里要注入）。
 - `BETTER_AUTH_URL` 必须是最终线上域名（`https://...`）。
 
-## 7. ISR 缓存（本项目必须做）
+## 7. 创建应用 KV 绑定
 
-当前仓库 `app/page.tsx` 存在 `export const revalidate = 3600`，属于 ISR 场景。
+当前仓库把用户设置、统计和 RSS 源持久化到 `APP_SETTINGS_KV`。
 
 先创建 KV：
 
 ```bash
-npx wrangler kv namespace create VINEXT_CACHE
-npx wrangler kv namespace create VINEXT_CACHE --preview
+npx wrangler kv namespace create APP_SETTINGS_KV
+npx wrangler kv namespace create APP_SETTINGS_KV --preview
 ```
 
 把命令输出的 namespace id 写回 `wrangler.jsonc` 的 `kv_namespaces`（`id` / `preview_id`）。
@@ -262,8 +261,6 @@ jobs:
           AUTH_MICROSOFT_ENTRA_ID_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_ID }}
           AUTH_MICROSOFT_ENTRA_ID_SECRET: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_SECRET }}
           AUTH_MICROSOFT_ENTRA_ID_TENANT_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID }}
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           NEXT_PUBLIC_ADSENSE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_ADSENSE_CLIENT_ID }}
           NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR }}
           NEXT_PUBLIC_ADSENSE_SLOT_HEADER: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_HEADER }}
@@ -282,9 +279,9 @@ jobs:
 
 - 检查 `CLOUDFLARE_API_TOKEN` 是否具备 Workers/KV 权限，且属于正确账号。
 
-2. 部署成功但 ISR 不生效
+2. 部署成功但设置/统计无法持久化
 
-- 检查 `VINEXT_CACHE` 绑定是否存在，`kv_namespaces` 的 `id` 是否已替换占位符。
+- 检查 `APP_SETTINGS_KV` 绑定是否存在，`kv_namespaces` 的 `id` / `preview_id` 是否已替换占位符。
 
 3. OAuth 登录回调报错
 

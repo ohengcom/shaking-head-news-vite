@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Newspaper, User, Sparkles, Crown } from 'lucide-react'
+import { Newspaper, Sparkles, Crown } from 'lucide-react'
 import { ThemeToggle } from '@/components/settings/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from 'next-intl/server'
@@ -17,6 +17,35 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
+function getUserInitials(name?: string | null, email?: string | null): string {
+  const normalizedName = name?.trim()
+  if (normalizedName) {
+    const parts = normalizedName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0))
+      .join('')
+
+    if (parts) {
+      return parts.toUpperCase()
+    }
+  }
+
+  const normalizedEmail = email?.trim()
+  if (normalizedEmail) {
+    return normalizedEmail.charAt(0).toUpperCase()
+  }
+
+  return 'U'
+}
+
+function getFallbackAvatarDataUrl(initials: string): string {
+  const text = initials.slice(0, 2) || 'U'
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#3b82f6"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" fill="#ffffff">${text}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
 export async function Header() {
   const session = await auth()
   const { tier } = await getUserTier()
@@ -27,6 +56,8 @@ export async function Header() {
   const isGuest = tier === 'guest'
   const isMember = tier === 'member'
   const isPro = tier === 'pro'
+  const userInitials = getUserInitials(session?.user?.name, session?.user?.email)
+  const userAvatarSrc = session?.user?.image || getFallbackAvatarDataUrl(userInitials)
 
   return (
     <>
@@ -93,10 +124,11 @@ export async function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={session.user.image || ''} alt={session.user.name || ''} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
+                      <AvatarImage
+                        src={userAvatarSrc}
+                        alt={session.user.name || session.user.email || 'User'}
+                      />
+                      <AvatarFallback>{userInitials}</AvatarFallback>
                     </Avatar>
                     {/* 用户徽章 */}
                     {isPro ? (

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { signIn } from '@/lib/auth-client'
@@ -88,7 +89,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signInError, setSignInError] = useState<string | null>(null)
 
-  const handleSocialSignIn = async (provider: 'google' | 'microsoft-entra-id') => {
+  const handleSocialSignIn = async (provider: 'google' | 'microsoft') => {
     if (isSubmitting) {
       return
     }
@@ -107,7 +108,7 @@ export default function LoginPage() {
         return
       }
 
-      if (result?.data?.redirect && result.data.url && typeof window !== 'undefined') {
+      if (result?.data?.url && typeof window !== 'undefined') {
         window.location.href = result.data.url
       }
     } catch (error) {
@@ -144,7 +145,7 @@ export default function LoginPage() {
           <button
             type="button"
             className="flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-            onClick={() => void handleSocialSignIn('microsoft-entra-id')}
+            onClick={() => void handleSocialSignIn('microsoft')}
             disabled={isSubmitting}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 21 21" fill="currentColor">
@@ -168,9 +169,9 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <a href="/" className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
+          <Link href="/" className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
             继续浏览（无需登录）
-          </a>
+          </Link>
         </div>
       </div>
     </div>

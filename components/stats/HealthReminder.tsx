@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Bell, BellOff, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,14 @@ interface HealthReminderProps {
   currentCount: number
 }
 
+function getBrowserNotificationPermission(): NotificationPermission | 'default' {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return 'default'
+  }
+
+  return Notification.permission
+}
+
 /**
  * 健康提醒组件
  * 需求: 8.3 - 连续2小时未运动时使用浏览器 Notification API 发送提醒
@@ -21,33 +29,54 @@ interface HealthReminderProps {
 export function HealthReminder({ dailyGoal, currentCount }: HealthReminderProps) {
   const t = useTranslations('stats')
   const { toast } = useToast()
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [permission, setPermission] = useState<'default' | 'granted' | 'denied'>('default')
-  const [goalAchieved, setGoalAchieved] = useState(false)
-
-  // 检查通知权限
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission)
-
-      setNotificationsEnabled(Notification.permission === 'granted')
-    }
-  }, [])
+  const [permission, setPermission] = useState<NotificationPermission | 'default'>(
+    getBrowserNotificationPermission
+  )
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => getBrowserNotificationPermission() === 'granted'
+  )
+  const goalAchieved = currentCount >= dailyGoal
+  const lastGoalAchieved = useRef(goalAchieved)
 
   // 检查是否达到目标
   useEffect(() => {
-    if (currentCount >= dailyGoal && !goalAchieved) {
-      setGoalAchieved(true)
-      // 需求 8.4: 达到目标时显示鼓励消息
+    if (goalAchieved && !lastGoalAchieved.current) {
       toast({
         title: t('goalAchieved'),
         description: t('goalAchievedMessage', { count: currentCount }),
         duration: 5000,
       })
-    } else if (currentCount < dailyGoal && goalAchieved) {
-      setGoalAchieved(false)
     }
-  }, [currentCount, dailyGoal, goalAchieved, t, toast])
+
+    lastGoalAchieved.current = goalAchieved
+  }, [currentCount, goalAchieved, t, toast])
+
+  // 发送通知
+  const sendNotification = useCallback(() => {
+    if (!notificationsEnabled || permission !== 'granted') return
+    if (typeof window === 'undefined') return
+
+    try {
+      const notification = new Notification(t('healthReminderTitle'), {
+        body: t('healthReminderBody'),
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        tag: 'health-reminder',
+        requireInteraction: false,
+        silent: false,
+      })
+
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
+
+      // 10秒后自动关闭
+      setTimeout(() => notification.close(), 10000)
+    } catch (error) {
+      console.error('Failed to send notification:', error)
+    }
+  }, [notificationsEnabled, permission, t])
 
   // 定期检查是否需要发送健康提醒
   useEffect(() => {
@@ -72,7 +101,7 @@ export function HealthReminder({ dailyGoal, currentCount }: HealthReminderProps)
     // 不立即检查，等待第一个间隔
 
     return () => clearInterval(interval)
-  }, [notificationsEnabled])
+  }, [notificationsEnabled, sendNotification])
 
   // 请求通知权限
   const requestNotificationPermission = async () => {
@@ -104,33 +133,6 @@ export function HealthReminder({ dailyGoal, currentCount }: HealthReminderProps)
       }
     } catch (error) {
       console.error('Failed to request notification permission:', error)
-    }
-  }
-
-  // 发送通知
-  const sendNotification = () => {
-    if (!notificationsEnabled || permission !== 'granted') return
-    if (typeof window === 'undefined') return
-
-    try {
-      const notification = new Notification(t('healthReminderTitle'), {
-        body: t('healthReminderBody'),
-        icon: '/favicon.png',
-        badge: '/favicon.png',
-        tag: 'health-reminder',
-        requireInteraction: false,
-        silent: false,
-      })
-
-      notification.onclick = () => {
-        window.focus()
-        notification.close()
-      }
-
-      // 10秒后自动关闭
-      setTimeout(() => notification.close(), 10000)
-    } catch (error) {
-      console.error('Failed to send notification:', error)
     }
   }
 

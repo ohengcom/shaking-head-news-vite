@@ -2,9 +2,9 @@
 
 ## Runtime Model
 
-- Primary runtime: Next.js App Router (`app/`)
-- Secondary runtime path: vinext + Vite (`vite.config.ts`)
-- The project currently keeps both build paths for migration and compatibility validation.
+- Primary runtime: vinext + Vite on Cloudflare Workers (`vite.config.ts`, `worker/index.ts`)
+- Compatibility runtime: Next.js App Router (`app/` with `*:next` scripts only)
+- Development, build, Playwright, and deployment now default to the vinext path.
 
 ## Core Modules
 
@@ -15,7 +15,7 @@
   - Server: `lib/auth.ts`
   - Client adapter: `lib/auth-client.ts`
   - Route handler: `app/api/auth/[...all]/route.ts`
-- Storage: `lib/storage.ts` (Upstash Redis + in-memory fallback)
+- Storage: `lib/storage.ts` (Cloudflare KV binding + recent-write cache)
 - Tier gating:
   - Config: `lib/config/features.ts`
   - Server helper: `lib/tier-server.ts`
@@ -39,11 +39,10 @@
   - Trending/hot-list from `lib/api/*`
   - Custom RSS from user-managed feeds
 - Persistent user state:
-  - Settings, stats, RSS source definitions via `StorageKeys` in Redis
+  - Settings, stats, RSS source definitions via `StorageKeys` in Cloudflare KV
 
 ## Security & Middleware
 
 - Middleware/proxy logic in `proxy.ts`:
-  - Auth gate for protected routes (`/settings`, `/stats`, `/rss`)
   - Security headers
-  - API CORS handling
+  - Applied only to non-API page requests

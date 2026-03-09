@@ -30,8 +30,6 @@ jobs:
       AUTH_MICROSOFT_ENTRA_ID_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_ID }}
       AUTH_MICROSOFT_ENTRA_ID_SECRET: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_SECRET }}
       AUTH_MICROSOFT_ENTRA_ID_TENANT_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID }}
-      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
       NEWS_API_BASE_URL: ${{ secrets.NEWS_API_BASE_URL }}
       NEXT_PUBLIC_LOG_LEVEL: ${{ secrets.NEXT_PUBLIC_LOG_LEVEL }}
       NEXT_PUBLIC_ADSENSE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_ADSENSE_CLIENT_ID }}
@@ -54,9 +52,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: |
-          npm install --include=dev --include=optional
-          npm install --no-save @rollup/rollup-linux-x64-gnu@4.56.0 @parcel/watcher-linux-x64-glibc@2.5.6 @next/swc-linux-x64-gnu@16.1.6
+        run: npm ci --include=dev --include=optional
 
       - name: Validate required Cloudflare secrets
         run: |
@@ -113,8 +109,6 @@ jobs:
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_ID
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_SECRET
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_TENANT_ID
-          put_secret_if_present UPSTASH_REDIS_REST_URL
-          put_secret_if_present UPSTASH_REDIS_REST_TOKEN
           put_secret_if_present NEWS_API_BASE_URL
           put_secret_if_present NEXT_PUBLIC_LOG_LEVEL
           put_secret_if_present NEXT_PUBLIC_ADSENSE_CLIENT_ID

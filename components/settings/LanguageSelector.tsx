@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { updateSettings } from '@/lib/actions/settings'
+import { updateSettingsViaApi } from '@/lib/api/settings-client'
 import { useToast } from '@/hooks/use-toast'
 import { useState } from 'react'
 import { Globe } from 'lucide-react'
@@ -33,8 +33,10 @@ export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
     setIsPending(true)
 
     try {
-      // Update settings in storage
-      await updateSettings({ language: newLanguage })
+      const result = await updateSettingsViaApi({ language: newLanguage })
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to update language')
+      }
 
       // Set cookie for next-intl (client-side only)
       if (typeof document !== 'undefined') {
@@ -45,13 +47,6 @@ export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
         title: t('saveSuccess'),
         description: t('saveSuccessDescription'),
       })
-
-      // Reload page to apply new language (client-side only)
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
-      }
     } catch (error) {
       console.error('Failed to update language:', error)
       toast({

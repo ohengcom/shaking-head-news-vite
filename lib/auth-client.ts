@@ -4,7 +4,7 @@ import { createAuthClient } from 'better-auth/react'
 
 const rawAuthClient = createAuthClient()
 
-const MICROSOFT_PROVIDER_ALIASES = new Set(['microsoft-entra-id', 'azure-ad'])
+const MICROSOFT_PROVIDER_ALIASES = new Set(['microsoft', 'microsoft-entra-id', 'azure-ad'])
 
 type SessionStatus = 'loading' | 'authenticated' | 'unauthenticated'
 

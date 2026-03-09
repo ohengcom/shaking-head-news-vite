@@ -293,7 +293,6 @@ export function sanitizeFilename(filename: string): string {
   sanitized = sanitized.replace(/\0/g, '')
 
   // Remove control characters
-  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x1f\x80-\x9f]/g, '')
 
   // Remove special characters except dots, dashes, and underscores
@@ -308,7 +307,7 @@ export function sanitizeFilename(filename: string): string {
 /**
  * Check if string contains SQL injection patterns
  *
- * @deprecated This function is not used — the project uses Redis (not SQL).
+ * @deprecated This function is not used — the project uses KV-backed storage (not SQL).
  * Retained for reference; remove if not needed.
  * @param input - Input to check
  * @returns True if suspicious patterns detected
@@ -316,7 +315,6 @@ export function sanitizeFilename(filename: string): string {
 export function containsSqlInjection(input: string): boolean {
   const sqlPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/i,
-    // eslint-disable-next-line no-useless-escape
     /(--|\#|\/\*|\*\/)/,
     /(\bOR\b.*=.*)/i,
     /(\bAND\b.*=.*)/i,

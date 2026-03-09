@@ -1,8 +1,11 @@
 /**
  * Rate Limiting Utility
  *
- * Implements rate limiting using Vercel Marketplace Storage (Upstash Redis)
- * to prevent abuse and protect Server Actions from excessive requests.
+ * Implements best-effort rate limiting on top of the shared storage layer.
+ *
+ * In production the app uses Cloudflare KV-backed helpers from `lib/storage.ts`.
+ * This is sufficient for low-volume protections, but it is not a strict
+ * strongly-consistent counter implementation.
  */
 
 import {
@@ -63,7 +66,7 @@ export async function rateLimit(
   const key = `${prefix}:${identifier}`
 
   try {
-    // Use atomic INCR when Redis is available (eliminates race condition)
+    // Use atomic INCR when a native counter backend is available.
     if (storage) {
       const count = await storage.incr(key)
 
@@ -88,7 +91,7 @@ export async function rateLimit(
       }
     }
 
-    // Fallback: in-memory storage (non-atomic, acceptable for dev/test)
+    // KV-backed fallback: non-atomic read-modify-write, acceptable for current low-volume usage.
     const current = await getStorageItem<number>(key)
     const count = current || 0
 

@@ -1,4 +1,3 @@
-import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -11,11 +10,11 @@ function getSecurityHeaders() {
   // Content Security Policy (CSP)
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://tpc.googlesyndication.com https://fundingchoicesmessages.google.com https://cse.google.com https://*.adtrafficquality.google",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://tpc.googlesyndication.com https://fundingchoicesmessages.google.com https://cse.google.com https://*.adtrafficquality.google https://static.cloudflareinsights.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob: https://pagead2.googlesyndication.com",
-    "font-src 'self' data:",
-    "connect-src 'self' https://news.ravelloh.top https://accounts.google.com https://*.upstash.io https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://*.adtrafficquality.google",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://news.ravelloh.top https://accounts.google.com https://*.upstash.io https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://*.adtrafficquality.google https://static.cloudflareinsights.com",
     "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net https://www.google.com https://tpc.googlesyndication.com https://fundingchoicesmessages.google.com https://*.adtrafficquality.google",
     "object-src 'none'",
     "base-uri 'self'",
@@ -48,51 +47,8 @@ function getSecurityHeaders() {
   return headers
 }
 
-/**
- * CORS configuration for API routes
- */
-function setCorsHeaders(response: NextResponse, request: NextRequest) {
-  const origin = request.headers.get('origin')
-  const host = request.headers.get('host')
-
-  // 动态允许同源请求和特定域名的请求
-  // Dynamically allow same-origin requests and specific domains
-  const isAllowed =
-    origin &&
-    (origin.includes(host!) || // Same host
-      origin.endsWith('.oheng.com') || // Subdomains of oheng.com
-      origin.includes('024812.xyz') || // Old domain
-      origin.includes('localhost')) // Local development
-
-  if (isAllowed) {
-    response.headers.set('Access-Control-Allow-Origin', origin)
-    response.headers.set('Access-Control-Allow-Credentials', 'true')
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  }
-
-  return response
-}
-
 export async function proxy(request: NextRequest) {
-  // Handle preflight requests
-  if (request.method === 'OPTIONS') {
-    const response = new NextResponse(null, { status: 204 })
-    return setCorsHeaders(response, request)
-  }
-
-  const session = await auth()
-
-  // 保护需要认证的路由
-  const protectedPaths = ['/settings', '/stats', '/rss']
-  const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
-
-  if (isProtected && !session) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
+  void request
   // Create response with security headers
   const response = NextResponse.next()
 
@@ -101,11 +57,6 @@ export async function proxy(request: NextRequest) {
   securityHeaders.forEach((value, key) => {
     response.headers.set(key, value)
   })
-
-  // Apply CORS headers for API routes
-  if (request.nextUrl.pathname.startsWith('/api')) {
-    setCorsHeaders(response, request)
-  }
 
   return response
 }
@@ -117,10 +68,11 @@ export const config = {
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
+     * - _vinext/image (vinext image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|_vinext/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 

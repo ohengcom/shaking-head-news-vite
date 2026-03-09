@@ -21,30 +21,87 @@ interface StoredEnvelope<T> {
   expiry?: number
 }
 
-let kvNamespaceCache: KVNamespaceLike | null | undefined
+interface RecentWriteCacheEntry {
+  envelope: StoredEnvelope<unknown>
+  cachedAt: number
+}
 
-async function getKVNamespace(): Promise<KVNamespaceLike | null> {
-  if (kvNamespaceCache !== undefined) {
-    return kvNamespaceCache
+const RECENT_WRITE_CACHE_WINDOW_MS = 2 * 60 * 1000
+
+let kvNamespaceCache: KVNamespaceLike | undefined
+let workersEnvLookupAttempted = false
+const recentWriteCache = new Map<string, RecentWriteCacheEntry>()
+
+function getGlobalKVNamespace(): KVNamespaceLike | null {
+  return (globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV ?? null
+}
+
+function cacheRecentWrite<T>(key: string, envelope: StoredEnvelope<T>): void {
+  recentWriteCache.set(key, {
+    envelope: envelope as StoredEnvelope<unknown>,
+    cachedAt: Date.now(),
+  })
+}
+
+function deleteRecentWrite(key: string): void {
+  recentWriteCache.delete(key)
+}
+
+function getRecentWrite<T>(key: string): StoredEnvelope<T> | null {
+  const cached = recentWriteCache.get(key)
+  if (!cached) {
+    return null
   }
 
-  const globalKV = (globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV
+  if (Date.now() - cached.cachedAt > RECENT_WRITE_CACHE_WINDOW_MS) {
+    recentWriteCache.delete(key)
+    return null
+  }
+
+  const envelope = cached.envelope as StoredEnvelope<T>
+  if (envelope.expiry && Date.now() > envelope.expiry) {
+    recentWriteCache.delete(key)
+    return null
+  }
+
+  return envelope
+}
+
+async function getKVNamespace(): Promise<KVNamespaceLike | null> {
+  const globalKV = getGlobalKVNamespace()
   if (globalKV) {
     kvNamespaceCache = globalKV
     return kvNamespaceCache
   }
 
-  try {
-    const workersModuleId = 'cloudflare:workers'
-    const cloudflareModule = (await import(
-      /* @vite-ignore */ workersModuleId
-    )) as CloudflareWorkersModule
-    kvNamespaceCache = cloudflareModule?.env?.APP_SETTINGS_KV ?? null
-  } catch {
-    kvNamespaceCache = null
+  if (kvNamespaceCache) {
+    return kvNamespaceCache
   }
 
-  return kvNamespaceCache
+  if (!workersEnvLookupAttempted) {
+    workersEnvLookupAttempted = true
+    try {
+      const workersModuleId = 'cloudflare:workers'
+      const cloudflareModule = (await import(
+        /* @vite-ignore */ workersModuleId
+      )) as CloudflareWorkersModule
+
+      if (cloudflareModule?.env?.APP_SETTINGS_KV) {
+        kvNamespaceCache = cloudflareModule.env.APP_SETTINGS_KV
+        return kvNamespaceCache
+      }
+    } catch {
+      // Ignore import failures in non-Cloudflare environments.
+    }
+  }
+
+  const lateGlobalKV = getGlobalKVNamespace()
+  if (lateGlobalKV) {
+    kvNamespaceCache = lateGlobalKV
+    return kvNamespaceCache
+  }
+
+  return null
 }
 
 function parseEnvelope<T>(raw: string): StoredEnvelope<T> | null {
@@ -89,7 +146,7 @@ async function writeKVValue<T>(
   key: string,
   value: T,
   expirationSeconds?: number
-): Promise<void> {
+): Promise<StoredEnvelope<T>> {
   const expiry =
     typeof expirationSeconds === 'number' && expirationSeconds > 0
       ? Date.now() + expirationSeconds * 1000
@@ -102,10 +159,11 @@ async function writeKVValue<T>(
 
   if (typeof expirationSeconds === 'number' && expirationSeconds > 0) {
     await kv.put(key, JSON.stringify(payload), { expirationTtl: expirationSeconds })
-    return
+    return payload
   }
 
   await kv.put(key, JSON.stringify(payload))
+  return payload
 }
 
 // Kept for backward compatibility with existing rate-limit branch logic.
@@ -113,6 +171,11 @@ export const storage: LegacyRateLimitStorageLike | null = null
 
 export async function getStorageItem<T>(key: string): Promise<T | null> {
   try {
+    const recent = getRecentWrite<T>(key)
+    if (recent) {
+      return recent.value
+    }
+
     const kv = await getKVNamespace()
     if (!kv) {
       throw new Error('APP_SETTINGS_KV is not available')
@@ -135,7 +198,8 @@ export async function setStorageItem<T>(
     if (!kv) {
       throw new Error('APP_SETTINGS_KV is not available')
     }
-    await writeKVValue(kv, key, value, expirationSeconds)
+    const envelope = await writeKVValue(kv, key, value, expirationSeconds)
+    cacheRecentWrite(key, envelope)
   } catch (error) {
     console.error(`Failed to set storage item: ${key}`, error)
     throw error
@@ -149,6 +213,7 @@ export async function deleteStorageItem(key: string): Promise<void> {
       throw new Error('APP_SETTINGS_KV is not available')
     }
     await kv.delete(key)
+    deleteRecentWrite(key)
   } catch (error) {
     console.error(`Failed to delete storage item: ${key}`, error)
     throw error
@@ -163,6 +228,11 @@ export async function getMultipleStorageItems(keys: string[]): Promise<unknown[]
     }
     const values = await Promise.all(
       keys.map(async (key) => {
+        const recent = getRecentWrite<unknown>(key)
+        if (recent) {
+          return recent.value
+        }
+
         const envelope = await readKVEnvelope<unknown>(kv, key)
         return envelope ? envelope.value : null
       })
@@ -176,6 +246,12 @@ export async function getMultipleStorageItems(keys: string[]): Promise<unknown[]
 
 export async function getTTL(key: string): Promise<number> {
   try {
+    const recent = getRecentWrite<unknown>(key)
+    if (recent?.expiry) {
+      const remaining = Math.floor((recent.expiry - Date.now()) / 1000)
+      return remaining > 0 ? remaining : -2
+    }
+
     const kv = await getKVNamespace()
     if (!kv) {
       throw new Error('APP_SETTINGS_KV is not available')
@@ -209,14 +285,17 @@ export async function setStorageItemWithOptions<T>(
         ? Math.floor((existing.expiry - Date.now()) / 1000)
         : undefined
       const expirationSeconds = remaining && remaining > 0 ? remaining : undefined
-      await writeKVValue(kv, key, value, expirationSeconds)
+      const envelope = await writeKVValue(kv, key, value, expirationSeconds)
+      cacheRecentWrite(key, envelope)
       return
     }
     if (options?.ex) {
-      await writeKVValue(kv, key, value, options.ex)
+      const envelope = await writeKVValue(kv, key, value, options.ex)
+      cacheRecentWrite(key, envelope)
       return
     }
-    await writeKVValue(kv, key, value)
+    const envelope = await writeKVValue(kv, key, value)
+    cacheRecentWrite(key, envelope)
   } catch (error) {
     console.error(`Failed to set storage item: ${key}`, error)
     throw error

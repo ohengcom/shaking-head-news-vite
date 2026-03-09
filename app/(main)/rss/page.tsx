@@ -11,6 +11,8 @@ import { LockedFeature } from '@/components/tier/LockedFeature'
 import { TierFeatureServer } from '@/components/tier/TierFeatureServer'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles } from 'lucide-react'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 async function RSSContent() {
   const { tier, features } = await getUserTier()
@@ -129,7 +131,12 @@ function LoadingSkeleton() {
   )
 }
 
-export default function RSSPage() {
+export default async function RSSPage() {
+  const session = await auth()
+  if (!session?.user) {
+    redirect('/login?callbackUrl=%2Frss')
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Suspense fallback={<LoadingSkeleton />}>

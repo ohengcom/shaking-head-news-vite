@@ -28,8 +28,16 @@ vi.mock('next/cache', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimitByUser: vi.fn().mockResolvedValue({ success: true }),
-  rateLimitByAction: vi.fn().mockResolvedValue({ success: true }),
+  rateLimitByUser: vi.fn().mockResolvedValue({
+    success: true,
+    remaining: 10,
+    reset: Date.now() + 60000,
+  }),
+  rateLimitByAction: vi.fn().mockResolvedValue({
+    success: true,
+    remaining: 10,
+    reset: Date.now() + 60000,
+  }),
   RateLimitTiers: {
     STANDARD: { limit: 30, window: 60 },
     STRICT: { limit: 5, window: 900 },
@@ -38,7 +46,7 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
-  validateOrThrow: vi.fn((schema, data) => data),
+  validateOrThrow: vi.fn((_schema, data) => data),
   AuthError: class AuthError extends Error {},
   NotFoundError: class NotFoundError extends Error {},
   ValidationError: class ValidationError extends Error {},
@@ -171,7 +179,11 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(rateLimitByAction).mockResolvedValue({ success: false })
+      vi.mocked(rateLimitByAction).mockResolvedValue({
+        success: false,
+        remaining: 0,
+        reset: Date.now() + 60000,
+      })
 
       await expect(addRSSSource(newSource)).rejects.toThrow('Too many')
     })

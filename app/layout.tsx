@@ -8,10 +8,11 @@ import { Toaster } from '@/components/ui/toaster'
 import { TiltWrapper } from '@/components/rotation/TiltWrapper'
 import { UIWrapper } from '@/components/layout/UIWrapper'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
-import { cookies } from 'next/headers'
+import { getLocale, getMessages } from 'next-intl/server'
 import { WebVitals } from './web-vitals'
 import { SessionProvider } from '@/components/auth/SessionProvider'
+import { getAdSenseClientId } from '@/lib/config/adsense'
+import Script from 'next/script'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -29,6 +30,7 @@ const notoSansSC = Noto_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sn.oheng.com'),
   title: '摇头看新闻 - Shaking Head News',
   description:
     '在浏览新闻的同时，通过页面旋转帮助您改善颈椎健康。A modern web app with daily news and neck health features.',
@@ -38,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_CN',
-    url: 'https://shaking-head-news.vercel.app',
+    url: 'https://sn.oheng.com',
     title: '摇头看新闻',
     description: '在浏览新闻的同时，通过页面旋转帮助您改善颈椎健康',
     siteName: '摇头看新闻',
@@ -55,9 +57,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Get locale from cookie or default to 'zh'
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('locale')?.value || 'zh'
+  const adSenseClientId = getAdSenseClientId()
+
+  const locale = await getLocale()
 
   // Load messages for the current locale
   const messages = await getMessages()
@@ -92,13 +94,14 @@ export default async function RootLayout({
             </ThemeProvider>
           </NextIntlClientProvider>
         </SessionProvider>
-        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID && (
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
+        {adSenseClientId ? (
+          <Script
+            id="adsense-script"
+            strategy="afterInteractive"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adSenseClientId}`}
             crossOrigin="anonymous"
           />
-        )}
+        ) : null}
       </body>
     </html>
   )

@@ -16,7 +16,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
-  validateOrThrow: vi.fn((schema, data) => data),
+  validateOrThrow: vi.fn((_schema, data) => data),
   retryWithBackoff: vi.fn(async (fn: () => Promise<unknown>, options = {}) => {
     const { maxRetries = 3 } = options as { maxRetries?: number }
     let lastError: unknown
@@ -381,12 +381,11 @@ describe('News Actions', () => {
           id: '1',
           name: 'RSS 1',
           url: 'https://rss1.com/feed',
+          language: 'zh',
           enabled: true,
           order: 0,
           failureCount: 0,
           tags: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       ])
 
@@ -419,23 +418,21 @@ describe('News Actions', () => {
           id: '1',
           name: 'RSS 1',
           url: 'https://rss1.com/feed',
+          language: 'zh',
           enabled: true,
           order: 0,
           failureCount: 0,
           tags: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         {
           id: '2',
           name: 'RSS 2',
           url: 'https://rss2.com/feed',
+          language: 'zh',
           enabled: true,
           order: 1,
           failureCount: 0,
           tags: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       ])
 

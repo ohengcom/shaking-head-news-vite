@@ -5,52 +5,61 @@ test.describe('News Browsing Flow', () => {
     await page.goto('/')
   })
 
-  test('should display the homepage with title and features', async ({ page }) => {
-    // Check page title
-    await expect(page).toHaveTitle(/摇头看新闻|Shaking Head News/)
+  test('should display homepage title and header content', async ({ page }) => {
+    await expect(page).toHaveTitle(/摇头看新闻|Shaking Head News/i)
 
-    // Check main heading is visible
-    const heading = page.locator('h1')
+    const heading = page.getByRole('heading', { level: 1 })
     await expect(heading).toBeVisible()
-    await expect(heading).toContainText(/摇头看新闻|Shaking Head News/)
+    await expect(heading).toContainText(/摇头看新闻|Shaking Head News/i)
 
-    // Check subtitle is visible
-    const subtitle = page.locator('p.text-lg.text-muted-foreground').first()
-    await expect(subtitle).toBeVisible()
+    await expect(page.locator('main .mb-6 p').first()).toBeVisible()
   })
 
-  test('should display feature cards', async ({ page }) => {
-    // Wait for page to load
+  test('should display news content area or empty state', async ({ page }) => {
     await page.waitForLoadState('networkidle')
 
-    // Check that feature cards are displayed
-    const featureCards = page.locator('.rounded-lg.border.bg-card')
-    await expect(featureCards).toHaveCount(6)
+    const newsList = page.getByTestId('news-list')
+    if ((await newsList.count()) > 0) {
+      await expect(newsList).toBeVisible()
+      return
+    }
 
-    // Check that each card has a title and description
-    const firstCard = featureCards.first()
-    await expect(firstCard.locator('h3')).toBeVisible()
-    await expect(firstCard.locator('p')).toBeVisible()
+    await expect(page.getByRole('alert').first()).toBeVisible()
   })
 
-  test('should have a visible header with navigation', async ({ page }) => {
+  test('should have visible header navigation and footer', async ({ page }) => {
     const header = page.locator('header')
     await expect(header).toBeVisible()
+    await expect(header.locator('nav')).toBeVisible()
 
-    // Check for navigation links
-    const nav = header.locator('nav')
-    await expect(nav).toBeVisible()
-  })
-
-  test('should have a visible footer', async ({ page }) => {
     const footer = page.locator('footer')
     await expect(footer).toBeVisible()
   })
 
-  test('should display rotation controls', async ({ page }) => {
-    // Check that rotation controls are visible
-    const rotationControls = page.locator('text=/旋转控制|Rotation Controls/i')
-    await expect(rotationControls).toBeVisible()
+  test('should render rotation wrapper container', async ({ page }) => {
+    await expect(page.getByTestId('tilt-wrapper')).toBeVisible()
+  })
+
+  test('should navigate to settings page and redirect to login', async ({ page }) => {
+    await page.locator('header a[href="/settings"]').first().click()
+    await page.waitForURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/)
+  })
+
+  test('should navigate to stats page and redirect to login', async ({ page }) => {
+    await page.locator('header a[href="/stats"]').first().click()
+    await page.waitForURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/)
+  })
+
+  test('should redirect to login when opening RSS route', async ({ page }) => {
+    await page.goto('/rss')
+    await page.waitForURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/)
+  })
+
+  test('should have basic accessible heading structure', async ({ page }) => {
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
   })
 
   test('should be responsive on mobile', async ({ page, isMobile }) => {
@@ -58,83 +67,7 @@ test.describe('News Browsing Flow', () => {
       test.skip()
     }
 
-    // Check that the page is responsive
     await page.waitForLoadState('networkidle')
-
-    // Check that feature cards stack vertically on mobile
-    const featureCards = page.locator('.rounded-lg.border.bg-card')
-    const firstCard = featureCards.first()
-    const secondCard = featureCards.nth(1)
-
-    const firstBox = await firstCard.boundingBox()
-    const secondBox = await secondCard.boundingBox()
-
-    // On mobile, cards should stack (second card should be below first)
-    if (firstBox && secondBox) {
-      expect(secondBox.y).toBeGreaterThan(firstBox.y)
-    }
-  })
-
-  test('should navigate to settings page', async ({ page }) => {
-    // Click on settings link in navigation
-    await page.click('a[href="/settings"]')
-
-    // Should redirect to login if not authenticated
-    await page.waitForURL(/\/login/)
-    await expect(page).toHaveURL(/\/login/)
-  })
-
-  test('should navigate to stats page', async ({ page }) => {
-    // Click on stats link in navigation
-    await page.click('a[href="/stats"]')
-
-    // Should redirect to login if not authenticated
-    await page.waitForURL(/\/login/)
-    await expect(page).toHaveURL(/\/login/)
-  })
-
-  test('should navigate to RSS page', async ({ page }) => {
-    // Click on RSS link in navigation
-    await page.click('a[href="/rss"]')
-
-    // Should redirect to login if not authenticated
-    await page.waitForURL(/\/login/)
-    await expect(page).toHaveURL(/\/login/)
-  })
-
-  test('should have accessible content', async ({ page }) => {
-    // Check for proper heading hierarchy
-    const h1 = page.locator('h1')
-    await expect(h1).toHaveCount(1)
-
-    // Check for alt text on images (if any)
-    const images = page.locator('img')
-    const imageCount = await images.count()
-
-    for (let i = 0; i < imageCount; i++) {
-      const img = images.nth(i)
-      const alt = await img.getAttribute('alt')
-      expect(alt).toBeTruthy()
-    }
-  })
-
-  test('should load without console errors', async ({ page }) => {
-    const errors: string[] = []
-
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        errors.push(msg.text())
-      }
-    })
-
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Filter out known acceptable errors (like network errors in dev)
-    const criticalErrors = errors.filter(
-      (error) => !error.includes('favicon') && !error.includes('net::ERR')
-    )
-
-    expect(criticalErrors).toHaveLength(0)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   })
 })

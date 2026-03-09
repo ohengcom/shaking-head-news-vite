@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -30,73 +30,38 @@ export function UnlockAnimation({
   message = '解锁成功！',
   className,
 }: UnlockAnimationProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-
   useEffect(() => {
-    if (show) {
-      setIsVisible(true)
-      setIsAnimating(true)
-
-      // 动画持续时间
-      const timer = setTimeout(() => {
-        setIsAnimating(false)
-        setTimeout(() => {
-          setIsVisible(false)
-          onComplete?.()
-        }, 300) // 淡出时间
-      }, 2000) // 显示时间
-
-      return () => clearTimeout(timer)
+    if (!show) {
+      return
     }
+
+    const timer = setTimeout(() => {
+      onComplete?.()
+    }, 2300)
+
+    return () => clearTimeout(timer)
   }, [show, onComplete])
 
-  if (!isVisible) return null
+  if (!show) return null
 
   return (
     <div
       className={cn(
-        'bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300',
-        isAnimating ? 'opacity-100' : 'opacity-0',
+        'bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm',
         className
       )}
     >
-      <div
-        className={cn(
-          'flex flex-col items-center gap-4 transition-all duration-500',
-          isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-        )}
-      >
+      <div className="animate-in fade-in zoom-in-95 flex flex-col items-center gap-4 duration-500">
         {/* 动画图标 */}
         <div className="relative">
-          <div
-            className={cn(
-              'bg-primary flex h-20 w-20 items-center justify-center rounded-full transition-all duration-500',
-              isAnimating && 'animate-bounce'
-            )}
-          >
+          <div className="bg-primary flex h-20 w-20 animate-bounce items-center justify-center rounded-full transition-all duration-500">
             <Check className="text-primary-foreground h-10 w-10" />
           </div>
 
           {/* 闪光效果 */}
-          <Sparkles
-            className={cn(
-              'absolute -top-2 -right-2 h-6 w-6 text-yellow-500 transition-all duration-300',
-              isAnimating ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-            )}
-          />
-          <Sparkles
-            className={cn(
-              'absolute -bottom-1 -left-3 h-5 w-5 text-yellow-500 transition-all delay-100 duration-300',
-              isAnimating ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-            )}
-          />
-          <Sparkles
-            className={cn(
-              'absolute -right-4 bottom-2 h-4 w-4 text-yellow-500 transition-all delay-200 duration-300',
-              isAnimating ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-            )}
-          />
+          <Sparkles className="absolute -top-2 -right-2 h-6 w-6 animate-pulse text-yellow-500 transition-all duration-300" />
+          <Sparkles className="absolute -bottom-1 -left-3 h-5 w-5 animate-pulse text-yellow-500 transition-all delay-100 duration-300" />
+          <Sparkles className="absolute -right-4 bottom-2 h-4 w-4 animate-pulse text-yellow-500 transition-all delay-200 duration-300" />
         </div>
 
         {/* 文本 */}

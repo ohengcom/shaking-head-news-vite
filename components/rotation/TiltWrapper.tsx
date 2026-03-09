@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useRotationStore } from '@/lib/stores/rotation-store'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import { recordRotation } from '@/lib/actions/stats'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,9 @@ interface PendingRotation {
 }
 
 const BATCH_INTERVAL_MS = 5 * 60 * 1000 // Flush every 5 minutes
+const subscribeToHydration = () => () => {}
+const getHydratedSnapshot = () => true
+const getServerHydratedSnapshot = () => false
 
 export function TiltWrapper({
   children,
@@ -26,19 +29,27 @@ export function TiltWrapper({
   interval: propInterval,
 }: TiltWrapperProps) {
   const { angle, setAngle, isPaused, mode, interval } = useRotationStore()
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
-  const [isHydrated, setIsHydrated] = useState(false)
-  const lastRotationTime = useRef<number>(Date.now())
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getHydratedSnapshot,
+    getServerHydratedSnapshot
+  )
+  const lastRotationTime = useRef<number | null>(null)
   const previousAngle = useRef<number>(0)
   const pendingRotations = useRef<PendingRotation[]>([])
   const pathname = usePathname()
+  const prefersReducedMotion = false
 
   // Use props if provided, otherwise use store values
   const effectiveMode = propMode ?? mode
   const effectiveInterval = propInterval ?? interval
+  const fallbackPathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  const resolvedPathname = pathname || fallbackPathname
 
-  // Disable rotation on settings and RSS pages
-  const isSettingsPage = pathname === '/settings' || pathname === '/rss'
+  // Disable rotation on settings and RSS pages (including localized/nested paths)
+  const isSettingsPage =
+    typeof resolvedPathname === 'string' && /(^|\/)(settings|rss)(\/|$)/.test(resolvedPathname)
+  const safeAngle = Number.isFinite(angle) ? Math.max(-25, Math.min(25, angle)) : 0
 
   // Flush pending rotations to server (batch upload)
   const flushRotations = useCallback(() => {
@@ -82,28 +93,18 @@ export function TiltWrapper({
   // Manually rehydrate zustand store after mount
   useEffect(() => {
     try {
-      useRotationStore.persist.rehydrate()
+      useRotationStore.persist?.rehydrate?.()
     } catch (e) {
       console.error('Rehydration failed:', e)
     }
-    setIsHydrated(true)
-  }, [])
-
-  // Check for prefers-reduced-motion
-  useEffect(() => {
-    // We intentionally ignore prefers-reduced-motion to ensure the "shaking" feature
-    // works on all systems (including Cloud PCs/VMs that might default to reduced motion).
-    // The feature is core to the application's purpose.
-    if (typeof window === 'undefined') return
-    setPrefersReducedMotion(false)
   }, [])
 
   // Reset angle to 0 on settings page
   useEffect(() => {
-    if (isSettingsPage) {
+    if (isSettingsPage || !Number.isFinite(angle)) {
       setAngle(0)
     }
-  }, [isSettingsPage, setAngle])
+  }, [angle, isSettingsPage, setAngle])
 
   // Handle rotation logic
   useEffect(() => {
@@ -123,7 +124,8 @@ export function TiltWrapper({
 
       // Buffer rotation for batch reporting
       const now = Date.now()
-      const duration = Math.round((now - lastRotationTime.current) / 1000)
+      const previousTime = lastRotationTime.current ?? now
+      const duration = Math.round((now - previousTime) / 1000)
       lastRotationTime.current = now
 
       // Only buffer if there's a significant angle change
@@ -161,8 +163,8 @@ export function TiltWrapper({
     }
   }, [effectiveMode, prefersReducedMotion, isSettingsPage, setAngle, isHydrated])
 
-  // If user prefers reduced motion, render without animation
-  if (prefersReducedMotion) {
+  // Render without animation on reduced motion or settings-like pages
+  if (prefersReducedMotion || isSettingsPage) {
     return (
       <div
         className={cn(
@@ -177,7 +179,7 @@ export function TiltWrapper({
 
   return (
     <motion.div
-      animate={{ rotate: angle }}
+      animate={{ rotate: safeAngle }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
       className={cn(
         'h-screen overflow-x-hidden overflow-y-auto',

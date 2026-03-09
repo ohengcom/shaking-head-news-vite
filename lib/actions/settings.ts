@@ -8,6 +8,48 @@ import { AuthError, logError, validateOrThrow } from '@/lib/utils/error-handler'
 import { rateLimitByUser, RateLimitTiers } from '@/lib/rate-limit'
 import { sanitizeObject } from '@/lib/utils/input-validation'
 
+const ENABLE_SETTINGS_REVALIDATE = process.env.ENABLE_SETTINGS_REVALIDATE === 'true'
+
+function revalidateSettingsPaths() {
+  if (!ENABLE_SETTINGS_REVALIDATE) {
+    return
+  }
+
+  const paths = ['/', '/settings', '/stats', '/rss']
+
+  for (const path of paths) {
+    try {
+      revalidatePath(path)
+    } catch (error) {
+      logError(error, {
+        action: 'revalidateSettingsPaths',
+        path,
+      })
+    }
+  }
+}
+
+function getLegacySettingsKeys(sessionUser: {
+  id: string
+  providerUserId?: string
+  email?: string | null
+}): string[] {
+  const candidates = [sessionUser.providerUserId?.trim(), sessionUser.email?.trim()]
+  const seen = new Set<string>()
+  const keys: string[] = []
+
+  for (const candidate of candidates) {
+    if (!candidate || candidate === sessionUser.id || seen.has(candidate)) {
+      continue
+    }
+
+    seen.add(candidate)
+    keys.push(StorageKeys.userSettings(candidate))
+  }
+
+  return keys
+}
+
 /**
  * 获取用户设置
  * 如果用户未登录，返回默认设置
@@ -22,9 +64,39 @@ export async function getUserSettings(): Promise<UserSettings> {
   }
 
   try {
-    const settings = await getStorageItem<Partial<UserSettings>>(
-      StorageKeys.userSettings(session.user.id)
-    )
+    const primaryKey = StorageKeys.userSettings(session.user.id)
+    let settings = await getStorageItem<Partial<UserSettings>>(primaryKey)
+
+    if (!settings) {
+      const legacyKeys = getLegacySettingsKeys(session.user)
+
+      for (const legacyKey of legacyKeys) {
+        const legacySettings = await getStorageItem<Partial<UserSettings>>(legacyKey)
+
+        if (!legacySettings) {
+          continue
+        }
+
+        settings = legacySettings
+
+        try {
+          await setStorageItem(primaryKey, {
+            ...defaultSettings,
+            ...legacySettings,
+            userId: session.user.id,
+          })
+        } catch (migrationError) {
+          logError(migrationError, {
+            action: 'getUserSettings:migrateLegacyKey',
+            legacyKey,
+            primaryKey,
+            userId: session.user.id,
+          })
+        }
+
+        break
+      }
+    }
 
     if (!settings) {
       // 用户首次访问，返回默认设置
@@ -97,11 +169,8 @@ export async function updateSettings(
     // 存储到 Cloudflare KV
     await setStorageItem(StorageKeys.userSettings(session.user.id), validatedSettings)
 
-    // 重新验证依赖用户设置的页面
-    revalidatePath('/')
-    revalidatePath('/settings')
-    revalidatePath('/stats')
-    revalidatePath('/rss')
+    // 重新验证依赖用户设置的页面（失败不影响保存结果）
+    revalidateSettingsPaths()
 
     return {
       success: true,
@@ -145,18 +214,18 @@ export async function resetSettings(): Promise<{
       throw new Error('Too many reset attempts. Please try again later.')
     }
 
+    const currentSettings = await getUserSettings()
+
     const resetSettings = {
       ...defaultSettings,
       userId: session.user.id,
+      isPro: currentSettings.isPro ?? false,
     }
 
     await setStorageItem(StorageKeys.userSettings(session.user.id), resetSettings)
 
-    // 重新验证依赖用户设置的页面
-    revalidatePath('/')
-    revalidatePath('/settings')
-    revalidatePath('/stats')
-    revalidatePath('/rss')
+    // 重新验证依赖用户设置的页面（失败不影响保存结果）
+    revalidateSettingsPaths()
 
     return {
       success: true,
@@ -205,11 +274,8 @@ export async function toggleProStatus(): Promise<{
     // 存储到云端
     await setStorageItem(StorageKeys.userSettings(session.user.id), newSettings)
 
-    // 重新验证相关页面
-    revalidatePath('/')
-    revalidatePath('/settings')
-    revalidatePath('/stats')
-    revalidatePath('/rss')
+    // 重新验证相关页面（失败不影响保存结果）
+    revalidateSettingsPaths()
 
     return {
       success: true,
