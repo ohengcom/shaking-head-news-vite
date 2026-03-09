@@ -146,7 +146,6 @@ export default async function RSSPage() {
   )
 }
 
-export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'RSS 源管理 - 摇头看新闻',
   description: '管理您的 RSS 订阅源，自定义新闻来源',

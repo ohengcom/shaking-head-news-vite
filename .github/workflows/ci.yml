@@ -113,8 +113,7 @@ jobs:
         env:
           # Mock environment variables for tests
           BETTER_AUTH_URL: http://localhost:3001
-          NEXTAUTH_SECRET: test-secret
-          NEXTAUTH_URL: http://localhost:3000
+          BETTER_AUTH_SECRET: test-secret
           GOOGLE_CLIENT_ID: test-client-id
           GOOGLE_CLIENT_SECRET: test-client-secret
 
@@ -172,8 +171,7 @@ jobs:
         env:
           # Mock environment variables for E2E tests
           BETTER_AUTH_URL: http://localhost:3001
-          NEXTAUTH_SECRET: test-secret
-          NEXTAUTH_URL: http://localhost:3000
+          BETTER_AUTH_SECRET: test-secret
           GOOGLE_CLIENT_ID: test-client-id
           GOOGLE_CLIENT_SECRET: test-client-secret
 
@@ -226,8 +224,7 @@ jobs:
         env:
           # Required for build
           BETTER_AUTH_URL: https://example.com
-          NEXTAUTH_SECRET: build-secret
-          NEXTAUTH_URL: https://example.com
+          BETTER_AUTH_SECRET: build-secret
           GOOGLE_CLIENT_ID: build-client-id
           GOOGLE_CLIENT_SECRET: build-client-secret
           NEXT_PUBLIC_APP_URL: https://example.com

@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Repository Migration**: Migrated repository from `024812` to `ohengcom` organization
-- **Pro Feature**: Pro status now stored in cloud database (Upstash Redis) instead of localStorage
+- **Pro Feature**: Pro status now stored in Cloudflare KV-backed settings storage instead of localStorage
 - **Pro Unlock**: Added one-click Pro unlock button in settings for testing
 
 ### Fixed
@@ -94,7 +94,7 @@ Complete rewrite from Vue 3 browser extension to Next.js 15 web application.
 
 - **Modern Tech Stack**: Next.js 16, React 19, TypeScript
 - **User Authentication**: Google OAuth via NextAuth.js
-- **Cloud Sync**: Settings sync via Upstash Redis
+- **Cloud Sync**: Settings sync via persistent cloud-backed storage
 - **RSS Management**: Add, manage, and export custom RSS feeds
 - **Statistics Dashboard**: Track rotation activity with charts
 - **Health Reminders**: Browser notifications for neck health

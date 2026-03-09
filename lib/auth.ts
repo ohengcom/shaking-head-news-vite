@@ -1,17 +1,15 @@
 import { betterAuth } from 'better-auth'
 import { headers } from 'next/headers'
 
-const authBaseURL = process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL
-const authSecret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET
+const authBaseURL = process.env.BETTER_AUTH_URL
+const authSecret = process.env.BETTER_AUTH_SECRET
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.AUTH_GOOGLE_ID
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_SECRET
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 
-const microsoftClientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID || process.env.MICROSOFT_CLIENT_ID
-const microsoftClientSecret =
-  process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET || process.env.MICROSOFT_CLIENT_SECRET
-const microsoftTenantId =
-  process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || process.env.MICROSOFT_TENANT_ID || 'common'
+const microsoftClientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID
+const microsoftClientSecret = process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
+const microsoftTenantId = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || 'common'
 const microsoftRedirectPath =
   process.env.AUTH_MICROSOFT_REDIRECT_PATH || '/api/auth/callback/microsoft-entra-id'
 
@@ -78,9 +76,7 @@ export function getAuthServer(): AuthServer | null {
   authServerInitialized = true
 
   if (!authBaseURL || !authSecret) {
-    console.warn(
-      '[Auth] BETTER_AUTH_URL/NEXTAUTH_URL or BETTER_AUTH_SECRET/NEXTAUTH_SECRET is missing'
-    )
+    console.warn('[Auth] BETTER_AUTH_URL or BETTER_AUTH_SECRET is missing')
     authServerInstance = null
     return null
   }

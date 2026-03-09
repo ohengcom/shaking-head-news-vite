@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
-import { updateSettings, resetSettings, toggleProStatus } from '@/lib/actions/settings'
+import {
+  getUserSettings,
+  updateSettings,
+  resetSettings,
+  toggleProStatus,
+} from '@/lib/actions/settings'
 import type { UserSettings } from '@/types/settings'
 
 type SettingsApiAction = 'update' | 'reset' | 'togglePro'
@@ -11,6 +16,26 @@ interface SettingsApiRequestBody {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export async function GET() {
+  try {
+    const settings = await getUserSettings()
+
+    return NextResponse.json({
+      success: true,
+      authenticated: Boolean(settings.userId),
+      settings,
+    })
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Settings API failed',
+      },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: Request) {

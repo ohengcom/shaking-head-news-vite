@@ -9,23 +9,29 @@ interface SettingsApiRequestBody {
   payload?: unknown
 }
 
-interface SettingsApiResponse {
+export interface SettingsApiResponse {
   success: boolean
   error?: string
   settings?: UserSettings
   isPro?: boolean
+  authenticated?: boolean
 }
 
-async function callSettingsApi(body: SettingsApiRequestBody): Promise<SettingsApiResponse> {
+async function callSettingsApi(
+  method: 'GET' | 'POST',
+  body?: SettingsApiRequestBody
+): Promise<SettingsApiResponse> {
   try {
     const response = await fetch('/api/settings', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      method,
+      headers: body
+        ? {
+            'content-type': 'application/json',
+          }
+        : undefined,
       credentials: 'same-origin',
       cache: 'no-store',
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
     })
 
     let result: SettingsApiResponse | null = null
@@ -51,23 +57,27 @@ async function callSettingsApi(body: SettingsApiRequestBody): Promise<SettingsAp
   }
 }
 
+export function getSettingsViaApi(): Promise<SettingsApiResponse> {
+  return callSettingsApi('GET')
+}
+
 export function updateSettingsViaApi(
   settings: Partial<UserSettings>
 ): Promise<SettingsApiResponse> {
-  return callSettingsApi({
+  return callSettingsApi('POST', {
     action: 'update',
     payload: settings,
   })
 }
 
 export function resetSettingsViaApi(): Promise<SettingsApiResponse> {
-  return callSettingsApi({
+  return callSettingsApi('POST', {
     action: 'reset',
   })
 }
 
 export function toggleProViaApi(): Promise<SettingsApiResponse> {
-  return callSettingsApi({
+  return callSettingsApi('POST', {
     action: 'togglePro',
   })
 }

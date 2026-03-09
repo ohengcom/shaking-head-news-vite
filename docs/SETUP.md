@@ -79,4 +79,3 @@ npm run build:next
 ## 6. Notes
 
 - If `APP_SETTINGS_KV` is not available, persistent reads fall back to empty/default results and writes fail fast.
-- Better Auth currently supports fallback to `NEXTAUTH_*` env vars for migration compatibility.

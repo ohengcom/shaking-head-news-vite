@@ -14,7 +14,7 @@ function getSecurityHeaders() {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob: https://pagead2.googlesyndication.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://news.ravelloh.top https://accounts.google.com https://*.upstash.io https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://*.adtrafficquality.google https://static.cloudflareinsights.com",
+    "connect-src 'self' https://news.ravelloh.top https://accounts.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://*.adtrafficquality.google https://static.cloudflareinsights.com",
     "frame-src 'self' https://accounts.google.com https://googleads.g.doubleclick.net https://www.google.com https://tpc.googlesyndication.com https://fundingchoicesmessages.google.com https://*.adtrafficquality.google",
     "object-src 'none'",
     "base-uri 'self'",

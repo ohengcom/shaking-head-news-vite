@@ -1,11 +1,11 @@
+'use client'
+
 import Link from 'next/link'
 import { Newspaper, Sparkles, Crown } from 'lucide-react'
 import { ThemeToggle } from '@/components/settings/ThemeToggle'
 import { Button } from '@/components/ui/button'
-import { getTranslations } from 'next-intl/server'
-import { auth } from '@/lib/auth'
+import { useTranslations } from 'next-intl'
 import { LogoutButton } from '@/components/auth/LogoutButton'
-import { getUserTier } from '@/lib/tier-server'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useUserTier } from '@/hooks/use-user-tier'
 
 function getUserInitials(name?: string | null, email?: string | null): string {
   const normalizedName = name?.trim()
@@ -46,23 +47,18 @@ function getFallbackAvatarDataUrl(initials: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
-export async function Header() {
-  const session = await auth()
-  const { tier } = await getUserTier()
-  const t = await getTranslations('nav')
-  const tCommon = await getTranslations('common')
-  const tTier = await getTranslations('tier')
+export function Header() {
+  const { user, isGuest, isMember, isPro, isLoading } = useUserTier()
+  const t = useTranslations('nav')
+  const tCommon = useTranslations('common')
+  const tTier = useTranslations('tier')
 
-  const isGuest = tier === 'guest'
-  const isMember = tier === 'member'
-  const isPro = tier === 'pro'
-  const userInitials = getUserInitials(session?.user?.name, session?.user?.email)
-  const userAvatarSrc = session?.user?.image || getFallbackAvatarDataUrl(userInitials)
+  const userInitials = getUserInitials(user?.name, user?.email)
+  const userAvatarSrc = user?.image || getFallbackAvatarDataUrl(userInitials)
 
   return (
     <>
-      {/* Guest 升级提示 Banner */}
-      {isGuest && (
+      {!isLoading && isGuest && (
         <div className="bg-primary/10 border-primary/20 border-b px-4 py-2 text-center text-sm">
           <span className="text-muted-foreground">{tTier('guestBanner')}</span>
           <Link href="/features" className="text-primary ml-2 font-medium hover:underline">
@@ -119,18 +115,14 @@ export async function Header() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
 
-            {session?.user ? (
+            {isLoading ? null : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={userAvatarSrc}
-                        alt={session.user.name || session.user.email || 'User'}
-                      />
+                      <AvatarImage src={userAvatarSrc} alt={user.name || user.email || 'User'} />
                       <AvatarFallback>{userInitials}</AvatarFallback>
                     </Avatar>
-                    {/* 用户徽章 */}
                     {isPro ? (
                       <Badge
                         variant="default"
@@ -151,7 +143,7 @@ export async function Header() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm leading-none font-medium">{session.user.name}</p>
+                        <p className="text-sm leading-none font-medium">{user.name}</p>
                         {isPro && (
                           <Badge
                             variant="default"
@@ -168,9 +160,7 @@ export async function Header() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-muted-foreground text-xs leading-none">
-                        {session.user.email}
-                      </p>
+                      <p className="text-muted-foreground text-xs leading-none">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

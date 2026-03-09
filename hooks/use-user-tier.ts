@@ -1,6 +1,6 @@
 /**
  * useUserTier Hook
- * 客户端用户层级检测 Hook
+ * ????????? Hook
  */
 
 'use client'
@@ -13,45 +13,45 @@ import {
   getFeaturesForTier,
   isFeatureEnabled,
 } from '@/lib/config/features'
-import { toggleProViaApi } from '@/lib/api/settings-client'
+import { getSettingsViaApi, toggleProViaApi } from '@/lib/api/settings-client'
 
 export interface UseUserTierReturn {
-  /** 用户层级 */
+  /** ???? */
   tier: UserTier
-  /** 功能配置 */
+  /** ???? */
   features: FeatureConfig
-  /** 是否正在加载 */
+  /** ?????? */
   isLoading: boolean
-  /** 是否已认证 */
+  /** ????? */
   isAuthenticated: boolean
-  /** 是否为访客 */
+  /** ????? */
   isGuest: boolean
-  /** 是否为会员 */
+  /** ????? */
   isMember: boolean
-  /** 是否为 Pro 用户 */
+  /** ??? Pro ?? */
   isPro: boolean
-  /** 用户信息 */
+  /** ???? */
   user: {
     id?: string
     name?: string | null
     email?: string | null
     image?: string | null
   } | null
-  /** 检查特定功能是否可用 */
+  /** ?????????? */
   hasFeature: (feature: keyof FeatureConfig) => boolean
-  /** 切换 Pro 状态（临时测试用） */
+  /** ?? Pro ????????? */
   togglePro: () => Promise<{ success: boolean; error?: string; isPro?: boolean }>
-  /** 是否正在切换 Pro 状态 */
+  /** ?????? Pro ?? */
   isTogglingPro: boolean
 }
 
 interface UseUserTierProps {
-  /** 初始 Pro 状态（从服务端传入） */
+  /** ?? Pro ?????????? */
   initialIsPro?: boolean
 }
 
 /**
- * 获取用户层级和功能配置
+ * ???????????
  */
 export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
   const { data: session, status } = useSession()
@@ -59,12 +59,34 @@ export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
   const [isTogglingPro, setIsTogglingPro] = useState(false)
 
   useEffect(() => {
+    let isCancelled = false
+
     if (typeof props?.initialIsPro === 'boolean') {
       setIsProEnabled(props.initialIsPro)
+      return () => {
+        isCancelled = true
+      }
     }
-  }, [props?.initialIsPro])
 
-  // 切换 Pro 状态（调用 Server Action）
+    if (!session?.user?.id) {
+      setIsProEnabled(false)
+      return () => {
+        isCancelled = true
+      }
+    }
+
+    void (async () => {
+      const result = await getSettingsViaApi()
+      if (!isCancelled) {
+        setIsProEnabled(Boolean(result.success && result.settings?.isPro))
+      }
+    })()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [props?.initialIsPro, session?.user?.id])
+
   const togglePro = async () => {
     if (isTogglingPro) {
       return { success: false, error: 'Pro update is already in progress' }
@@ -87,7 +109,6 @@ export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
     }
   }
 
-  // 判断用户层级
   let tier: UserTier = 'guest'
   if (session) {
     tier = isProEnabled ? 'pro' : 'member'
