@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/ohengcom/shaking-head-news",
   "type": "module",
+  "packageManager": "npm@11.5.2",
   "scripts": {
     "prepare": "husky || true",
     "dev": "vinext dev --port 3001",
