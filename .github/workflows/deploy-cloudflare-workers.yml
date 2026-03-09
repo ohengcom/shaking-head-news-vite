@@ -107,8 +107,6 @@ jobs:
 
           put_secret_if_present BETTER_AUTH_URL
           put_secret_if_present BETTER_AUTH_SECRET
-          put_secret_if_present NEXTAUTH_URL
-          put_secret_if_present NEXTAUTH_SECRET
           put_secret_if_present GOOGLE_CLIENT_ID
           put_secret_if_present GOOGLE_CLIENT_SECRET
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_ID
