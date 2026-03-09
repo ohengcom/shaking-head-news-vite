@@ -81,16 +81,14 @@ jobs:
           fi
 
           if [ -z "$NEXT_PUBLIC_ADSENSE_CLIENT_ID" ]; then
-            echo "Missing secret: NEXT_PUBLIC_ADSENSE_CLIENT_ID"
-            exit 1
+            echo "Warning: NEXT_PUBLIC_ADSENSE_CLIENT_ID is empty; build will fall back to the default publisher id"
           fi
 
           if [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR" ] && \
              [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_HEADER" ] && \
              [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_FOOTER" ] && \
              [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_INLINE" ]; then
-            echo "Missing AdSense slot secrets: set at least one NEXT_PUBLIC_ADSENSE_SLOT_*"
-            exit 1
+            echo "Warning: all NEXT_PUBLIC_ADSENSE_SLOT_* secrets are empty; ad slots will remain disabled until configured"
           fi
 
       - name: Sync runtime auth secrets to Worker
