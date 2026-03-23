@@ -1,3 +1,10 @@
+import {
+  getEnvValue,
+  getRuntimeMode,
+  isDevelopmentRuntime,
+  isProductionRuntime,
+} from '@/lib/config/runtime-env'
+
 /**
  * Sentry Error Monitoring Configuration
  *
@@ -27,12 +34,14 @@ export interface SentryConfig {
  * Get Sentry configuration based on environment
  */
 export function getSentryConfig(): SentryConfig {
-  const isProduction = process.env.NODE_ENV === 'production'
-  const isDevelopment = process.env.NODE_ENV === 'development'
+  const isProduction = isProductionRuntime()
+  const isDevelopment = isDevelopmentRuntime()
+  const runtimeMode = getRuntimeMode()
+  const dsn = getEnvValue('NEXT_PUBLIC_SENTRY_DSN')
 
   return {
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    environment: process.env.NODE_ENV || 'development',
+    dsn,
+    environment: runtimeMode,
 
     // Performance Monitoring: Sample 100% in dev, 10% in production
     tracesSampleRate: isDevelopment ? 1.0 : 0.1,
@@ -44,7 +53,7 @@ export function getSentryConfig(): SentryConfig {
     replaysOnErrorSampleRate: isProduction ? 1.0 : 0,
 
     // Only enable in production if DSN is configured
-    enabled: isProduction && !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+    enabled: isProduction && !!dsn,
   }
 }
 

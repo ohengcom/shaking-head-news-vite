@@ -198,7 +198,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     } else if (key === 'layoutMode') {
       setLayoutMode(value as UserSettings['layoutMode'])
     } else if (key === 'theme') {
-      setTheme(value as string)
+      setTheme(value as 'light' | 'dark' | 'system')
     } else if (key === 'rotationMode') {
       setRotationMode(value as 'fixed' | 'continuous')
     } else if (key === 'rotationInterval') {

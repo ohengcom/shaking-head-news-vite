@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -13,13 +13,18 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "types": ["vite/client"],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "next-intl": ["./src/shims/next-intl.tsx"],
+      "next-intl/server": ["./src/shims/next-intl-server.ts"],
+      "next/navigation": ["./src/shims/next-navigation.tsx"],
+      "next/link": ["./src/shims/next-link.tsx"],
+      "next/image": ["./src/shims/next-image.tsx"],
+      "next/dynamic": ["./src/shims/next-dynamic.tsx"],
+      "next/cache": ["./src/shims/next-cache.ts"],
+      "next-themes": ["./src/shims/next-themes.tsx"]
     },
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
@@ -29,27 +34,35 @@
   "include": [
     "*.js",
     "*.ts",
-    "next-env.d.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     "components/**/*.ts",
     "components/**/*.tsx",
     "hooks/**/*.ts",
-    "i18n/**/*.ts",
     "lib/**/*.ts",
     "lib/**/*.tsx",
+    "messages/**/*.json",
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "types/**/*.ts",
     "worker/**/*.ts",
     "config/**/*.ts",
-    "proxy.ts",
     "playwright.config.ts",
     "vite.config.ts",
     "vitest.config.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "worker/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist", "public"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "public",
+    ".next",
+    "app",
+    "i18n",
+    "i18n.ts",
+    "next-env.d.ts",
+    "proxy.ts",
+    "lib/i18n.ts"
+  ]
 }

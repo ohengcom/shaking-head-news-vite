@@ -1,3 +1,5 @@
+import { getEnvValue, getRuntimeMode, isProductionRuntime } from '@/lib/config/runtime-env'
+
 /**
  * Analytics Tracking Module
  *
@@ -37,8 +39,8 @@ export interface PageViewEvent {
  */
 export function isAnalyticsEnabled(): boolean {
   return (
-    process.env.NODE_ENV === 'production' &&
-    (!!process.env.NEXT_PUBLIC_GA_ID || !!process.env.NEXT_PUBLIC_VERCEL_ANALYTICS)
+    isProductionRuntime() &&
+    (!!getEnvValue('NEXT_PUBLIC_GA_ID') || !!getEnvValue('NEXT_PUBLIC_VERCEL_ANALYTICS'))
   )
 }
 
@@ -62,8 +64,13 @@ export function trackPageView(event: PageViewEvent) {
   // Google Analytics
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag is a global from external script
   if (typeof window !== 'undefined' && (window as any).gtag) {
+    const gaId = getEnvValue('NEXT_PUBLIC_GA_ID')
+    if (!gaId) {
+      return
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag is a global from external script
-    ;(window as any).gtag('config', process.env.NEXT_PUBLIC_GA_ID, {
+    ;(window as any).gtag('config', gaId, {
       page_path: event.url,
       page_title: event.title,
       page_referrer: event.referrer,
@@ -282,8 +289,13 @@ export function setUserId(userId: string | null) {
   // Google Analytics
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag is a global from external script
   if (typeof window !== 'undefined' && (window as any).gtag) {
+    const gaId = getEnvValue('NEXT_PUBLIC_GA_ID')
+    if (!gaId) {
+      return
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag is a global from external script
-    ;(window as any).gtag('config', process.env.NEXT_PUBLIC_GA_ID, {
+    ;(window as any).gtag('config', gaId, {
       user_id: userId,
     })
   }
@@ -335,7 +347,7 @@ export function trackTiming(category: string, variable: string, value: number, l
  */
 export function initAnalytics() {
   if (!isAnalyticsEnabled()) {
-    console.log('[Analytics] Disabled in', process.env.NODE_ENV)
+    console.log('[Analytics] Disabled in', getRuntimeMode())
     return
   }
 

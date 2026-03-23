@@ -1,81 +1,61 @@
-# Setup Guide
+# Setup
 
-## 1. Prerequisites
+## Prerequisites
 
-- Node.js `>=22`
-- npm `>=10`
-- Optional services:
-  - Cloudflare Workers KV binding (`APP_SETTINGS_KV`) for persistent user settings/stats
-  - Google/Microsoft OAuth app credentials (for login)
+- Node.js 22+
+- npm 11+
+- Cloudflare account if you plan to deploy
 
-## 2. Install
+## Install
 
 ```bash
 npm install
-```
-
-## 3. Environment Variables
-
-Copy and edit:
-
-```bash
 cp .env.example .env.local
 ```
 
-### Minimum for local development
+## Required Environment Variables
 
-- `BETTER_AUTH_URL=http://localhost:3001`
-- `BETTER_AUTH_SECRET=<random-secret>`
+```env
+BETTER_AUTH_URL=http://localhost:3001
+BETTER_AUTH_SECRET=
+```
 
-### Recommended for full features
+## Optional Environment Variables
 
-- OAuth:
-  - `GOOGLE_CLIENT_ID`
-  - `GOOGLE_CLIENT_SECRET`
-  - `AUTH_MICROSOFT_ENTRA_ID_ID`
-  - `AUTH_MICROSOFT_ENTRA_ID_SECRET`
-  - `AUTH_MICROSOFT_ENTRA_ID_TENANT_ID`
-- Storage:
-  - `APP_SETTINGS_KV` binding in `wrangler.jsonc`
+```env
+NEWS_API_BASE_URL=https://news.ravelloh.top
 
-### Optional
+VITE_ADSENSE_CLIENT_ID=
+VITE_ADSENSE_SLOT_SIDEBAR=
+VITE_ADSENSE_SLOT_HEADER=
+VITE_ADSENSE_SLOT_FOOTER=
+VITE_ADSENSE_SLOT_INLINE=
 
-- `NEWS_API_BASE_URL`
-- `NEXT_PUBLIC_ADSENSE_*`
-- `NEXT_PUBLIC_GA_ID`
-- `NEXT_PUBLIC_VERCEL_ANALYTICS`
-- `NEXT_PUBLIC_SENTRY_DSN`
-- `SENTRY_AUTH_TOKEN`
-- `NEXT_PUBLIC_LOG_LEVEL`
+VITE_GA_ID=
+VITE_SENTRY_DSN=
+VITE_LOG_LEVEL=debug
+```
 
-## 4. Run
+Preferred public variable prefix is `VITE_`. The codebase still reads legacy `NEXT_PUBLIC_*` names as a fallback during migration.
 
-### vinext (primary runtime)
+## Local Development
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3001`.
+The dev server runs on `http://localhost:3001`.
 
-### Next.js (compatibility runtime)
+## Cloudflare Login
 
-```bash
-npm run dev:next
-```
-
-Open `http://localhost:3000`.
-
-## 5. Local Quality Checks
+Before any remote deploy:
 
 ```bash
-npm run type-check
-npm run lint
-npm run test
-npm run build
-npm run build:next
+npx wrangler whoami
 ```
 
-## 6. Notes
+If not authenticated:
 
-- If `APP_SETTINGS_KV` is not available, persistent reads fall back to empty/default results and writes fail fast.
+```bash
+npx wrangler login
+```

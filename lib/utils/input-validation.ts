@@ -293,7 +293,12 @@ export function sanitizeFilename(filename: string): string {
   sanitized = sanitized.replace(/\0/g, '')
 
   // Remove control characters
-  sanitized = sanitized.replace(/[\x00-\x1f\x80-\x9f]/g, '')
+  sanitized = Array.from(sanitized)
+    .filter((char) => {
+      const code = char.charCodeAt(0)
+      return !(code <= 31 || (code >= 128 && code <= 159))
+    })
+    .join('')
 
   // Remove special characters except dots, dashes, and underscores
   sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -315,7 +320,7 @@ export function sanitizeFilename(filename: string): string {
 export function containsSqlInjection(input: string): boolean {
   const sqlPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/i,
-    /(--|\#|\/\*|\*\/)/,
+    /(--|#|\/\*|\*\/)/,
     /(\bOR\b.*=.*)/i,
     /(\bAND\b.*=.*)/i,
     /('|")\s*(OR|AND)\s*('|")/i,

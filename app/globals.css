@@ -3,8 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-inter), var(--font-noto-sans-sc), system-ui,
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Manrope', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -84,17 +84,17 @@
     --popover-foreground: 222.2 84% 4.9%;
 
     /* 主色调 - 健康绿 #10B981 (Emerald 500) */
-    --primary: 160 84% 39%;
+    --primary: 160 84% 28%;
     --primary-foreground: 0 0% 100%;
 
     /* 次要色 - 信任蓝 #3B82F6 (Blue 500) */
-    --secondary: 217 91% 60%;
+    --secondary: 217 91% 45%;
     --secondary-foreground: 0 0% 100%;
 
     /* 静音色 - #F1F5F9 (Slate 100) */
     --muted: 210 40% 96%;
     /* 静音前景 - #64748B (Slate 500) */
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 16% 42%;
 
     /* 强调色 - #F1F5F9 (Slate 100) */
     --accent: 210 40% 96%;
@@ -102,14 +102,14 @@
     --accent-foreground: 222.2 47% 11%;
 
     /* 破坏性操作 */
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 42%;
     --destructive-foreground: 210 40% 98%;
 
     /* 边框和输入框 - #E2E8F0 (Slate 200) */
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     /* 焦点环 - 与 primary 一致 */
-    --ring: 160 84% 39%;
+    --ring: 160 84% 28%;
 
     --radius: 0.5rem;
   }
@@ -170,6 +170,9 @@
   body {
     height: 100%;
     overflow: hidden;
+  }
+  #root {
+    height: 100%;
   }
   body {
     background-color: hsl(var(--background));

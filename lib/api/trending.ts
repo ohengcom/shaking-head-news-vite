@@ -26,9 +26,7 @@ interface RawTrendingItem {
 export async function fetchTrending(source: string = 'douyin'): Promise<TrendingItem[] | null> {
   try {
     const endpoint = `${BASE_URL}/${source}`
-    const res = await fetch(endpoint, {
-      next: { revalidate: 60 }, // Cache for 1 minute via native fetch cache
-    })
+    const res = await fetch(endpoint)
     if (!res.ok) throw new Error(`Failed to fetch trending ${source}`)
 
     const json: VikiResponse<RawTrendingItem> = await res.json()

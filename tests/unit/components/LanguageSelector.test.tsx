@@ -3,9 +3,12 @@ import { render, screen } from '@testing-library/react'
 import { LanguageSelector } from '@/components/settings/LanguageSelector'
 import * as settingsClient from '@/lib/api/settings-client'
 
+const mockSetAppLocale = vi.fn()
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useSetAppLocale: () => mockSetAppLocale,
 }))
 
 // Mock toast hook

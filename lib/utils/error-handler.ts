@@ -241,18 +241,43 @@ export async function retryWithBackoff<T>(
   let lastError: unknown
   let delay = initialDelay
 
+  const isRetryableError = (error: unknown) => {
+    if (
+      error instanceof AuthError ||
+      error instanceof ValidationError ||
+      error instanceof NotFoundError
+    ) {
+      return false
+    }
+
+    const statusCode =
+      typeof error === 'object' &&
+      error !== null &&
+      'statusCode' in error &&
+      typeof error.statusCode === 'number'
+        ? error.statusCode
+        : undefined
+
+    if (
+      typeof statusCode === 'number' &&
+      statusCode >= 400 &&
+      statusCode < 500 &&
+      statusCode !== 429
+    ) {
+      return false
+    }
+
+    return true
+  }
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn()
     } catch (error) {
       lastError = error
 
-      // Don't retry on certain errors
-      if (
-        error instanceof AuthError ||
-        error instanceof ValidationError ||
-        error instanceof NotFoundError
-      ) {
+      // Don't retry on non-retryable application errors.
+      if (!isRetryableError(error)) {
         throw error
       }
 

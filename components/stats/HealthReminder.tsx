@@ -6,7 +6,7 @@ import { Bell, BellOff, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { checkHealthReminder } from '@/lib/actions/stats'
+import { checkHealthReminderViaApi } from '@/lib/api/stats-client'
 
 interface HealthReminderProps {
   dailyGoal: number
@@ -84,7 +84,7 @@ export function HealthReminder({ dailyGoal, currentCount }: HealthReminderProps)
 
     const checkReminder = async () => {
       try {
-        const { shouldRemind } = await checkHealthReminder()
+        const { shouldRemind } = await checkHealthReminderViaApi()
 
         // 需求 8.3: 连续2小时未运动时发送提醒
         if (shouldRemind) {

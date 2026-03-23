@@ -1,9 +1,14 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+async function waitForRotatingShell(page: Page) {
+  await expect(page.getByTestId('tilt-wrapper')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+}
 
 test.describe('Page Rotation Runtime', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForRotatingShell(page)
   })
 
   test('should render tilt wrapper', async ({ page }) => {
@@ -13,10 +18,8 @@ test.describe('Page Rotation Runtime', () => {
   test('should keep app usable with reduced motion preference', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    await expect(page.getByTestId('tilt-wrapper')).toBeVisible()
+    await waitForRotatingShell(page)
   })
 
   test('should allow rotation state persistence in localStorage', async ({ page }) => {
@@ -48,7 +51,7 @@ test.describe('Page Rotation Runtime', () => {
     })
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForRotatingShell(page)
 
     const persisted = await page.evaluate(() => {
       const raw = localStorage.getItem('rotation-storage')

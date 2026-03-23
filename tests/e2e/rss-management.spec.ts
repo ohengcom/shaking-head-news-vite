@@ -20,24 +20,25 @@ test.describe('RSS Source Management Access Control', () => {
     await page.goto('/rss')
     await page.waitForURL(/\/login/)
 
-    await page.goBack()
-    await expect(page.url()).toBeTruthy()
+    await page.getByRole('link', { name: /Continue without signing in/i }).click()
+    await expect(page).toHaveURL('/')
   })
 })
 
 test.describe('RSS Route Error Handling', () => {
   test('should handle invalid RSS sub-routes gracefully', async ({ page }) => {
     await page.goto('/rss/invalid-page')
-    await page.waitForLoadState('networkidle')
 
-    const url = page.url()
-    const redirectedToLogin = url.includes('/login')
-    const hasNotFound = await page
-      .locator('text=/404|Not Found|找不到/i')
-      .isVisible()
-      .catch(() => false)
+    await expect(async () => {
+      const url = page.url()
+      const redirectedToLogin = url.includes('/login')
+      const hasNotFound = await page
+        .getByRole('heading', { name: /404|Not Found/i })
+        .isVisible()
+        .catch(() => false)
 
-    expect(redirectedToLogin || hasNotFound).toBe(true)
+      expect(redirectedToLogin || hasNotFound).toBe(true)
+    }).toPass()
   })
 
   test('should preserve keyboard navigation on login page', async ({ page }) => {

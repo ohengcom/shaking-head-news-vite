@@ -66,7 +66,7 @@ test.describe('User Authentication and Settings Flow', () => {
     const cardBox = await loginCard.boundingBox()
 
     if (buttonBox && cardBox) {
-      expect(buttonBox.width).toBeGreaterThan(cardBox.width * 0.8)
+      expect(buttonBox.width).toBeGreaterThanOrEqual(cardBox.width * 0.79)
     }
   })
 

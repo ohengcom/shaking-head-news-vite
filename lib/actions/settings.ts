@@ -1,32 +1,12 @@
-'use server'
-
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
 import { UserSettingsSchema, defaultSettings, UserSettings } from '@/types/settings'
-import { revalidatePath } from 'next/cache'
 import { AuthError, logError, validateOrThrow } from '@/lib/utils/error-handler'
 import { rateLimitByUser, RateLimitTiers } from '@/lib/rate-limit'
 import { sanitizeObject } from '@/lib/utils/input-validation'
 
-const ENABLE_SETTINGS_REVALIDATE = process.env.ENABLE_SETTINGS_REVALIDATE === 'true'
-
 function revalidateSettingsPaths() {
-  if (!ENABLE_SETTINGS_REVALIDATE) {
-    return
-  }
-
-  const paths = ['/', '/settings', '/stats', '/rss']
-
-  for (const path of paths) {
-    try {
-      revalidatePath(path)
-    } catch (error) {
-      logError(error, {
-        action: 'revalidateSettingsPaths',
-        path,
-      })
-    }
-  }
+  return
 }
 
 function getLegacySettingsKeys(sessionUser: {

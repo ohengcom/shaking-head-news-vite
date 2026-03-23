@@ -22,11 +22,6 @@ vi.mock('@/lib/storage', () => ({
   },
 }))
 
-vi.mock('next/cache', () => ({
-  revalidateTag: vi.fn(),
-  revalidatePath: vi.fn(),
-}))
-
 vi.mock('@/lib/rate-limit', () => ({
   rateLimitByUser: vi.fn().mockResolvedValue({
     success: true,
@@ -60,7 +55,6 @@ vi.mock('@/lib/utils/input-validation', () => ({
 
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
-import { revalidateTag } from 'next/cache'
 import { rateLimitByUser, rateLimitByAction } from '@/lib/rate-limit'
 
 // Mock global fetch
@@ -256,7 +250,6 @@ describe('RSS Actions', () => {
 
       expect(result.name).toBe('Updated Name')
       expect(setStorageItem).toHaveBeenCalled()
-      expect(revalidateTag).toHaveBeenCalled()
     })
 
     it('should throw error when source not found', async () => {
@@ -285,7 +278,7 @@ describe('RSS Actions', () => {
       await expect(updateRSSSource('1', { name: 'Updated' })).rejects.toThrow('Too many requests')
     })
 
-    it('should clear cache when updating source', async () => {
+    it('should persist url changes when updating source', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
@@ -293,9 +286,9 @@ describe('RSS Actions', () => {
       vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
-      await updateRSSSource('1', { enabled: false })
+      const result = await updateRSSSource('1', { url: 'https://example.com/updated.xml' })
 
-      expect(revalidateTag).toHaveBeenCalledWith(`rss-${mockRSSSources[0].url}`, { expire: 0 })
+      expect(result.url).toBe('https://example.com/updated.xml')
     })
   })
 
@@ -320,7 +313,6 @@ describe('RSS Actions', () => {
         'user:test-user-id:rss-sources',
         expect.arrayContaining([expect.objectContaining({ id: '2' })])
       )
-      expect(revalidateTag).toHaveBeenCalled()
     })
 
     it('should throw error when source not found', async () => {

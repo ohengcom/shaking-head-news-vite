@@ -8,12 +8,6 @@ import {
 } from '@/lib/actions/news'
 import { mockNewsItems } from '@/tests/utils/test-utils'
 
-// Mock dependencies
-vi.mock('next/cache', () => ({
-  revalidateTag: vi.fn(),
-  unstable_cache: vi.fn((fn) => fn),
-}))
-
 vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
   validateOrThrow: vi.fn((_schema, data) => data),
@@ -50,8 +44,6 @@ vi.mock('@/lib/actions/rss', () => ({
 
 import { auth } from '@/lib/auth'
 import { getRSSSources } from '@/lib/actions/rss'
-
-import { revalidateTag } from 'next/cache'
 
 // Mock global fetch
 const mockFetch = vi.fn()
@@ -161,28 +153,15 @@ describe('News Actions', () => {
     it('should refresh all news when no parameters provided', async () => {
       const result = await refreshNews()
 
-      expect(revalidateTag).toHaveBeenCalledWith('news', { expire: 0 })
       expect(result.success).toBe(true)
     })
 
     it('should refresh specific language news', async () => {
-      await refreshNews('zh')
-
-      expect(revalidateTag).toHaveBeenCalledWith('news-zh', { expire: 0 })
+      await expect(refreshNews('zh')).resolves.toEqual({ success: true })
     })
 
     it('should refresh specific source news', async () => {
-      await refreshNews(undefined, 'everydaynews')
-
-      expect(revalidateTag).toHaveBeenCalledWith('news-everydaynews', { expire: 0 })
-    })
-
-    it('should handle errors gracefully', async () => {
-      vi.mocked(revalidateTag).mockImplementation(() => {
-        throw new Error('Revalidation error')
-      })
-
-      await expect(refreshNews()).rejects.toThrow()
+      await expect(refreshNews(undefined, 'everydaynews')).resolves.toEqual({ success: true })
     })
   })
 
@@ -219,9 +198,8 @@ describe('News Actions', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'https://example.com/rss.xml',
         expect.objectContaining({
-          next: expect.objectContaining({
-            revalidate: 1800,
-            tags: expect.arrayContaining(['rss', 'rss-https://example.com/rss.xml']),
+          headers: expect.objectContaining({
+            'User-Agent': 'ShakingHeadNews/1.0',
           }),
         })
       )
@@ -316,16 +294,7 @@ describe('News Actions', () => {
     it('should refresh specific RSS feed', async () => {
       const result = await refreshRSSFeed('https://example.com/rss.xml')
 
-      expect(revalidateTag).toHaveBeenCalledWith('rss-https://example.com/rss.xml', { expire: 0 })
       expect(result.success).toBe(true)
-    })
-
-    it('should handle errors gracefully', async () => {
-      vi.mocked(revalidateTag).mockImplementation(() => {
-        throw new Error('Revalidation error')
-      })
-
-      await expect(refreshRSSFeed('https://example.com/rss.xml')).rejects.toThrow()
     })
   })
 

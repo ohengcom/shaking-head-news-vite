@@ -1,48 +1,49 @@
-# Architecture Overview
+# Architecture
 
-## Runtime Model
+## Runtime Split
 
-- Primary runtime: vinext + Vite on Cloudflare Workers (`vite.config.ts`, `worker/index.ts`)
-- Compatibility runtime: Next.js App Router (`app/` with `*:next` scripts only)
-- Development, build, Playwright, and deployment now default to the vinext path.
+- Client: Vite SPA rendered in the browser with React Router.
+- API: Cloudflare Worker powered by Hono.
+- Persistence: Cloudflare KV via the `APP_SETTINGS_KV` binding.
+- Auth: Better Auth mounted at `/api/auth/*`.
 
-## Core Modules
+## Request Flow
 
-- UI & pages: `app/`, `components/`
-- Server actions: `lib/actions/`
-- Data access layer: `lib/dal/`
-- Auth:
-  - Server: `lib/auth.ts`
-  - Client adapter: `lib/auth-client.ts`
-  - Route handler: `app/api/auth/[...all]/route.ts`
-- Storage: `lib/storage.ts` (Cloudflare KV binding + recent-write cache)
-- Tier gating:
-  - Config: `lib/config/features.ts`
-  - Server helper: `lib/tier-server.ts`
-  - Client hook: `hooks/use-user-tier.ts`
-- i18n:
-  - Request config: `i18n.ts`
-  - Messages: `messages/*.json`
+1. Browser loads `dist/client/index.html`.
+2. Client routes are handled by React Router.
+3. API calls go to Worker endpoints under `/api/*`.
+4. Worker actions reuse shared logic from `lib/actions/*`.
+5. Worker stores user settings, stats, and RSS state in KV.
 
-## Auth Flow
+## Project Layout
 
-1. User clicks social login on `/login`.
-2. Client calls `signIn()` from `lib/auth-client.ts`.
-3. Better Auth handles OAuth callback under `/api/auth/[...all]`.
-4. Server-side `auth()` returns normalized session object.
-5. User settings bootstrap runs on first authenticated access.
+- `src/`
+  Client entry, routes, providers, and Next compatibility shims.
+- `worker/`
+  Cloudflare Worker entry and HTTP routing.
+- `components/`
+  Shared UI and feature components.
+- `lib/actions/`
+  Business logic executed by the Worker.
+- `lib/api/*-client.ts`
+  Browser-side fetch wrappers for Worker APIs.
+- `lib/server/`
+  Worker environment and request-context helpers.
 
-## Data Flow
+## Compatibility Layer
 
-- News sources:
-  - Daily/API news from `lib/actions/news.ts`
-  - Trending/hot-list from `lib/api/*`
-  - Custom RSS from user-managed feeds
-- Persistent user state:
-  - Settings, stats, RSS source definitions via `StorageKeys` in Cloudflare KV
+The repository still contains reusable components originally written against Next.js APIs. To avoid a risky full component rewrite, Vite aliases local shims for:
 
-## Security & Middleware
+- `next-intl`
+- `next/navigation`
+- `next/link`
+- `next/image`
+- `next/dynamic`
+- `next/cache`
+- `next-themes`
 
-- Middleware/proxy logic in `proxy.ts`:
-  - Security headers
-  - Applied only to non-API page requests
+This keeps the active runtime Cloudflare-native while allowing controlled reuse of existing feature code.
+
+## Legacy Files
+
+The historical `app/` tree remains in the repository for reference, but it is excluded from TypeScript build targets and is not part of the current runtime path.

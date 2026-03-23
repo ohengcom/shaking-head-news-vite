@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { updateRSSSource, deleteRSSSource, reorderRSSSources } from '@/lib/actions/rss'
+import {
+  deleteRSSSourceViaApi,
+  reorderRSSSourcesViaApi,
+  updateRSSSourceViaApi,
+} from '@/lib/api/rss-client'
 import { Trash2, GripVertical, AlertCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -27,7 +31,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
 
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
-      const updated = await updateRSSSource(id, { enabled })
+      const updated = await updateRSSSourceViaApi(id, { enabled })
       setSources(sources.map((s) => (s.id === id ? updated : s)))
       toast({
         title: t('success'),
@@ -46,7 +50,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
     if (!confirm(t('confirmDelete'))) return
 
     try {
-      await deleteRSSSource(id)
+      await deleteRSSSourceViaApi(id)
       setSources(sources.filter((s) => s.id !== id))
       toast({
         title: t('success'),
@@ -87,7 +91,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
 
     try {
       const sourceIds = sources.map((s) => s.id)
-      await reorderRSSSources(sourceIds)
+      await reorderRSSSourcesViaApi(sourceIds)
       toast({
         title: t('success'),
         description: t('orderUpdated'),

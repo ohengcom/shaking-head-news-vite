@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useSetAppLocale, useTranslations } from 'next-intl'
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ interface LanguageSelectorProps {
 
 export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
   const t = useTranslations('settings')
+  const setAppLocale = useSetAppLocale()
   const { toast } = useToast()
   const [language, setLanguage] = useState<'zh' | 'en'>(currentLanguage)
   const [isPending, setIsPending] = useState(false)
@@ -38,10 +39,7 @@ export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
         throw new Error(result?.error || 'Failed to update language')
       }
 
-      // Set cookie for next-intl (client-side only)
-      if (typeof document !== 'undefined') {
-        document.cookie = `locale=${newLanguage}; path=/; max-age=31536000`
-      }
+      setAppLocale(newLanguage)
 
       toast({
         title: t('saveSuccess'),

@@ -6,7 +6,7 @@ test.describe('Complete User Journey (Guest)', () => {
     await expect(page).toHaveTitle(/摇头看新闻|Shaking Head News/i)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
-    await page.locator('header a[href="/settings"]').first().click()
+    await page.goto('/settings')
     await page.waitForURL(/\/login/)
     await expect(page).toHaveURL(/\/login/)
 
@@ -34,14 +34,13 @@ test.describe('Complete User Journey (Guest)', () => {
     await page.goBack()
     await expect(page).toHaveURL('/')
 
-    await page.goForward()
+    await page.goForward({ waitUntil: 'commit' })
     await expect(page).toHaveURL('/login')
   })
 
   test('should handle page reload gracefully', async ({ page }) => {
     await page.goto('/')
     await page.reload()
-    await page.waitForLoadState('networkidle')
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   })
@@ -54,14 +53,8 @@ test.describe('Complete User Journey (Guest)', () => {
 
   test('should display 404 page for unknown routes', async ({ page }) => {
     await page.goto('/this-page-does-not-exist')
-    await page.waitForLoadState('networkidle')
 
-    const hasNotFoundText = await page
-      .locator('text=/404|Not Found|找不到/i')
-      .isVisible()
-      .catch(() => false)
-
-    expect(hasNotFoundText).toBe(true)
+    await expect(page.getByRole('heading', { name: /404|Not Found/i })).toBeVisible()
   })
 })
 

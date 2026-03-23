@@ -21,6 +21,7 @@
  */
 
 import { captureException, captureMessage, addBreadcrumb } from './sentry'
+import { getEnvValue, isProductionRuntime } from './config/runtime-env'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -43,17 +44,17 @@ export interface LogEntry {
 const config = {
   // Minimum log level to output
   minLevel:
-    (process.env.NEXT_PUBLIC_LOG_LEVEL as LogLevel) ||
-    (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+    (getEnvValue('NEXT_PUBLIC_LOG_LEVEL') as LogLevel | undefined) ||
+    (isProductionRuntime() ? 'info' : 'debug'),
 
   // Enable console output
   enableConsole: true,
 
   // Enable Sentry integration
-  enableSentry: process.env.NODE_ENV === 'production',
+  enableSentry: isProductionRuntime(),
 
   // Enable structured logging (JSON format)
-  structured: process.env.NODE_ENV === 'production',
+  structured: isProductionRuntime(),
 }
 
 /**

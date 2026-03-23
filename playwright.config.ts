@@ -1,18 +1,32 @@
+import { availableParallelism } from 'node:os'
 import { defineConfig, devices } from '@playwright/test'
+
+function resolveWorkers() {
+  const configuredWorkers = Number.parseInt(process.env.PLAYWRIGHT_WORKERS ?? '', 10)
+  if (Number.isFinite(configuredWorkers) && configuredWorkers > 0) {
+    return configuredWorkers
+  }
+
+  if (process.env.CI) {
+    return 1
+  }
+
+  return Math.max(1, Math.min(4, availableParallelism()))
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Keep tests in the same file sequential for worker-backed routes and local dev server stability. */
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Cap local worker count to keep Firefox and the worker-backed dev server stable. */
+  workers: resolveWorkers(),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

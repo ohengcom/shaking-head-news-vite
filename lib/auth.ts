@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
-import { headers } from 'next/headers'
+import { getCurrentRequest } from '@/lib/server/request-context'
+import type { KVNamespaceLike } from '@/lib/server/env'
 
 const authBaseURL = process.env.BETTER_AUTH_URL
 const authSecret = process.env.BETTER_AUTH_SECRET
@@ -32,11 +33,50 @@ function toAbsoluteURL(baseURL: string | undefined, pathOrURL: string): string |
 
 const microsoftRedirectURI = toAbsoluteURL(authBaseURL, microsoftRedirectPath)
 
-function createAuthServer() {
+function getSecondaryKV(): KVNamespaceLike | null {
+  return globalThis.APP_SETTINGS_KV ?? null
+}
+
+function createSecondaryStorage(kv: KVNamespaceLike) {
+  const prefix = 'better-auth:'
+
+  return {
+    get: async (key: string) => {
+      return kv.get(`${prefix}${key}`, 'text')
+    },
+    set: async (key: string, value: string, ttl?: number) => {
+      if (typeof ttl === 'number' && ttl > 0) {
+        await kv.put(`${prefix}${key}`, value, { expirationTtl: ttl })
+        return
+      }
+
+      await kv.put(`${prefix}${key}`, value)
+    },
+    delete: async (key: string) => {
+      await kv.delete(`${prefix}${key}`)
+    },
+  }
+}
+
+function resolveBaseURL(request?: Request): string | null {
+  if (authBaseURL?.trim()) {
+    return authBaseURL
+  }
+
+  if (!request) {
+    return null
+  }
+
+  return new URL(request.url).origin
+}
+
+function createAuthServer(baseURL: string) {
+  const kv = getSecondaryKV()
   return betterAuth({
-    baseURL: authBaseURL!,
+    baseURL,
     secret: authSecret!,
     socialProviders,
+    ...(kv ? { secondaryStorage: createSecondaryStorage(kv) } : {}),
   })
 }
 
@@ -67,26 +107,32 @@ const socialProviders = {
 type AuthServer = ReturnType<typeof createAuthServer>
 let authServerInstance: AuthServer | null = null
 let authServerInitialized = false
+let authServerBaseURL: string | null = null
 
-export function getAuthServer(): AuthServer | null {
-  if (authServerInitialized) {
+export function getAuthServer(request?: Request): AuthServer | null {
+  const resolvedBaseURL = resolveBaseURL(request)
+
+  if (authServerInitialized && authServerBaseURL === resolvedBaseURL) {
     return authServerInstance
   }
 
   authServerInitialized = true
 
-  if (!authBaseURL || !authSecret) {
-    console.warn('[Auth] BETTER_AUTH_URL or BETTER_AUTH_SECRET is missing')
+  if (!resolvedBaseURL || !authSecret) {
+    console.warn('[Auth] BETTER_AUTH_URL/BETTER_AUTH_SECRET is missing or unresolved')
     authServerInstance = null
+    authServerBaseURL = resolvedBaseURL
     return null
   }
 
   try {
-    authServerInstance = createAuthServer()
+    authServerInstance = createAuthServer(resolvedBaseURL)
+    authServerBaseURL = resolvedBaseURL
     return authServerInstance
   } catch (error) {
     console.error('[Auth] Failed to initialize Better Auth', error)
     authServerInstance = null
+    authServerBaseURL = resolvedBaseURL
     return null
   }
 }
@@ -102,8 +148,9 @@ export interface AppSession {
   expires?: string
 }
 
-export async function auth(): Promise<AppSession | null> {
-  const authServer = getAuthServer()
+export async function auth(request?: Request): Promise<AppSession | null> {
+  const resolvedRequest = request ?? getCurrentRequest()
+  const authServer = getAuthServer(resolvedRequest ?? undefined)
   if (!authServer) {
     return null
   }
@@ -111,7 +158,7 @@ export async function auth(): Promise<AppSession | null> {
   let session: Awaited<ReturnType<typeof authServer.api.getSession>>
   try {
     session = await authServer.api.getSession({
-      headers: await headers(),
+      headers: resolvedRequest?.headers ?? new Headers(),
     })
   } catch (error) {
     console.error('[Auth] Failed to get session', error)
@@ -142,4 +189,13 @@ export async function auth(): Promise<AppSession | null> {
       ? new Date(session.session.expiresAt).toISOString()
       : undefined,
   }
+}
+
+export async function handleAuthRequest(request: Request): Promise<Response> {
+  const authServer = getAuthServer(request)
+  if (!authServer) {
+    return Response.json({ error: 'Auth is not configured' }, { status: 503 })
+  }
+
+  return authServer.handler(request)
 }

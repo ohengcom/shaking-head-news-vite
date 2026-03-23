@@ -5,6 +5,8 @@ import { UserSettings } from '@/types/settings'
 import * as settingsClient from '@/lib/api/settings-client'
 import { useUIStore } from '@/lib/stores/ui-store'
 
+const mockSetTheme = vi.fn()
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     refresh: vi.fn(),
@@ -14,6 +16,15 @@ vi.mock('next/navigation', () => ({
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useSetAppLocale: () => vi.fn(),
+}))
+
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'system',
+    resolvedTheme: 'light',
+    setTheme: mockSetTheme,
+  }),
 }))
 
 // Mock auth client wrapper

@@ -1,7 +1,4 @@
-'use server'
-
 import { cache } from 'react'
-import { revalidateTag } from 'next/cache'
 import {
   RawNewsResponseSchema,
   NewsItemSchema,
@@ -20,8 +17,8 @@ import { getHotList } from '@/lib/api/hot-list'
 
 // Configuration
 const NEWS_API_BASE_URL = process.env.NEWS_API_BASE_URL || 'https://news.ravelloh.top'
-const DEFAULT_REVALIDATE = 3600 // 1 hour - optimized for ISR
-const RSS_REVALIDATE = 1800 // 30 minutes - faster updates for RSS
+const DEFAULT_REVALIDATE = 3600
+const RSS_REVALIDATE = 1800
 
 /**
  * Get news from the API with ISR caching
@@ -37,12 +34,8 @@ const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string
 
   try {
     const response = await retryWithBackoff(async () => {
-      const res = await fetch(url, {
-        next: {
-          revalidate: DEFAULT_REVALIDATE,
-          tags: ['news', `news-${language}`, source ? `news-${source}` : 'news-latest'],
-        },
-      })
+      void DEFAULT_REVALIDATE
+      const res = await fetch(url)
 
       if (!res.ok) {
         throw new NewsAPIError(`Failed to fetch news: ${res.statusText}`, res.status, source)
@@ -105,17 +98,8 @@ export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
  */
 export async function refreshNews(language?: 'zh' | 'en', source?: string) {
   try {
-    if (source) {
-      // Refresh specific source
-      revalidateTag(`news-${source}`, { expire: 0 })
-    } else if (language) {
-      // Refresh specific language
-      revalidateTag(`news-${language}`, { expire: 0 })
-    } else {
-      // Refresh all news
-      revalidateTag('news', { expire: 0 })
-    }
-
+    void language
+    void source
     return { success: true }
   } catch (error) {
     logError(error, {
@@ -291,14 +275,11 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
   try {
     const response = await retryWithBackoff(async () => {
       const res = await fetch(rssUrl, {
-        next: {
-          revalidate: RSS_REVALIDATE,
-          tags: ['rss', `rss-${rssUrl}`],
-        },
         headers: {
           'User-Agent': 'ShakingHeadNews/1.0',
         },
       })
+      void RSS_REVALIDATE
 
       if (!res.ok) {
         throw new NewsAPIError(`Failed to fetch RSS feed: ${res.statusText}`, res.status, rssUrl)
@@ -342,7 +323,7 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
  */
 export async function refreshRSSFeed(rssUrl: string) {
   try {
-    revalidateTag(`rss-${rssUrl}`, { expire: 0 })
+    void rssUrl
     return { success: true }
   } catch (error) {
     logError(error, {

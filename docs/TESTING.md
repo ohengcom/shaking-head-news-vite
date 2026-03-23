@@ -1,40 +1,33 @@
-# Testing Guide
+# Testing
 
-## Command Matrix
+## Validation Commands
 
-- Unit tests: `npm run test`
-- Type check: `npm run type-check`
-- Lint: `npm run lint`
-- Next build: `npm run build`
-- vinext build: `npm run build:vinext`
-- E2E tests: `npm run test:e2e`
+- `npm run lint`
+- `npm run type-check`
+- `npm test`
+- `npm run build`
+- `npm run test:e2e`
 
-## Baseline Status (2026-02-25)
+## Current Expectations
 
-Executed locally on this repository state:
+- Unit tests should pass under Vitest without relying on Next.js runtime APIs.
+- Build should produce both Worker and client bundles successfully.
+- SPA routes should resolve through the Cloudflare asset fallback configuration.
 
-- `npm run type-check` -> PASS
-- `npm run lint` -> PASS
-- `npm run build` -> PASS
-- `npm run build:vinext` -> PASS (with warnings)
-- `npm run test` -> FAIL
-  - 10 test files total
-  - 2 files failed
-  - 19 tests failed
+## Fast Local Loop
 
-## Current Failing Areas
+```bash
+npm test
+npm run build
+```
 
-1. `tests/unit/actions/stats.test.ts`
-   - Mock of `@/lib/storage` does not include `getMultipleStorageItems`, but production code now uses it.
-2. `tests/unit/actions/news.test.ts`
-   - RSS related test expectations/mocks do not fully match current implementation behavior.
+## Before Deploy
 
-Details are tracked in `docs/KNOWN_ISSUES.md`.
+Run at least:
 
-## Suggested Test Workflow
-
-1. Run `npm run type-check && npm run lint` on every change.
-2. Run focused unit tests for changed modules.
-3. Run `npm run build` before merge.
-4. Run `npm run build:vinext` when touching runtime/config/auth/i18n paths.
-5. Run Playwright E2E before release.
+```bash
+npm run lint
+npm run type-check
+npm test
+npm run build
+```

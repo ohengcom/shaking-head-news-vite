@@ -1,31 +1,13 @@
-# Known Issues (as of 2026-02-25)
+# Known Issues
 
-## 1. Unit Test Suite Is Not Fully Green
+## 1. Legacy Next Source Still Exists
 
-- `tests/unit/actions/stats.test.ts`
-  - Mock setup does not include `getMultipleStorageItems`, but `lib/actions/stats.ts` now uses it.
-- `tests/unit/actions/news.test.ts`
-  - RSS test fixtures/mocks are not fully aligned with current `getRSSNews` / `getUserCustomNews` behavior.
+The old `app/` directory remains in the repository for reference and gradual extraction. It is no longer part of the active runtime path.
 
-Impact:
+## 2. Stats Route Is Still the Heaviest Client Chunk
 
-- CI quality signal is degraded until these tests are updated.
+Route-level splitting is in place, but the statistics page still carries charting dependencies and remains the largest lazy-loaded browser chunk.
 
-## 2. vinext Build Warnings Remain
+## 3. Optional Monitoring Integrations Need Explicit Setup
 
-- `npm run build:vinext` succeeds, but reports warnings such as:
-  - unsupported `next.config` options by vinext
-  - large chunk warnings
-  - sourcemap location warnings
-
-Impact:
-
-- Does not block build output, but indicates migration work remains for clean parity.
-
-## 3. Legacy Duplicate Artifact in Tests
-
-- `tests/unit/actions/stats.test-CNSHNSLI01.ts` appears to be a machine-suffixed duplicate file.
-
-Impact:
-
-- Not executed by current Vitest include pattern, but should be cleaned up to reduce confusion.
+Analytics and Sentry helpers are present, but they stay inactive until matching `VITE_*` environment variables are configured.

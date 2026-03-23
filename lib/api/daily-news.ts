@@ -29,9 +29,7 @@ const BASE_URL = 'https://60s.viki.moe/v2'
 
 export async function fetchDailyNews(): Promise<DailyNewsItem | null> {
   try {
-    const res = await fetch(`${BASE_URL}/60s?encoding=json`, {
-      next: { revalidate: 1800 }, // Cache for 30 minutes via native fetch cache
-    })
+    const res = await fetch(`${BASE_URL}/60s?encoding=json`)
     if (!res.ok) throw new Error('Failed to fetch daily news')
     const json: VikiResponse<DailyNewsItem> = await res.json()
     return json.data
@@ -43,9 +41,7 @@ export async function fetchDailyNews(): Promise<DailyNewsItem | null> {
 
 export async function fetchAiNews(): Promise<AiNewsItem[] | null> {
   try {
-    const res = await fetch(`${BASE_URL}/ai-news`, {
-      next: { revalidate: 1800 }, // Cache for 30 minutes via native fetch cache
-    })
+    const res = await fetch(`${BASE_URL}/ai-news`)
     if (!res.ok) throw new Error('Failed to fetch AI news')
     const json: VikiResponse<{ date: string; news: AiNewsItem[] }> = await res.json()
     return json.data.news

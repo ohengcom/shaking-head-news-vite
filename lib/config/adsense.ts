@@ -1,7 +1,9 @@
+import { getEnvValue } from '@/lib/config/runtime-env'
+
 export const DEFAULT_ADSENSE_CLIENT_ID = 'ca-pub-5567992467139695'
 
 export function getAdSenseClientId(): string {
-  const envClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim()
+  const envClientId = getEnvValue('NEXT_PUBLIC_ADSENSE_CLIENT_ID')
   return envClientId && envClientId.length > 0 ? envClientId : DEFAULT_ADSENSE_CLIENT_ID
 }
 
@@ -12,12 +14,12 @@ function getEnvSlotValue(value: string | undefined): string {
 }
 
 export function getAdSenseSlot(position: AdSenseSlotPosition): string {
-  const defaultSlot = getEnvSlotValue(process.env.NEXT_PUBLIC_ADSENSE_SLOT)
+  const defaultSlot = getEnvSlotValue(getEnvValue('NEXT_PUBLIC_ADSENSE_SLOT'))
   const positionedSlots: Record<AdSenseSlotPosition, string> = {
-    sidebar: getEnvSlotValue(process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR),
-    header: getEnvSlotValue(process.env.NEXT_PUBLIC_ADSENSE_SLOT_HEADER),
-    footer: getEnvSlotValue(process.env.NEXT_PUBLIC_ADSENSE_SLOT_FOOTER),
-    inline: getEnvSlotValue(process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE),
+    sidebar: getEnvSlotValue(getEnvValue('NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR')),
+    header: getEnvSlotValue(getEnvValue('NEXT_PUBLIC_ADSENSE_SLOT_HEADER')),
+    footer: getEnvSlotValue(getEnvValue('NEXT_PUBLIC_ADSENSE_SLOT_FOOTER')),
+    inline: getEnvSlotValue(getEnvValue('NEXT_PUBLIC_ADSENSE_SLOT_INLINE')),
   }
 
   return positionedSlots[position] || defaultSlot

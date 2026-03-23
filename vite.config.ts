@@ -1,33 +1,30 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import rsc from '@vitejs/plugin-rsc'
 import { cloudflare } from '@cloudflare/vite-plugin'
-import vinext from 'vinext'
+import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  server: {
+    port: 3001,
+  },
+  preview: {
+    port: 3001,
+  },
   resolve: {
     alias: {
       '@': rootDir,
-      'next-intl/config': path.resolve(rootDir, 'i18n/request.ts'),
+      'next-intl': path.resolve(rootDir, 'src/shims/next-intl.tsx'),
+      'next-intl/server': path.resolve(rootDir, 'src/shims/next-intl-server.ts'),
+      'next/navigation': path.resolve(rootDir, 'src/shims/next-navigation.tsx'),
+      'next/link': path.resolve(rootDir, 'src/shims/next-link.tsx'),
+      'next/image': path.resolve(rootDir, 'src/shims/next-image.tsx'),
+      'next/dynamic': path.resolve(rootDir, 'src/shims/next-dynamic.tsx'),
+      'next/cache': path.resolve(rootDir, 'src/shims/next-cache.ts'),
+      'next-themes': path.resolve(rootDir, 'src/shims/next-themes.tsx'),
     },
   },
-  plugins: [
-    vinext({ rsc: false }),
-    rsc({
-      entries: {
-        rsc: 'virtual:vinext-rsc-entry',
-        ssr: 'virtual:vinext-app-ssr-entry',
-        client: 'virtual:vinext-app-browser-entry',
-      },
-    }),
-    cloudflare({
-      viteEnvironment: {
-        name: 'rsc',
-        childEnvironments: ['ssr'],
-      },
-    }),
-  ],
+  plugins: [react(), cloudflare()],
 })

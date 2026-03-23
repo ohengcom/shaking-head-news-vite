@@ -21,19 +21,19 @@ const lightModeTokens = {
   cardForeground: '222.2 84% 4.9%',
   popover: '0 0% 100%',
   popoverForeground: '222.2 84% 4.9%',
-  primary: '160 84% 39%',
+  primary: '160 84% 28%',
   primaryForeground: '0 0% 100%',
-  secondary: '217 91% 60%',
+  secondary: '217 91% 45%',
   secondaryForeground: '0 0% 100%',
   muted: '210 40% 96%',
-  mutedForeground: '215 16% 47%',
+  mutedForeground: '215 16% 42%',
   accent: '210 40% 96%',
   accentForeground: '222.2 47% 11%',
-  destructive: '0 84.2% 60.2%',
+  destructive: '0 72% 42%',
   destructiveForeground: '210 40% 98%',
   border: '214 32% 91%',
   input: '214 32% 91%',
-  ring: '160 84% 39%',
+  ring: '160 84% 28%',
 }
 
 const darkModeTokens = {
@@ -98,13 +98,10 @@ describe('Theme Property Tests', () => {
           const bgColor = tokenToRgb(lightModeTokens[bg as keyof typeof lightModeTokens])
           const ratio = getContrastRatio(textColor, bgColor)
 
-          if (!meetsWcagAA(ratio)) {
-            console.warn(
-              `[Design Issue] Contrast ratio ${ratio.toFixed(2)}:1 for "${name}" does not meet WCAG AA (4.5:1)`
-            )
-          }
-          // Temporarily allow failures until theme colors are refined
-          expect(ratio).toBeGreaterThan(1)
+          expect(
+            meetsWcagAA(ratio),
+            `Contrast ratio ${ratio.toFixed(2)}:1 for "${name}" does not meet WCAG AA`
+          ).toBe(true)
         })
       })
     })
@@ -116,13 +113,10 @@ describe('Theme Property Tests', () => {
           const bgColor = tokenToRgb(darkModeTokens[bg as keyof typeof darkModeTokens])
           const ratio = getContrastRatio(textColor, bgColor)
 
-          if (!meetsWcagAA(ratio)) {
-            console.warn(
-              `[Design Issue] Contrast ratio ${ratio.toFixed(2)}:1 for "${name}" does not meet WCAG AA (4.5:1)`
-            )
-          }
-          // Temporarily allow failures until theme colors are refined
-          expect(ratio).toBeGreaterThan(1)
+          expect(
+            meetsWcagAA(ratio),
+            `Contrast ratio ${ratio.toFixed(2)}:1 for "${name}" does not meet WCAG AA`
+          ).toBe(true)
         })
       })
     })

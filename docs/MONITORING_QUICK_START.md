@@ -1,50 +1,22 @@
 # Monitoring Quick Start
 
-## What Is Already in Repository
-
-- Web vitals reporting hook: `app/web-vitals.tsx`
-- Analytics helper module: `lib/analytics.ts`
-- Logger abstraction: `lib/logger.ts`
-- Sentry helper module: `lib/sentry.ts`
-
 ## Environment Variables
 
-### Analytics
+```env
+VITE_GA_ID=
+VITE_SENTRY_DSN=
+VITE_LOG_LEVEL=info
+```
 
-- `NEXT_PUBLIC_GA_ID`
-- `NEXT_PUBLIC_VERCEL_ANALYTICS`
+## Notes
 
-### Sentry
+- Public client-side configuration now uses `VITE_*`.
+- Legacy `NEXT_PUBLIC_*` names are read only as a migration fallback.
+- Vercel Analytics is not part of the default Cloudflare deployment path.
 
-- `NEXT_PUBLIC_SENTRY_DSN`
-- `SENTRY_AUTH_TOKEN`
+## Recommended Order
 
-### Logging
-
-- `NEXT_PUBLIC_LOG_LEVEL`
-
-## Google Analytics Setup
-
-1. Create GA4 property.
-2. Set `NEXT_PUBLIC_GA_ID` in `.env.local`.
-3. Inject GA script in `app/layout.tsx` (not auto-added by current code).
-4. Validate with browser devtools and realtime report.
-
-## Vercel Analytics
-
-1. Install package if needed: `npm install @vercel/analytics`
-2. Add `<Analytics />` component into root layout.
-3. Enable Vercel Analytics in dashboard.
-
-## Sentry
-
-1. Install package if needed: `npm install @sentry/nextjs`
-2. Run Sentry wizard for Next.js integration.
-3. Configure DSN env vars.
-4. Verify error capture in staging.
-
-## Validation
-
-- Trigger a test client error and check logs.
-- Confirm web-vitals logs are emitted.
-- Confirm no secret fields are leaked in logs.
+1. Configure `VITE_LOG_LEVEL`.
+2. Add `VITE_GA_ID` if Google Analytics is required.
+3. Add `VITE_SENTRY_DSN` if Sentry is required.
+4. Rebuild with `npm run build`.

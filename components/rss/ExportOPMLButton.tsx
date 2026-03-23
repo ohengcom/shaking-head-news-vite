@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { exportOPML } from '@/lib/actions/rss'
+import { exportOPMLViaApi } from '@/lib/api/rss-client'
 import { Download } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -15,7 +15,7 @@ export function ExportOPMLButton() {
   const handleExport = async () => {
     setLoading(true)
     try {
-      const opml = await exportOPML()
+      const opml = await exportOPMLViaApi()
       const blob = new Blob([opml], { type: 'application/xml' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

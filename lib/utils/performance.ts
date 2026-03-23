@@ -1,3 +1,5 @@
+import { isDevelopmentRuntime, isProductionRuntime } from '@/lib/config/runtime-env'
+
 /**
  * Performance monitoring utilities for Web Vitals and custom metrics
  */
@@ -16,12 +18,12 @@ export interface PerformanceMetric {
  */
 export function reportWebVitals(metric: PerformanceMetric) {
   // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopmentRuntime()) {
     console.log('[Web Vitals]', metric)
   }
 
   // Send to analytics in production
-  if (process.env.NODE_ENV === 'production') {
+  if (isProductionRuntime()) {
     // Example: Send to Google Analytics
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag is a global from external script
     if (typeof window !== 'undefined' && (window as any).gtag) {

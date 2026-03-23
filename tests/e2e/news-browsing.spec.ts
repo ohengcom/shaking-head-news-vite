@@ -1,8 +1,14 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+async function waitForHomePage(page: Page) {
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await expect(page.getByTestId('tilt-wrapper')).toBeVisible()
+}
 
 test.describe('News Browsing Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await waitForHomePage(page)
   })
 
   test('should display homepage title and header content', async ({ page }) => {
@@ -16,21 +22,30 @@ test.describe('News Browsing Flow', () => {
   })
 
   test('should display news content area or empty state', async ({ page }) => {
-    await page.waitForLoadState('networkidle')
-
     const newsList = page.getByTestId('news-list')
-    if ((await newsList.count()) > 0) {
-      await expect(newsList).toBeVisible()
-      return
-    }
+    await expect(async () => {
+      const hasVisibleNewsList = await newsList.isVisible().catch(() => false)
+      const hasVisibleAlert = await page
+        .getByRole('alert')
+        .first()
+        .isVisible()
+        .catch(() => false)
 
-    await expect(page.getByRole('alert').first()).toBeVisible()
+      expect(hasVisibleNewsList || hasVisibleAlert).toBe(true)
+    }).toPass()
   })
 
-  test('should have visible header navigation and footer', async ({ page }) => {
+  test('should have visible header navigation and footer', async ({ page, isMobile }) => {
     const header = page.locator('header')
     await expect(header).toBeVisible()
-    await expect(header.locator('nav')).toBeVisible()
+
+    if (isMobile) {
+      await expect(
+        header.getByRole('link', { name: /Shaking Head News|Sign In/i }).first()
+      ).toBeVisible()
+    } else {
+      await expect(header.locator('nav')).toBeVisible()
+    }
 
     const footer = page.locator('footer')
     await expect(footer).toBeVisible()
@@ -41,13 +56,13 @@ test.describe('News Browsing Flow', () => {
   })
 
   test('should navigate to settings page and redirect to login', async ({ page }) => {
-    await page.locator('header a[href="/settings"]').first().click()
+    await page.goto('/settings')
     await page.waitForURL(/\/login/)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('should navigate to stats page and redirect to login', async ({ page }) => {
-    await page.locator('header a[href="/stats"]').first().click()
+    await page.goto('/stats')
     await page.waitForURL(/\/login/)
     await expect(page).toHaveURL(/\/login/)
   })
@@ -67,7 +82,7 @@ test.describe('News Browsing Flow', () => {
       test.skip()
     }
 
-    await page.waitForLoadState('networkidle')
+    await waitForHomePage(page)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   })
 })

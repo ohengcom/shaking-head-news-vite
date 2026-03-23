@@ -37,9 +37,7 @@ const API_PATH_MAP: Record<string, string> = {
 export async function getHotList(sourceId: string): Promise<HotItem[]> {
   try {
     const apiPath = API_PATH_MAP[sourceId] || sourceId
-    const res = await fetch(`https://60s.viki.moe/v2/${apiPath}`, {
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    })
+    const res = await fetch(`https://60s.viki.moe/v2/${apiPath}`)
 
     if (!res.ok) {
       throw new Error(`Failed to fetch ${sourceId} hot list`)

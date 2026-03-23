@@ -10,9 +10,10 @@
 
 'use client'
 
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { cn } from '@/lib/utils'
 import { getAdSenseClientId, getAdSenseSlot } from '@/lib/config/adsense'
+import { isDevelopmentRuntime } from '@/lib/config/runtime-env'
 
 const subscribeToClient = () => () => {}
 const getClientSnapshot = () => true
@@ -76,7 +77,7 @@ export function AdBanner({
       data-ad-size={size}
     >
       {/* 开发环境显示占位符 */}
-      {process.env.NODE_ENV === 'development' || !hasAdSenseConfig ? (
+      {isDevelopmentRuntime() || !hasAdSenseConfig ? (
         <AdPlaceholder position={position} size={size} />
       ) : (
         <GoogleAdSense
@@ -138,9 +139,76 @@ function GoogleAdSense({
   style: React.CSSProperties
 }) {
   const adRef = useRef<HTMLModElement | null>(null)
+  const hasPushedRef = useRef(false)
+  const [isSlotReady, setIsSlotReady] = useState(false)
+
+  useEffect(() => {
+    const element = adRef.current
+    if (!element) {
+      return
+    }
+
+    let rafId: number | null = null
+    const checkSize = () => {
+      const current = adRef.current
+      if (!current) {
+        return
+      }
+
+      const rect = current.getBoundingClientRect()
+      const isVisible = rect.width >= 120 && rect.height >= 50 && current.offsetParent !== null
+
+      if (isVisible) {
+        setIsSlotReady(true)
+      }
+    }
+
+    const scheduleCheck = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+      rafId = requestAnimationFrame(checkSize)
+    }
+
+    scheduleCheck()
+
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        scheduleCheck()
+      })
+      resizeObserver.observe(element)
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        scheduleCheck()
+      }
+    }
+
+    window.addEventListener('resize', scheduleCheck)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', scheduleCheck)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    hasPushedRef.current = false
+  }, [adClient, adSlot])
 
   useEffect(() => {
     if (!adClient) {
+      return
+    }
+
+    if (!isSlotReady) {
       return
     }
 
@@ -149,10 +217,14 @@ function GoogleAdSense({
     let retryCount = 0
 
     const maxRetryCount = 20
-    const retryIntervalMs = 500
+    const retryIntervalMs = 800
 
     const pushAd = () => {
       if (isCancelled) {
+        return true
+      }
+
+      if (hasPushedRef.current) {
         return true
       }
 
@@ -161,8 +233,13 @@ function GoogleAdSense({
         return false
       }
 
+      if (document.hidden) {
+        return false
+      }
+
       const adStatus = element.getAttribute('data-adsbygoogle-status')
       if (adStatus === 'done') {
+        hasPushedRef.current = true
         return true
       }
 
@@ -179,10 +256,22 @@ function GoogleAdSense({
 
       try {
         adsQueue.push({})
+        hasPushedRef.current = true
         return true
       } catch (error) {
-        console.error('AdSense error:', error)
-        return true
+        const message = error instanceof Error ? error.message : String(error)
+        const isSizeError =
+          /no slot size/i.test(message) ||
+          /availableWidth\s*=\s*0/i.test(message) ||
+          /availableHeight\s*=\s*0/i.test(message)
+
+        if (!isSizeError) {
+          console.error('AdSense error:', error)
+          hasPushedRef.current = true
+          return true
+        }
+
+        return false
       }
     }
 
@@ -225,7 +314,7 @@ function GoogleAdSense({
         clearInterval(retryTimer)
       }
     }
-  }, [adClient, adSlot])
+  }, [adClient, adSlot, isSlotReady])
 
   return (
     <ins

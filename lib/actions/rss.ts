@@ -1,9 +1,6 @@
-'use server'
-
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
 import { RSSSourceSchema, RSSSource } from '@/types/rss'
-import { revalidateTag, revalidatePath } from 'next/cache'
 import {
   AuthError,
   NotFoundError,
@@ -154,8 +151,6 @@ export async function addRSSSource(source: Omit<RSSSource, 'id' | 'order' | 'fai
     const key = StorageKeys.userRSSSources(session.user.id)
     await setStorageItem(key, sources)
 
-    revalidatePath('/rss')
-
     return validatedSource
   } catch (error) {
     logError(error, {
@@ -223,9 +218,6 @@ export async function updateRSSSource(id: string, updates: Partial<RSSSource>) {
     await setStorageItem(key, sources)
 
     // 清除该源的缓存
-    revalidateTag(`rss-${validatedSource.url}`, { expire: 0 })
-    revalidatePath('/rss')
-
     return validatedSource
   } catch (error) {
     logError(error, {
@@ -260,8 +252,7 @@ export async function deleteRSSSource(id: string) {
     await setStorageItem(key, filtered)
 
     // Clear cache for the deleted source
-    revalidateTag(`rss-${sourceToDelete.url}`, { expire: 0 })
-    revalidatePath('/rss')
+    void sourceToDelete
   } catch (error) {
     logError(error, {
       action: 'deleteRSSSource',
@@ -291,7 +282,6 @@ export async function reorderRSSSources(sourceIds: string[]) {
 
     const key = StorageKeys.userRSSSources(session.user.id)
     await setStorageItem(key, reordered)
-    revalidatePath('/rss')
     return reordered
   } catch (error) {
     logError(error, {
@@ -427,8 +417,6 @@ export async function importOPML(
     const allSources = [...existingSources, ...newSources]
     const key = StorageKeys.userRSSSources(session.user.id)
     await setStorageItem(key, allSources)
-
-    revalidatePath('/rss')
 
     return {
       imported: newSources.length,

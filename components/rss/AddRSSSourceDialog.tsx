@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { addRSSSource } from '@/lib/actions/rss'
+import { addRSSSourceViaApi } from '@/lib/api/rss-client'
 import { Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -77,7 +77,7 @@ export function AddRSSSourceDialog() {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0)
 
-      await addRSSSource({
+      await addRSSSourceViaApi({
         name: formData.name.trim(),
         url: formData.url.trim(),
         description: formData.description.trim() || undefined,

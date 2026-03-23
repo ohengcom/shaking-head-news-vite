@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
-import { recordRotation } from '@/lib/actions/stats'
+import { recordRotationViaApi } from '@/lib/api/stats-client'
 import { cn } from '@/lib/utils'
 
 interface TiltWrapperProps {
@@ -60,7 +60,7 @@ export function TiltWrapper({
     // Send the latest rotation as a summary (total count preserved in duration sum)
     const lastEntry = batch[batch.length - 1]
     const totalDuration = batch.reduce((sum, r) => sum + r.duration, 0)
-    recordRotation(lastEntry.angle, totalDuration).catch(() => {
+    recordRotationViaApi(lastEntry.angle, totalDuration).catch(() => {
       // Silent failure — stats are non-critical
     })
   }, [])

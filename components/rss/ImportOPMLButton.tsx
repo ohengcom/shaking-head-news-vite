@@ -7,7 +7,7 @@
 import { useState, useRef, type ElementRef, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { importOPML } from '@/lib/actions/rss'
+import { importOPMLViaApi } from '@/lib/api/rss-client'
 import { Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -51,7 +51,7 @@ export function ImportOPMLButton() {
 
     try {
       const content = await file.text()
-      const result = await importOPML(content)
+      const result = await importOPMLViaApi(content)
 
       toast({
         title: t('success'),
