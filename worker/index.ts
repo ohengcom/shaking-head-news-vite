@@ -116,7 +116,8 @@ app.use('*', async (c, next) => {
 
 app.get('/api/feed/home', async (c) => {
   try {
-    const locale = getRequestLocale(c.req.raw)
+    const settings = await getUserSettings()
+    const locale = settings.userId ? settings.language : getRequestLocale(c.req.raw)
     const [dailyNewsResult, aiNewsResult] = await Promise.allSettled([
       getNews(locale),
       getAiNewsItems(),

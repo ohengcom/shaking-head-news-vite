@@ -4,6 +4,7 @@ import { StatsDisplay } from '@/components/stats/StatsDisplay'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { getSummaryStatsViaApi } from '@/lib/api/stats-client'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useTranslations } from 'next-intl'
 
 type SummaryPayload = NonNullable<Awaited<ReturnType<typeof getSummaryStatsViaApi>>['payload']>
 
@@ -11,8 +12,9 @@ export function StatsPage() {
   const { tier, isLoading: isTierLoading, isPro } = useUserTier()
   const [stats, setStats] = useState<SummaryPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const t = useTranslations('stats')
 
-  useDocumentTitle('Statistics')
+  useDocumentTitle(t('title'))
 
   useEffect(() => {
     if (!isPro) {
@@ -29,7 +31,7 @@ export function StatsPage() {
       }
 
       if (!result.success || !result.payload) {
-        setError(result.error || 'Failed to load statistics')
+        setError(result.error || t('loadError'))
         return
       }
 
@@ -40,13 +42,11 @@ export function StatsPage() {
     return () => {
       cancelled = true
     }
-  }, [isPro])
+  }, [isPro, t])
 
   if (isTierLoading) {
     return (
-      <div className="text-muted-foreground container mx-auto py-12 text-sm">
-        Loading statistics...
-      </div>
+      <div className="text-muted-foreground container mx-auto py-12 text-sm">{t('loading')}</div>
     )
   }
 
@@ -54,10 +54,8 @@ export function StatsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Statistics</h1>
-          <p className="text-muted-foreground mt-2">
-            Track your daily movement and long-term health trends.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('pageDescription')}</p>
         </div>
         <BlurredStats tier={tier} />
       </div>
@@ -70,19 +68,15 @@ export function StatsPage() {
 
   if (!stats) {
     return (
-      <div className="text-muted-foreground container mx-auto py-12 text-sm">
-        Loading statistics...
-      </div>
+      <div className="text-muted-foreground container mx-auto py-12 text-sm">{t('loading')}</div>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Statistics</h1>
-        <p className="text-muted-foreground mt-2">
-          Track your daily movement and long-term health trends.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('pageDescription')}</p>
       </div>
       <StatsDisplay initialStats={stats} dailyGoal={stats.dailyGoal} />
     </div>

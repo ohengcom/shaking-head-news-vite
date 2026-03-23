@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/footer'
 import { Header } from '@/components/layout/header'
 import { TiltWrapper } from '@/components/rotation/TiltWrapper'
 import { RequireAuth } from '@/src/routes/RequireAuth'
+import { useTranslations } from 'next-intl'
 
 const HomePage = lazy(() =>
   import('@/src/routes/HomePage').then((module) => ({ default: module.HomePage }))
@@ -31,6 +32,8 @@ const NotFoundPage = lazy(() =>
 )
 
 export function App() {
+  const tCommon = useTranslations('common')
+
   return (
     <TiltWrapper>
       <div className="relative flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_34%),linear-gradient(180deg,_rgba(59,130,246,0.05),_transparent_32%),hsl(var(--background))]">
@@ -40,7 +43,7 @@ export function App() {
             fallback={
               <div className="flex min-h-[50vh] items-center justify-center">
                 <div className="text-muted-foreground rounded-full border border-dashed px-4 py-2 text-sm">
-                  Loading...
+                  {tCommon('loading')}
                 </div>
               </div>
             }

@@ -1,54 +1,47 @@
-/**
- * FeatureRow Component
- * 功能对比行组件
- */
-
 'use client'
 
-import { Check, X, Eye } from 'lucide-react'
+import { Check, Eye, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export type FeatureValue = 'included' | 'not-included' | 'preview' | string
 
 interface FeatureRowProps {
-  /** 功能名称 */
   name: string
-  /** Guest 层级的值 */
   guest: FeatureValue
-  /** Member 层级的值 */
   member: FeatureValue
-  /** Pro 层级的值 */
   pro: FeatureValue
-  /** 是否为最后一行 */
   isLast?: boolean
 }
 
-/**
- * 功能对比行
- */
 export function FeatureRow({ name, guest, member, pro, isLast }: FeatureRowProps) {
+  const t = useTranslations('features')
+
   return (
     <div
       className={cn('grid grid-cols-4 gap-4 py-3 text-sm', !isLast && 'border-border/50 border-b')}
     >
       <div className="font-medium">{name}</div>
       <div className="text-center">
-        <FeatureValueDisplay value={guest} />
+        <FeatureValueDisplay value={guest} previewLabel={t('preview')} />
       </div>
       <div className="text-center">
-        <FeatureValueDisplay value={member} />
+        <FeatureValueDisplay value={member} previewLabel={t('preview')} />
       </div>
       <div className="text-center">
-        <FeatureValueDisplay value={pro} />
+        <FeatureValueDisplay value={pro} previewLabel={t('preview')} />
       </div>
     </div>
   )
 }
 
-/**
- * 功能值显示
- */
-function FeatureValueDisplay({ value }: { value: FeatureValue }) {
+function FeatureValueDisplay({
+  value,
+  previewLabel,
+}: {
+  value: FeatureValue
+  previewLabel: string
+}) {
   if (value === 'included') {
     return (
       <span className="inline-flex items-center justify-center">
@@ -69,25 +62,23 @@ function FeatureValueDisplay({ value }: { value: FeatureValue }) {
     return (
       <span className="inline-flex items-center justify-center gap-1 text-yellow-600 dark:text-yellow-500">
         <Eye className="h-3 w-3" />
-        <span className="text-xs">预览</span>
+        <span className="text-xs">{previewLabel}</span>
       </span>
     )
   }
 
-  // 自定义文本值
   return <span className="text-muted-foreground text-xs">{value}</span>
 }
 
-/**
- * 功能对比表头
- */
 export function FeatureTableHeader() {
+  const t = useTranslations('features')
+
   return (
     <div className="border-border grid grid-cols-4 gap-4 border-b py-3 text-sm font-semibold">
-      <div>功能</div>
-      <div className="text-center">访客</div>
-      <div className="text-center">会员</div>
-      <div className="text-center">Pro</div>
+      <div>{t('tableFeature')}</div>
+      <div className="text-center">{t('guestTitle')}</div>
+      <div className="text-center">{t('memberTitle')}</div>
+      <div className="text-center">{t('proTitle')}</div>
     </div>
   )
 }

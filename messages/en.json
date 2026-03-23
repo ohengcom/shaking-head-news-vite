@@ -9,7 +9,17 @@
     "confirm": "Confirm",
     "delete": "Delete",
     "edit": "Edit",
-    "close": "Close"
+    "close": "Close",
+    "and": "and",
+    "reset": "Reset",
+    "toggleTheme": "Toggle theme",
+    "unknownError": "An unknown error occurred. Please try again later.",
+    "errorId": "Error ID",
+    "goHome": "Go Home",
+    "tryAgainLater": "Please try again later",
+    "comingSoon": "Coming Soon",
+    "user": "User",
+    "adPlaceholder": "Ad Slot"
   },
   "nav": {
     "home": "Home",
@@ -50,7 +60,10 @@
         "title": "🎨 Custom Themes",
         "description": "Support for light and dark themes with customizable font sizes"
       }
-    }
+    },
+    "loadingFeed": "Loading your news feed...",
+    "loadErrorDescription": "Failed to load news. Please try again later.",
+    "loadPersonalizationError": "Failed to load personalized feeds"
   },
   "news": {
     "title": "Today's News",
@@ -64,15 +77,32 @@
     "publishedAt": "Published at",
     "category": "Category",
     "error": "Failed to load news",
-    "retryLoad": "Reload"
+    "retryLoad": "Reload",
+    "emptyTitle": "No stories available",
+    "emptyDescription": "Try refreshing or switching to another source.",
+    "loginForMore": "Sign in to unlock more sources and sync your feed.",
+    "signInNow": "Sign in now",
+    "refreshSuccess": "Refresh successful",
+    "refreshSuccessDescription": "News content has been updated",
+    "refreshError": "Refresh failed"
   },
   "settings": {
     "title": "Settings",
+    "pageDescription": "Customize language, reading sources, rotation behavior, and Pro preferences.",
+    "loading": "Loading settings...",
+    "loadError": "Failed to load settings",
     "language": "Language",
     "languageDescription": "Select interface language",
     "newsSource": "News Sources",
     "newsSourceDescription": "Manage your news sources and RSS subscriptions",
-    "chinese": "中文",
+    "newsContentTitle": "News Content",
+    "newsContentDescription": "Choose the news sources you care about",
+    "availableSources": "Available ({count})",
+    "allSourcesAdded": "All sources added",
+    "enabledSources": "Enabled ({count})",
+    "dragToReorder": "Drag to reorder",
+    "addSourcesHint": "Add news sources from the left",
+    "chinese": "Chinese",
     "english": "English",
     "theme": "Theme",
     "themeDescription": "Select interface theme",
@@ -102,10 +132,29 @@
     "dailyGoalDescription": "Set daily neck exercise goal count",
     "notifications": "Notifications",
     "notificationsDescription": "Enable health reminder notifications",
-    "saveSuccess": "Settings Saved",
+    "saveSuccess": "Settings saved",
     "saveSuccessDescription": "Your preferences have been successfully updated",
-    "saveError": "Save Failed",
-    "saveErrorDescription": "Please try again later"
+    "saveError": "Save failed",
+    "saveErrorDescription": "Please try again later",
+    "proStatusActiveTitle": "Pro is active",
+    "proStatusInactiveTitle": "Pro Features",
+    "proStatusActiveDescription": "You have unlocked every Pro feature, including ad-free mode, full statistics, and health reminders.",
+    "proStatusInactiveDescription": "Unlock Pro features: ad-free mode, full statistics, health reminders, OPML import/export, and more.",
+    "enableProTesting": "Unlock Pro in one click (test)",
+    "disableProTesting": "Disable Pro (test)",
+    "customSubscriptionTitle": "Custom Subscriptions",
+    "customSubscriptionDescription": "Manage your custom RSS news sources",
+    "rssManagementLabel": "RSS Subscription Management",
+    "rssManagementDescription": "Add or remove your custom RSS news sources",
+    "manageSubscriptions": "Manage subscriptions",
+    "adsTitle": "Ads",
+    "adsDescription": "Manage ad display preferences",
+    "showAds": "Show ads",
+    "showAdsDescription": "Ads will no longer be shown after disabling this option",
+    "adsEnabledState": "Ads enabled",
+    "adsDisabledState": "Ads disabled",
+    "adsUpdateError": "Failed to update ad preferences",
+    "wellnessDescription": "Manage your daily goal and health reminders"
   },
   "rotation": {
     "pause": "Pause",
@@ -116,6 +165,9 @@
   },
   "stats": {
     "title": "Statistics",
+    "pageDescription": "Track your neck exercise progress and long-term trends.",
+    "loading": "Loading statistics...",
+    "loadError": "Failed to load statistics",
     "today": "Today",
     "week": "This Week",
     "month": "This Month",
@@ -124,9 +176,9 @@
     "averageDuration": "Average Duration",
     "goal": "Goal",
     "goalProgress": "Goal Progress",
-    "goalAchieved": "🎉 Congratulations! Goal Achieved!",
+    "goalAchieved": "🎉 Congratulations! Goal achieved!",
     "goalAchievedMessage": "You've completed {count} neck exercises today. Keep it up!",
-    "keepGoing": "Keep Going!",
+    "keepGoing": "Keep going!",
     "noData": "No data available",
     "minutes": "min",
     "seconds": "sec",
@@ -157,10 +209,21 @@
     "notificationDenied": "Notification Permission Denied",
     "notificationDeniedMessage": "Please allow notification permission in your browser settings",
     "notificationNotSupported": "Notifications Not Supported",
-    "notificationNotSupportedMessage": "Your browser doesn't support notifications"
+    "notificationNotSupportedMessage": "Your browser doesn't support notifications",
+    "guestOverlayTitle": "View your statistics",
+    "chartPreview": "Chart preview",
+    "fullStatsTitle": "Full statistics",
+    "fullStatsDescription": "Upgrade to Pro to view detailed charts and historical data",
+    "healthReminderComingSoon": "Health reminders are coming soon",
+    "healthReminderComingSoonDescription": "Set scheduled reminders to help build a healthier routine",
+    "exerciseGoalsComingSoon": "Exercise goals are coming soon",
+    "exerciseGoalsComingSoonDescription": "Set a daily target and track your neck exercise progress"
   },
   "rss": {
     "title": "RSS Source Management",
+    "subtitle": "Manage your custom RSS subscriptions and OPML files",
+    "loading": "Loading RSS sources...",
+    "loadError": "Failed to load RSS sources",
     "addSource": "Add RSS Source",
     "addSourceDescription": "Add a new RSS feed to get more news content",
     "editSource": "Edit RSS Source",
@@ -168,6 +231,7 @@
     "sourceName": "Source Name",
     "sourceNamePlaceholder": "e.g., Tech News",
     "sourceUrl": "Source URL",
+    "sourceUrlPlaceholder": "https://example.com/feed.xml",
     "sourceDescription": "Source Description",
     "sourceDescriptionPlaceholder": "Brief description of this RSS feed",
     "sourceLanguage": "Source Language",
@@ -178,7 +242,7 @@
     "disabled": "Disabled",
     "tags": "Tags",
     "order": "Order",
-    "lastFetched": "Last Fetched",
+    "lastFetched": "Last fetched",
     "failures": "failures",
     "exportOPML": "Export OPML",
     "importOPML": "Import OPML",
@@ -200,7 +264,16 @@
     "requiredFields": "Please fill in all required fields",
     "cancel": "Cancel",
     "add": "Add",
-    "adding": "Adding..."
+    "adding": "Adding...",
+    "selectOpmlFile": "Please select an OPML or XML file",
+    "fileTooLarge": "File size must not exceed 1 MB",
+    "importSuccess": "Imported {imported} RSS sources successfully",
+    "importSuccessWithSkipped": "Imported {imported} RSS sources and skipped {skipped} duplicates or over-limit items",
+    "importFailed": "Failed to import OPML",
+    "importing": "Importing...",
+    "exportSuccess": "OPML file exported successfully",
+    "exportFailed": "Failed to export OPML",
+    "exporting": "Exporting..."
   },
   "auth": {
     "signIn": "Sign In",
@@ -213,12 +286,20 @@
     "signOutConfirm": "Are you sure you want to sign out?",
     "signOutSuccess": "Successfully signed out",
     "signInError": "Sign in failed",
-    "signOutError": "Sign out failed"
+    "signOutError": "Sign out failed",
+    "signInDescription": "Choose a provider to sync settings, statistics, and RSS subscriptions across devices.",
+    "continueWithoutSignIn": "Continue without signing in",
+    "secureSignIn": "Secure sign-in",
+    "agreementPrefix": "By signing in, you agree to the",
+    "terms": "Terms",
+    "privacyPolicy": "Privacy Policy",
+    "genericError": "Unable to complete sign in. Please try again."
   },
   "footer": {
-    "copyright": "© 2026 Shaking Head News. All rights reserved.",
-    "madeWith": "Made with ❤️",
-    "version": "Version"
+    "copyright": "© {year} {appName}. All rights reserved.",
+    "madeWith": "Made with",
+    "version": "Version",
+    "icp": "ICP Registration"
   },
   "about": {
     "metaTitle": "About - Shaking Head News",
@@ -254,6 +335,8 @@
     "loginModalDescription": "Login to customize settings and sync data across devices, completely free!",
     "upgradeModalTitle": "Upgrade to Pro",
     "upgradeModalDescription": "Unlock full statistics, health reminders, exercise goals and more",
+    "unlockSuccess": "Unlocked successfully!",
+    "unlockDescription": "More features are now available to you",
     "features": {
       "rotationModeSelectable": "Rotation Mode Selection",
       "rotationIntervalAdjustable": "Rotation Interval Adjustment",
@@ -274,6 +357,8 @@
   "features": {
     "title": "Feature Comparison",
     "subtitle": "Choose the plan that's right for you",
+    "tableFeature": "Feature",
+    "recommended": "Recommended",
     "guestTitle": "Guest",
     "guestPrice": "Free",
     "guestDescription": "Instant use, no login required",
@@ -337,7 +422,31 @@
       "none": "-",
       "memberBadge": "Member badge",
       "proBadge": "Pro badge"
-    }
+    },
+    "cardBenefits": {
+      "guest": {
+        "01": "Instant use",
+        "02": "Curated news sources",
+        "03": "Comfortable default rotation"
+      },
+      "member": {
+        "01": "More selectable news sources",
+        "02": "Adjustable rotation angle and interval",
+        "03": "Cloud-synced settings"
+      },
+      "pro": {
+        "01": "Custom RSS feeds",
+        "02": "Health reminders and full statistics",
+        "03": "Ad-free experience"
+      }
+    },
+    "oneClickActivateButton": "Activate Pro",
+    "loginToActivateLink": "Sign in to activate"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you requested does not exist or has already been moved.",
+    "action": "Back to home"
   },
   "page": {
     "myFeed": "My Feed",

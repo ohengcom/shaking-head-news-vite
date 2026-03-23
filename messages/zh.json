@@ -9,7 +9,17 @@
     "confirm": "确认",
     "delete": "删除",
     "edit": "编辑",
-    "close": "关闭"
+    "close": "关闭",
+    "and": "和",
+    "reset": "重置",
+    "toggleTheme": "切换主题",
+    "unknownError": "发生了未知错误，请稍后重试。",
+    "errorId": "错误 ID",
+    "goHome": "返回首页",
+    "tryAgainLater": "请稍后重试",
+    "comingSoon": "即将推出",
+    "user": "用户",
+    "adPlaceholder": "广告位"
   },
   "nav": {
     "home": "首页",
@@ -50,7 +60,10 @@
         "title": "🎨 自定义主题",
         "description": "支持亮色和暗色主题，自定义字体大小"
       }
-    }
+    },
+    "loadingFeed": "正在加载新闻内容...",
+    "loadErrorDescription": "加载新闻失败，请稍后重试。",
+    "loadPersonalizationError": "加载个性化订阅失败"
   },
   "news": {
     "title": "今日新闻",
@@ -64,14 +77,31 @@
     "publishedAt": "发布于",
     "category": "分类",
     "error": "加载新闻失败",
-    "retryLoad": "重新加载"
+    "retryLoad": "重新加载",
+    "emptyTitle": "暂无可显示的新闻",
+    "emptyDescription": "可以尝试刷新，或切换到其他来源查看。",
+    "loginForMore": "登录后可解锁更多新闻源并同步订阅。",
+    "signInNow": "立即登录",
+    "refreshSuccess": "刷新成功",
+    "refreshSuccessDescription": "新闻内容已更新",
+    "refreshError": "刷新失败"
   },
   "settings": {
     "title": "设置",
+    "pageDescription": "自定义界面语言、新闻源、旋转行为和 Pro 偏好。",
+    "loading": "正在加载设置...",
+    "loadError": "加载设置失败",
     "language": "语言",
     "languageDescription": "选择界面语言",
     "newsSource": "新闻源",
     "newsSourceDescription": "管理您的新闻来源和 RSS 订阅",
+    "newsContentTitle": "新闻内容",
+    "newsContentDescription": "选择您感兴趣的新闻来源",
+    "availableSources": "待添加 ({count})",
+    "allSourcesAdded": "已全部添加",
+    "enabledSources": "已启用 ({count})",
+    "dragToReorder": "可拖拽排序",
+    "addSourcesHint": "请从左侧添加新闻源",
     "chinese": "中文",
     "english": "English",
     "theme": "主题",
@@ -105,7 +135,26 @@
     "saveSuccess": "设置已保存",
     "saveSuccessDescription": "您的偏好设置已成功更新",
     "saveError": "保存失败",
-    "saveErrorDescription": "请稍后重试"
+    "saveErrorDescription": "请稍后重试",
+    "proStatusActiveTitle": "Pro 已激活",
+    "proStatusInactiveTitle": "Pro 功能",
+    "proStatusActiveDescription": "您已解锁所有 Pro 功能，包括关闭广告、完整统计、健康提醒等。",
+    "proStatusInactiveDescription": "解锁 Pro 功能：关闭广告、完整统计、健康提醒、OPML 导入导出等。",
+    "enableProTesting": "一键解锁 Pro（测试）",
+    "disableProTesting": "取消 Pro（测试）",
+    "customSubscriptionTitle": "自定义订阅",
+    "customSubscriptionDescription": "管理您的自定义 RSS 新闻源",
+    "rssManagementLabel": "RSS 订阅管理",
+    "rssManagementDescription": "添加或移除自定义 RSS 新闻源",
+    "manageSubscriptions": "管理订阅",
+    "adsTitle": "广告设置",
+    "adsDescription": "管理广告显示偏好",
+    "showAds": "显示广告",
+    "showAdsDescription": "关闭后将不再显示广告",
+    "adsEnabledState": "广告已开启",
+    "adsDisabledState": "广告已关闭",
+    "adsUpdateError": "更新广告设置失败",
+    "wellnessDescription": "管理每日目标和健康提醒"
   },
   "rotation": {
     "pause": "暂停",
@@ -116,6 +165,9 @@
   },
   "stats": {
     "title": "统计数据",
+    "pageDescription": "查看您的颈椎运动趋势和历史统计。",
+    "loading": "正在加载统计数据...",
+    "loadError": "加载统计数据失败",
     "today": "今日",
     "week": "本周",
     "month": "本月",
@@ -157,10 +209,21 @@
     "notificationDenied": "通知权限被拒绝",
     "notificationDeniedMessage": "请在浏览器设置中允许通知权限",
     "notificationNotSupported": "不支持通知",
-    "notificationNotSupportedMessage": "您的浏览器不支持通知功能"
+    "notificationNotSupportedMessage": "您的浏览器不支持通知功能",
+    "guestOverlayTitle": "查看统计数据",
+    "chartPreview": "图表预览",
+    "fullStatsTitle": "完整统计数据",
+    "fullStatsDescription": "升级到 Pro 查看详细图表和历史数据",
+    "healthReminderComingSoon": "健康提醒功能即将推出",
+    "healthReminderComingSoonDescription": "设置定时提醒，帮助您养成健康习惯",
+    "exerciseGoalsComingSoon": "运动目标功能即将推出",
+    "exerciseGoalsComingSoonDescription": "设置每日目标，追踪您的颈椎运动进度"
   },
   "rss": {
     "title": "RSS 源管理",
+    "subtitle": "管理您的自定义 RSS 订阅和 OPML 文件",
+    "loading": "正在加载 RSS 源...",
+    "loadError": "加载 RSS 源失败",
     "addSource": "添加 RSS 源",
     "addSourceDescription": "添加新的 RSS 订阅源以获取更多新闻内容",
     "editSource": "编辑 RSS 源",
@@ -168,6 +231,7 @@
     "sourceName": "源名称",
     "sourceNamePlaceholder": "例如：科技新闻",
     "sourceUrl": "源地址",
+    "sourceUrlPlaceholder": "https://example.com/feed.xml",
     "sourceDescription": "源描述",
     "sourceDescriptionPlaceholder": "简要描述这个 RSS 源的内容",
     "sourceLanguage": "源语言",
@@ -200,7 +264,16 @@
     "requiredFields": "请填写所有必填字段",
     "cancel": "取消",
     "add": "添加",
-    "adding": "添加中..."
+    "adding": "添加中...",
+    "selectOpmlFile": "请选择 OPML 或 XML 文件",
+    "fileTooLarge": "文件大小不能超过 1 MB",
+    "importSuccess": "成功导入 {imported} 个 RSS 源",
+    "importSuccessWithSkipped": "成功导入 {imported} 个 RSS 源，跳过 {skipped} 个重复或超出限制的条目",
+    "importFailed": "导入 OPML 失败",
+    "importing": "导入中...",
+    "exportSuccess": "OPML 文件导出成功",
+    "exportFailed": "导出 OPML 失败",
+    "exporting": "导出中..."
   },
   "auth": {
     "signIn": "登录",
@@ -213,12 +286,20 @@
     "signOutConfirm": "确定要登出吗？",
     "signOutSuccess": "已成功登出",
     "signInError": "登录失败",
-    "signOutError": "登出失败"
+    "signOutError": "登出失败",
+    "signInDescription": "选择登录方式，在多设备间同步设置、统计和 RSS 订阅。",
+    "continueWithoutSignIn": "先不登录，继续浏览",
+    "secureSignIn": "安全登录",
+    "agreementPrefix": "登录即表示您同意",
+    "terms": "服务条款",
+    "privacyPolicy": "隐私政策",
+    "genericError": "暂时无法完成登录，请稍后重试。"
   },
   "footer": {
-    "copyright": "© 2026 摇头看新闻. 保留所有权利.",
-    "madeWith": "用 ❤️ 制作",
-    "version": "版本"
+    "copyright": "© {year} {appName}。保留所有权利。",
+    "madeWith": "用心打造",
+    "version": "版本",
+    "icp": "ICP备案"
   },
   "about": {
     "metaTitle": "关于 - 摇头看新闻",
@@ -254,6 +335,8 @@
     "loginModalDescription": "登录后可自定义设置、云同步数据，完全免费！",
     "upgradeModalTitle": "升级到 Pro",
     "upgradeModalDescription": "解锁完整统计、健康提醒、运动目标等高级功能",
+    "unlockSuccess": "解锁成功！",
+    "unlockDescription": "更多功能已为您解锁",
     "features": {
       "rotationModeSelectable": "旋转模式选择",
       "rotationIntervalAdjustable": "旋转间隔调节",
@@ -274,6 +357,8 @@
   "features": {
     "title": "功能对比",
     "subtitle": "选择适合您的方案",
+    "tableFeature": "功能",
+    "recommended": "推荐",
     "guestTitle": "访客",
     "guestPrice": "免费",
     "guestDescription": "即开即用，无需登录",
@@ -312,19 +397,19 @@
       "userBadge": "用户徽章"
     },
     "featureValues": {
-      "defaultOnly": "每日简报 + IT资讯",
-      "hotLists": "全网热榜 (抖音/微博/历史...)",
+      "defaultOnly": "每日简报 + IT 资讯",
+      "hotLists": "全网热榜（抖音/微博/历史...）",
       "allSources": "全网热榜 + 自定义 RSS",
       "customRss": "自定义 RSS",
       "customRssOpml": "自定义 + OPML",
       "continuousFixed": "连续模式（固定）",
       "selectable": "固定 + 连续可选",
-      "fixed30s": "30秒（固定）",
-      "adjustable5to60": "5-60秒可调",
-      "fixed15deg": "15度（固定）",
-      "adjustable8to25": "8-25度可调",
+      "fixed30s": "30 秒（固定）",
+      "adjustable5to60": "5-60 秒可调",
+      "fixed15deg": "15 度（固定）",
+      "adjustable8to25": "8-25 度可调",
       "mediumFixed": "中（固定）",
-      "adjustable4levels": "4档可调",
+      "adjustable4levels": "4 档可调",
       "defaultLayout": "默认",
       "compactNormal": "紧凑/正常可选",
       "manualSwitch": "可手动切换",
@@ -356,13 +441,18 @@
       }
     },
     "oneClickActivateButton": "一键激活",
-    "loginToActivateLink": "登陆后可激活"
+    "loginToActivateLink": "登录后可激活"
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "description": "您访问的页面不存在，或已被移动到其他位置。",
+    "action": "返回首页"
   },
   "page": {
     "myFeed": "我的订阅",
     "myCustomFeed": "我的自定义订阅",
     "noCustomFeeds": "暂无自定义订阅",
     "noCustomFeedsDescription": "您还没有添加任何自定义 RSS 源，或者它们没有内容。前往设置添加。",
-    "itNewsAi": "IT 资讯 (AI)"
+    "itNewsAi": "IT 资讯（AI）"
   }
 }

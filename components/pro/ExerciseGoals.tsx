@@ -1,30 +1,21 @@
-/**
- * Exercise Goals Component
- * 运动目标组件 - Pro 功能占位
- */
-
 'use client'
 
-import { Target, Trophy, Sparkles } from 'lucide-react'
+import { Sparkles, Target, Trophy } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useUserTier } from '@/hooks/use-user-tier'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LockedFeature } from '@/components/tier/LockedFeature'
+import { useUserTier } from '@/hooks/use-user-tier'
 
 interface ExerciseGoalsProps {
   className?: string
 }
 
-/**
- * 运动目标组件
- * 仅 Pro 用户可用，当前为 Coming Soon 状态
- */
 export function ExerciseGoals({ className }: ExerciseGoalsProps) {
   const t = useTranslations('stats')
+  const tCommon = useTranslations('common')
   const { isPro, features } = useUserTier()
 
-  // 非 Pro 用户显示锁定状态
   if (!isPro || !features.exerciseGoalsEnabled) {
     return (
       <LockedFeature
@@ -36,7 +27,6 @@ export function ExerciseGoals({ className }: ExerciseGoalsProps) {
     )
   }
 
-  // Pro 用户显示 Coming Soon
   return (
     <Card className={className}>
       <CardHeader>
@@ -47,7 +37,7 @@ export function ExerciseGoals({ className }: ExerciseGoalsProps) {
           </CardTitle>
           <Badge variant="secondary" className="gap-1">
             <Sparkles className="h-3 w-3" />
-            Coming Soon
+            {tCommon('comingSoon')}
           </Badge>
         </div>
         <CardDescription>{t('goalProgress')}</CardDescription>
@@ -57,8 +47,10 @@ export function ExerciseGoals({ className }: ExerciseGoalsProps) {
           <div className="bg-muted mb-4 rounded-full p-4">
             <Trophy className="text-muted-foreground h-8 w-8" />
           </div>
-          <p className="text-muted-foreground text-sm">运动目标功能即将推出</p>
-          <p className="text-muted-foreground mt-1 text-xs">设置每日目标，追踪您的颈椎运动进度</p>
+          <p className="text-muted-foreground text-sm">{t('exerciseGoalsComingSoon')}</p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            {t('exerciseGoalsComingSoonDescription')}
+          </p>
         </div>
       </CardContent>
     </Card>

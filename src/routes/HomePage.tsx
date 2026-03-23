@@ -13,8 +13,9 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const t = useTranslations('home')
+  const tCommon = useTranslations('common')
 
-  useDocumentTitle('Home')
+  useDocumentTitle(t('title'))
 
   useEffect(() => {
     let cancelled = false
@@ -28,7 +29,7 @@ export function HomePage() {
       }
 
       if (!result.success || !result.payload) {
-        setError(result.error || 'Failed to load news feed')
+        setError(result.error || t('loadErrorDescription'))
         setIsLoading(false)
         return
       }
@@ -42,7 +43,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   if (isLoading) {
     return (
@@ -51,7 +52,7 @@ export function HomePage() {
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
         </div>
-        <div className="text-muted-foreground text-center text-sm">Loading news...</div>
+        <div className="text-muted-foreground text-center text-sm">{t('loadingFeed')}</div>
       </div>
     )
   }
@@ -65,7 +66,7 @@ export function HomePage() {
         </div>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Feed Error</AlertTitle>
+          <AlertTitle>{tCommon('error')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>

@@ -6,6 +6,10 @@ import { ThemeToggle } from '@/components/theme-toggle'
 const mockSetTheme = vi.fn()
 const mockUseTheme = vi.fn()
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (_key: string) => 'toggleTheme',
+}))
+
 vi.mock('next-themes', () => ({
   useTheme: () => mockUseTheme(),
 }))

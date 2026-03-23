@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +16,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -21,11 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { addRSSSourceViaApi } from '@/lib/api/rss-client'
-import { Plus } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 
 export function AddRSSSourceDialog() {
   const [open, setOpen] = useState(false)
@@ -40,14 +40,14 @@ export function AddRSSSourceDialog() {
   })
   const { toast } = useToast()
   const t = useTranslations('rss')
+  const tSettings = useTranslations('settings')
   const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     setLoading(true)
 
     try {
-      // 验证必填字段
       if (!formData.name.trim() || !formData.url.trim()) {
         toast({
           title: t('error'),
@@ -58,7 +58,6 @@ export function AddRSSSourceDialog() {
         return
       }
 
-      // Validate URL format
       try {
         new URL(formData.url)
       } catch {
@@ -71,7 +70,6 @@ export function AddRSSSourceDialog() {
         return
       }
 
-      // 解析标签
       const tags = formData.tags
         .split(',')
         .map((tag) => tag.trim())
@@ -91,7 +89,6 @@ export function AddRSSSourceDialog() {
         description: t('sourceAdded'),
       })
 
-      // 重置表单
       setFormData({
         name: '',
         url: '',
@@ -135,7 +132,7 @@ export function AddRSSSourceDialog() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
                 placeholder={t('sourceNamePlaceholder')}
                 required
               />
@@ -148,8 +145,8 @@ export function AddRSSSourceDialog() {
                 id="url"
                 type="url"
                 value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="https://example.com/feed.xml"
+                onChange={(event) => setFormData({ ...formData, url: event.target.value })}
+                placeholder={t('sourceUrlPlaceholder')}
                 required
               />
             </div>
@@ -158,7 +155,7 @@ export function AddRSSSourceDialog() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, description: event.target.value })}
                 placeholder={t('sourceDescriptionPlaceholder')}
                 rows={3}
               />
@@ -175,8 +172,8 @@ export function AddRSSSourceDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="zh">中文</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="zh">{tSettings('chinese')}</SelectItem>
+                  <SelectItem value="en">{tSettings('english')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -185,7 +182,7 @@ export function AddRSSSourceDialog() {
               <Input
                 id="tags"
                 value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, tags: event.target.value })}
                 placeholder={t('sourceTagsPlaceholder')}
               />
               <p className="text-muted-foreground text-xs">{t('sourceTagsHint')}</p>

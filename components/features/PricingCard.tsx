@@ -93,7 +93,7 @@ export function PricingCard({ tier, isCurrentTier, onAction, className }: Pricin
       {cardConfig.highlight && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <span className="bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
-            推荐
+            {t('recommended')}
           </span>
         </div>
       )}

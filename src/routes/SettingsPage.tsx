@@ -3,12 +3,14 @@ import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { getSettingsViaApi } from '@/lib/api/settings-client'
 import type { UserSettings } from '@/types/settings'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
+import { useTranslations } from 'next-intl'
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const t = useTranslations('settings')
 
-  useDocumentTitle('Settings')
+  useDocumentTitle(t('title'))
 
   useEffect(() => {
     let cancelled = false
@@ -21,7 +23,7 @@ export function SettingsPage() {
       }
 
       if (!result.success || !result.settings) {
-        setError(result.error || 'Failed to load settings')
+        setError(result.error || t('loadError'))
         return
       }
 
@@ -32,7 +34,7 @@ export function SettingsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   if (error) {
     return <div className="text-destructive container mx-auto max-w-4xl py-12 text-sm">{error}</div>
@@ -41,7 +43,7 @@ export function SettingsPage() {
   if (!settings) {
     return (
       <div className="text-muted-foreground container mx-auto max-w-4xl py-12 text-sm">
-        Loading settings...
+        {t('loading')}
       </div>
     )
   }
@@ -49,10 +51,8 @@ export function SettingsPage() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Customize your reading experience and health routine.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('pageDescription')}</p>
       </div>
       <SettingsPanel initialSettings={settings} />
     </div>

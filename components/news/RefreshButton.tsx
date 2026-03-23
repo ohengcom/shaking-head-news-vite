@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { refreshNews } from '@/lib/actions/news'
-import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import { refreshNews } from '@/lib/actions/news'
 
 interface RefreshButtonProps {
   language?: 'zh' | 'en'
@@ -16,24 +17,24 @@ export function RefreshButton({ language, source }: RefreshButtonProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const t = useTranslations('news')
+  const tCommon = useTranslations('common')
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
 
     try {
       await refreshNews(language, source)
-
-      // Refresh the page to show new data
       router.refresh()
 
       toast({
-        title: '刷新成功',
-        description: '新闻内容已更新',
+        title: t('refreshSuccess'),
+        description: t('refreshSuccessDescription'),
       })
     } catch (error) {
       toast({
-        title: '刷新失败',
-        description: error instanceof Error ? error.message : '请稍后重试',
+        title: t('refreshError'),
+        description: error instanceof Error ? error.message : tCommon('tryAgainLater'),
         variant: 'destructive',
       })
     } finally {
@@ -50,7 +51,7 @@ export function RefreshButton({ language, source }: RefreshButtonProps) {
       data-testid="refresh-button"
     >
       <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-      {isRefreshing ? '刷新中...' : '刷新'}
+      {isRefreshing ? t('refreshing') : t('refresh')}
     </Button>
   )
 }

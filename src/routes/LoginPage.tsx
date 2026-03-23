@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from '@/lib/auth-client'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 function toSafeCallbackUrl(callbackUrl: string | null): string {
   if (!callbackUrl) {
@@ -30,7 +31,7 @@ function toSafeCallbackUrl(callbackUrl: string | null): string {
   }
 }
 
-function parseAuthError(error: unknown): string | null {
+function parseAuthError(error: unknown, fallbackMessage: string): string | null {
   if (!error) {
     return null
   }
@@ -64,7 +65,7 @@ function parseAuthError(error: unknown): string | null {
     }
 
     if (candidate.error) {
-      return parseAuthError(candidate.error)
+      return parseAuthError(candidate.error, fallbackMessage)
     }
 
     if (typeof candidate.code === 'string' && candidate.code.trim()) {
@@ -72,7 +73,7 @@ function parseAuthError(error: unknown): string | null {
     }
   }
 
-  return 'Sign in failed. Please try again later.'
+  return fallbackMessage
 }
 
 interface SignInResult {
@@ -122,8 +123,10 @@ export function LoginPage() {
   const callbackUrl = toSafeCallbackUrl(searchParams.get('callbackUrl'))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signInError, setSignInError] = useState<string | null>(null)
+  const tAuth = useTranslations('auth')
+  const tCommon = useTranslations('common')
 
-  useDocumentTitle('Sign In')
+  useDocumentTitle(tAuth('signIn'))
 
   const handleSocialSignIn = async (provider: 'google' | 'microsoft') => {
     if (isSubmitting) {
@@ -138,7 +141,7 @@ export function LoginPage() {
         | SignInResult
         | undefined
 
-      const errorMessage = parseAuthError(result?.error)
+      const errorMessage = parseAuthError(result?.error, tAuth('genericError'))
       if (errorMessage) {
         setSignInError(errorMessage)
         return
@@ -148,7 +151,7 @@ export function LoginPage() {
         window.location.href = result.data.url
       }
     } catch (error) {
-      setSignInError(parseAuthError(error) || 'Sign in failed. Please try again later.')
+      setSignInError(parseAuthError(error, tAuth('genericError')) || tAuth('genericError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -158,10 +161,8 @@ export function LoginPage() {
     <div className="via-background dark:via-background flex min-h-[calc(100vh-12rem)] items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-100 to-sky-100 px-4 py-8 dark:from-emerald-950/40 dark:to-sky-950/30">
       <div className="border-border bg-card/90 w-full max-w-md space-y-8 rounded-[2rem] border p-8 shadow-xl backdrop-blur">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Shaking Head News</h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Sign in to sync your settings, feeds, and statistics.
-          </p>
+          <h1 className="text-3xl font-bold">{tCommon('appName')}</h1>
+          <p className="text-muted-foreground mt-2 text-sm">{tAuth('signInDescription')}</p>
         </div>
 
         <div className="space-y-4">
@@ -197,7 +198,7 @@ export function LoginPage() {
             href="/"
             className="text-primary inline-flex items-center gap-2 text-sm hover:underline"
           >
-            Continue without signing in
+            {tAuth('continueWithoutSignIn')}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -205,16 +206,16 @@ export function LoginPage() {
         <div className="border-border/70 bg-background/70 text-muted-foreground rounded-2xl border px-4 py-3 text-center text-xs">
           <div className="text-foreground mb-2 flex items-center justify-center gap-2">
             <ShieldCheck className="text-primary h-4 w-4" />
-            Secure sign-in
+            {tAuth('secureSignIn')}
           </div>
           <p>
-            By continuing, you agree to the{' '}
+            {tAuth('agreementPrefix')}{' '}
             <Link href="/about#terms" className="text-primary hover:underline">
-              Terms
+              {tAuth('terms')}
             </Link>{' '}
-            and{' '}
+            {tCommon('and')}{' '}
             <Link href="/about#privacy" className="text-primary hover:underline">
-              Privacy Policy
+              {tAuth('privacyPolicy')}
             </Link>
             .
           </p>

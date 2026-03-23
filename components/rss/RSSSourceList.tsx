@@ -1,19 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { RSSSource } from '@/types/rss'
+import { useEffect, useState } from 'react'
+import { AlertCircle, GripVertical, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import {
   deleteRSSSourceViaApi,
   reorderRSSSourcesViaApi,
   updateRSSSourceViaApi,
 } from '@/lib/api/rss-client'
-import { Trash2, GripVertical, AlertCircle } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { RSSSource } from '@/types/rss'
 
 interface RSSSourceListProps {
   initialSources: RSSSource[]
@@ -24,6 +24,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const { toast } = useToast()
   const t = useTranslations('rss')
+  const tSettings = useTranslations('settings')
 
   useEffect(() => {
     setSources(initialSources)
@@ -32,7 +33,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
       const updated = await updateRSSSourceViaApi(id, { enabled })
-      setSources(sources.map((s) => (s.id === id ? updated : s)))
+      setSources(sources.map((source) => (source.id === id ? updated : source)))
       toast({
         title: t('success'),
         description: enabled ? t('sourceEnabled') : t('sourceDisabled'),
@@ -47,11 +48,13 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('confirmDelete'))) return
+    if (!confirm(t('confirmDelete'))) {
+      return
+    }
 
     try {
       await deleteRSSSourceViaApi(id)
-      setSources(sources.filter((s) => s.id !== id))
+      setSources(sources.filter((source) => source.id !== id))
       toast({
         title: t('success'),
         description: t('sourceDeleted'),
@@ -69,15 +72,19 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
     setDraggedItem(id)
   }
 
-  const handleDragOver = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault()
+  const handleDragOver = (event: React.DragEvent, targetId: string) => {
+    event.preventDefault()
 
-    if (!draggedItem || draggedItem === targetId) return
+    if (!draggedItem || draggedItem === targetId) {
+      return
+    }
 
-    const draggedIndex = sources.findIndex((s) => s.id === draggedItem)
-    const targetIndex = sources.findIndex((s) => s.id === targetId)
+    const draggedIndex = sources.findIndex((source) => source.id === draggedItem)
+    const targetIndex = sources.findIndex((source) => source.id === targetId)
 
-    if (draggedIndex === -1 || targetIndex === -1) return
+    if (draggedIndex === -1 || targetIndex === -1) {
+      return
+    }
 
     const newSources = [...sources]
     const [removed] = newSources.splice(draggedIndex, 1)
@@ -87,10 +94,12 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
   }
 
   const handleDragEnd = async () => {
-    if (!draggedItem) return
+    if (!draggedItem) {
+      return
+    }
 
     try {
-      const sourceIds = sources.map((s) => s.id)
+      const sourceIds = sources.map((source) => source.id)
       await reorderRSSSourcesViaApi(sourceIds)
       toast({
         title: t('success'),
@@ -102,7 +111,6 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
         description: t('reorderFailed'),
         variant: 'destructive',
       })
-      // 重新加载以恢复原始顺序
       setSources(initialSources)
     } finally {
       setDraggedItem(null)
@@ -126,7 +134,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
           key={source.id}
           draggable
           onDragStart={() => handleDragStart(source.id)}
-          onDragOver={(e) => handleDragOver(e, source.id)}
+          onDragOver={(event) => handleDragOver(event, source.id)}
           onDragEnd={handleDragEnd}
           className={`cursor-move transition-opacity ${
             draggedItem === source.id ? 'opacity-50' : ''
@@ -139,12 +147,12 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
                 <div className="flex-1">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     {source.name}
-                    {source.failureCount > 0 && (
+                    {source.failureCount > 0 ? (
                       <Badge variant="destructive" className="text-xs">
                         <AlertCircle className="mr-1 h-3 w-3" />
                         {source.failureCount} {t('failures')}
                       </Badge>
-                    )}
+                    ) : null}
                   </CardTitle>
                   <CardDescription className="mt-1">
                     {source.description || source.url}
@@ -169,18 +177,20 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{source.language === 'zh' ? '中文' : 'English'}</Badge>
+              <Badge variant="outline">
+                {source.language === 'zh' ? tSettings('chinese') : tSettings('english')}
+              </Badge>
               {source.tags.map((tag) => (
                 <Badge key={tag} variant="secondary">
                   {tag}
                 </Badge>
               ))}
             </div>
-            {source.lastFetchedAt && (
+            {source.lastFetchedAt ? (
               <p className="text-muted-foreground mt-2 text-xs">
                 {t('lastFetched')}: {new Date(source.lastFetchedAt).toLocaleString()}
               </p>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       ))}

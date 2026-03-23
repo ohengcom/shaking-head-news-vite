@@ -120,7 +120,10 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={userAvatarSrc} alt={user.name || user.email || 'User'} />
+                      <AvatarImage
+                        src={userAvatarSrc}
+                        alt={user.name || user.email || tCommon('user')}
+                      />
                       <AvatarFallback>{userInitials}</AvatarFallback>
                     </Avatar>
                     {isPro ? (

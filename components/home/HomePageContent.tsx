@@ -83,14 +83,14 @@ export function HomePageContent({ dailyNews, aiNews }: HomePageContentProps) {
         setPersonalizationError(null)
       } else {
         setPersonalization(null)
-        setPersonalizationError(result.error || 'Failed to load personalized feeds')
+        setPersonalizationError(result.error || t('loadPersonalizationError'))
       }
     })()
 
     return () => {
       isCancelled = true
     }
-  }, [status])
+  }, [status, t])
 
   const mergedNews = useMemo(() => [...dailyNews, ...aiNews], [dailyNews, aiNews])
 

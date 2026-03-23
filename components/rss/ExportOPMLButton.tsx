@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { Download } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { exportOPMLViaApi } from '@/lib/api/rss-client'
-import { Download } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 
 export function ExportOPMLButton() {
   const [loading, setLoading] = useState(false)
@@ -14,27 +14,28 @@ export function ExportOPMLButton() {
 
   const handleExport = async () => {
     setLoading(true)
+
     try {
       const opml = await exportOPMLViaApi()
       const blob = new Blob([opml], { type: 'application/xml' })
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `rss-sources-${new Date().toISOString().split('T')[0]}.opml`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `rss-sources-${new Date().toISOString().split('T')[0]}.opml`
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
       URL.revokeObjectURL(url)
 
       toast({
         title: t('success'),
-        description: 'OPML file exported successfully',
+        description: t('exportSuccess'),
       })
     } catch (error) {
       console.error('Failed to export OPML:', error)
       toast({
         title: t('error'),
-        description: 'Failed to export OPML',
+        description: t('exportFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -45,7 +46,7 @@ export function ExportOPMLButton() {
   return (
     <Button variant="outline" onClick={handleExport} disabled={loading}>
       <Download className="mr-2 h-4 w-4" />
-      {loading ? 'Exporting...' : t('exportOPML')}
+      {loading ? t('exporting') : t('exportOPML')}
     </Button>
   )
 }

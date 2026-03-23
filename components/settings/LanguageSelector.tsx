@@ -11,7 +11,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { updateSettingsViaApi } from '@/lib/api/settings-client'
 import { useToast } from '@/hooks/use-toast'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Globe } from 'lucide-react'
 
 interface LanguageSelectorProps {
@@ -24,6 +24,10 @@ export function LanguageSelector({ currentLanguage }: LanguageSelectorProps) {
   const { toast } = useToast()
   const [language, setLanguage] = useState<'zh' | 'en'>(currentLanguage)
   const [isPending, setIsPending] = useState(false)
+
+  useEffect(() => {
+    setLanguage(currentLanguage)
+  }, [currentLanguage])
 
   const handleLanguageChange = async (newLanguage: 'zh' | 'en') => {
     if (isPending) {

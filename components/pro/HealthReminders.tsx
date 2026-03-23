@@ -1,30 +1,21 @@
-/**
- * Health Reminders Component
- * 健康提醒组件 - Pro 功能占位
- */
-
 'use client'
 
 import { Bell, Clock, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useUserTier } from '@/hooks/use-user-tier'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LockedFeature } from '@/components/tier/LockedFeature'
+import { useUserTier } from '@/hooks/use-user-tier'
 
 interface HealthRemindersProps {
   className?: string
 }
 
-/**
- * 健康提醒组件
- * 仅 Pro 用户可用，当前为 Coming Soon 状态
- */
 export function HealthReminders({ className }: HealthRemindersProps) {
   const t = useTranslations('stats')
+  const tCommon = useTranslations('common')
   const { isPro, features } = useUserTier()
 
-  // 非 Pro 用户显示锁定状态
   if (!isPro || !features.healthRemindersEnabled) {
     return (
       <LockedFeature
@@ -36,7 +27,6 @@ export function HealthReminders({ className }: HealthRemindersProps) {
     )
   }
 
-  // Pro 用户显示 Coming Soon
   return (
     <Card className={className}>
       <CardHeader>
@@ -47,7 +37,7 @@ export function HealthReminders({ className }: HealthRemindersProps) {
           </CardTitle>
           <Badge variant="secondary" className="gap-1">
             <Sparkles className="h-3 w-3" />
-            Coming Soon
+            {tCommon('comingSoon')}
           </Badge>
         </div>
         <CardDescription>{t('healthReminderDescription')}</CardDescription>
@@ -57,8 +47,10 @@ export function HealthReminders({ className }: HealthRemindersProps) {
           <div className="bg-muted mb-4 rounded-full p-4">
             <Clock className="text-muted-foreground h-8 w-8" />
           </div>
-          <p className="text-muted-foreground text-sm">健康提醒功能即将推出</p>
-          <p className="text-muted-foreground mt-1 text-xs">设置定时提醒，帮助您养成健康习惯</p>
+          <p className="text-muted-foreground text-sm">{t('healthReminderComingSoon')}</p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            {t('healthReminderComingSoonDescription')}
+          </p>
         </div>
       </CardContent>
     </Card>

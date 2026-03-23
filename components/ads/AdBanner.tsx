@@ -11,6 +11,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { getAdSenseClientId, getAdSenseSlot } from '@/lib/config/adsense'
 import { isDevelopmentRuntime } from '@/lib/config/runtime-env'
@@ -102,6 +103,7 @@ function AdPlaceholder({
   size: string
   className?: string
 }) {
+  const t = useTranslations('common')
   const dimensions = getAdDimensions(
     position as AdBannerProps['position'],
     size as AdBannerProps['size']
@@ -117,7 +119,7 @@ function AdPlaceholder({
       style={dimensions.style}
     >
       <div className="text-center">
-        <p className="text-xs font-medium">广告位</p>
+        <p className="text-xs font-medium">{t('adPlaceholder')}</p>
         <p className="text-[10px] opacity-70">
           {position} - {size}
         </p>

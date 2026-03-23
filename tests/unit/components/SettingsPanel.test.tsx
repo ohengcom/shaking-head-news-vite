@@ -6,6 +6,7 @@ import * as settingsClient from '@/lib/api/settings-client'
 import { useUIStore } from '@/lib/stores/ui-store'
 
 const mockSetTheme = vi.fn()
+const mockSetAppLocale = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -16,7 +17,7 @@ vi.mock('next/navigation', () => ({
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
-  useSetAppLocale: () => vi.fn(),
+  useSetAppLocale: () => mockSetAppLocale,
 }))
 
 vi.mock('next-themes', () => ({
@@ -155,7 +156,7 @@ describe('SettingsPanel', () => {
   it('should call updateSettings API when save button is clicked', async () => {
     render(<SettingsPanel initialSettings={mockSettings} />)
 
-    const saveButton = screen.getByRole('button', { name: /保存/i })
+    const saveButton = screen.getByRole('button', { name: /save/i })
 
     fireEvent.click(saveButton)
 
@@ -167,7 +168,7 @@ describe('SettingsPanel', () => {
   it('should call resetSettings API when reset button is clicked', async () => {
     render(<SettingsPanel initialSettings={mockSettings} />)
 
-    const resetButton = screen.getByRole('button', { name: /重置/i })
+    const resetButton = screen.getByRole('button', { name: /reset/i })
 
     fireEvent.click(resetButton)
 
@@ -193,8 +194,8 @@ describe('SettingsPanel', () => {
   it('should disable buttons while saving', async () => {
     render(<SettingsPanel initialSettings={mockSettings} />)
 
-    const saveButton = screen.getByRole('button', { name: /保存/i })
-    const resetButton = screen.getByRole('button', { name: /重置/i })
+    const saveButton = screen.getByRole('button', { name: /save/i })
+    const resetButton = screen.getByRole('button', { name: /reset/i })
 
     fireEvent.click(saveButton)
 

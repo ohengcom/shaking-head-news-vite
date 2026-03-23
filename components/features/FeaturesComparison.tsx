@@ -164,7 +164,7 @@ export function FeaturesComparison({ currentTier }: FeaturesComparisonProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-muted/20 border-b">
-                <th className="min-w-[200px] p-4 text-left font-semibold">Feature</th>
+                <th className="min-w-[200px] p-4 text-left font-semibold">{t('tableFeature')}</th>
                 <th className="min-w-[120px] p-4 text-center">
                   <div className="flex flex-col items-center gap-1">
                     <User className="text-muted-foreground h-5 w-5" />
@@ -202,6 +202,7 @@ export function FeaturesComparison({ currentTier }: FeaturesComparisonProps) {
                       value={feature.guest}
                       featureKey={feature.key}
                       tier="guest"
+                      previewLabel={t('preview')}
                     />
                   </td>
                   <td className="bg-primary/5 p-4 text-center">
@@ -209,10 +210,16 @@ export function FeaturesComparison({ currentTier }: FeaturesComparisonProps) {
                       value={feature.member}
                       featureKey={feature.key}
                       tier="member"
+                      previewLabel={t('preview')}
                     />
                   </td>
                   <td className="p-4 text-center">
-                    <FeatureValueDisplay value={feature.pro} featureKey={feature.key} tier="pro" />
+                    <FeatureValueDisplay
+                      value={feature.pro}
+                      featureKey={feature.key}
+                      tier="pro"
+                      previewLabel={t('preview')}
+                    />
                   </td>
                 </tr>
               ))}
@@ -228,10 +235,12 @@ function FeatureValueDisplay({
   value,
   featureKey,
   tier,
+  previewLabel,
 }: {
   value: FeatureValue
   featureKey?: string
   tier?: UserTier
+  previewLabel: string
 }) {
   if (value === 'included') {
     return (
@@ -253,7 +262,7 @@ function FeatureValueDisplay({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-2.5 py-1 text-yellow-600 dark:text-yellow-500">
         <Eye className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium">Preview</span>
+        <span className="text-xs font-medium">{previewLabel}</span>
       </span>
     )
   }

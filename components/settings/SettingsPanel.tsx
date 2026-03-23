@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, Reorder, motion } from 'framer-motion'
+import { Check, GripVertical, Loader2, Lock, Plus, RotateCcw, X } from 'lucide-react'
+import { useSetAppLocale, useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
-import { Switch } from '@/components/ui/switch'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -12,31 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { UserSettings } from '@/types/settings'
-import { Loader2, RotateCcw, Lock } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { LanguageSelector } from './LanguageSelector'
-import { useUIStore } from '@/lib/stores/ui-store'
-import { useRotationStore } from '@/lib/stores/rotation-store'
-import { useTheme } from 'next-themes'
-import { useUserTier } from '@/hooks/use-user-tier'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import { UpgradePrompt } from '@/components/tier/UpgradePrompt'
-import { DEFAULT_SETTINGS } from '@/lib/config/defaults'
-
+import { useToast } from '@/hooks/use-toast'
 import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
-import { Reorder, AnimatePresence, motion } from 'framer-motion'
-import { Plus, X, GripVertical, Check } from 'lucide-react'
-import { updateSettingsViaApi, resetSettingsViaApi } from '@/lib/api/settings-client'
+import { resetSettingsViaApi, updateSettingsViaApi } from '@/lib/api/settings-client'
+import { DEFAULT_SETTINGS } from '@/lib/config/defaults'
+import { useRotationStore } from '@/lib/stores/rotation-store'
+import { useUIStore } from '@/lib/stores/ui-store'
+import { UserSettings } from '@/types/settings'
+import { useUserTier } from '@/hooks/use-user-tier'
+import { useTheme } from 'next-themes'
+import { LanguageSelector } from './LanguageSelector'
 
 interface SettingsPanelProps {
   initialSettings: UserSettings
 }
 
-/**
- * 锁定设置项组件
- */
 function LockedSettingItem({
   label,
   description,
@@ -48,7 +43,7 @@ function LockedSettingItem({
   value: string
   requiredTier?: 'member' | 'pro'
 }) {
-  const t = useTranslations('tier')
+  const tTier = useTranslations('tier')
 
   return (
     <div className="space-y-2 opacity-60">
@@ -59,9 +54,9 @@ function LockedSettingItem({
         </Label>
         <span className="text-muted-foreground text-sm">{value}</span>
       </div>
-      {description && <p className="text-muted-foreground text-sm">{description}</p>}
+      {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
       <p className="text-muted-foreground text-xs">
-        {requiredTier === 'member' ? t('loginToUnlock') : t('upgradeToUnlock')}
+        {requiredTier === 'member' ? tTier('loginToUnlock') : tTier('upgradeToUnlock')}
       </p>
     </div>
   )
@@ -73,6 +68,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   const [isResetting, setIsResetting] = useState(false)
   const { toast } = useToast()
   const t = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const tTier = useTranslations('tier')
   const { setFontSize, setLayoutMode } = useUIStore()
   const {
@@ -82,41 +78,54 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     isPaused,
   } = useRotationStore()
   const { setTheme } = useTheme()
+  const setAppLocale = useSetAppLocale()
   const { isGuest, isPro, features, togglePro, isTogglingPro } = useUserTier({
     initialIsPro: initialSettings.isPro ?? false,
   })
 
-  const message = (key: string, fallback: string) => {
-    try {
-      return t(key as never)
-    } catch {
-      return fallback
-    }
-  }
-
-  // Sync UI store, rotation store, and theme with settings on mount and when settings change
   useEffect(() => {
     setFontSize(settings.fontSize)
     setLayoutMode(settings.layoutMode)
     setTheme(settings.theme)
     setRotationMode(settings.rotationMode)
     setRotationInterval(settings.rotationInterval)
+    setAppLocale(settings.language)
   }, [
-    settings.fontSize,
-    settings.layoutMode,
-    settings.theme,
-    settings.rotationMode,
-    settings.rotationInterval,
+    setAppLocale,
     setFontSize,
     setLayoutMode,
-    setTheme,
-    setRotationMode,
     setRotationInterval,
+    setRotationMode,
+    setTheme,
+    settings.fontSize,
+    settings.language,
+    settings.layoutMode,
+    settings.rotationInterval,
+    settings.rotationMode,
+    settings.theme,
   ])
 
   useEffect(() => {
     setSettings((prev) => (prev.isPro === isPro ? prev : { ...prev, isPro }))
   }, [isPro])
+
+  const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+
+    if (key === 'fontSize') {
+      setFontSize(value as UserSettings['fontSize'])
+    } else if (key === 'layoutMode') {
+      setLayoutMode(value as UserSettings['layoutMode'])
+    } else if (key === 'theme') {
+      setTheme(value as 'light' | 'dark' | 'system')
+    } else if (key === 'rotationMode') {
+      setRotationMode(value as 'fixed' | 'continuous')
+    } else if (key === 'rotationInterval') {
+      setRotationInterval(value as number)
+    } else if (key === 'language') {
+      setAppLocale(value as 'zh' | 'en')
+    }
+  }
 
   const handleSave = async () => {
     if (isPending || isResetting) {
@@ -124,6 +133,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     }
 
     setIsPending(true)
+
     try {
       const payload: UserSettings = {
         ...settings,
@@ -133,21 +143,21 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
 
       if (result?.success) {
         toast({
-          title: message('saveSuccess', '设置已保存'),
-          description: message('saveSuccessDescription', '您的偏好设置已成功更新'),
+          title: t('saveSuccess'),
+          description: t('saveSuccessDescription'),
         })
         return
       }
 
       toast({
-        title: message('saveError', '保存失败'),
-        description: result?.error || message('saveErrorDescription', '请稍后重试'),
+        title: t('saveError'),
+        description: result?.error || t('saveErrorDescription'),
         variant: 'destructive',
       })
     } catch {
       toast({
-        title: message('saveError', '保存失败'),
-        description: message('saveErrorDescription', '请稍后重试'),
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
         variant: 'destructive',
       })
     } finally {
@@ -161,48 +171,32 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
     }
 
     setIsResetting(true)
+
     try {
       const result = await resetSettingsViaApi()
 
       if (result?.success && result.settings) {
         setSettings(result.settings)
         toast({
-          title: message('saveSuccess', '设置已保存'),
-          description: message('saveSuccessDescription', '您的偏好设置已成功更新'),
+          title: t('saveSuccess'),
+          description: t('saveSuccessDescription'),
         })
         return
       }
 
       toast({
-        title: message('saveError', '保存失败'),
-        description: result?.error || message('saveErrorDescription', '请稍后重试'),
+        title: t('saveError'),
+        description: result?.error || t('saveErrorDescription'),
         variant: 'destructive',
       })
     } catch {
       toast({
-        title: message('saveError', '保存失败'),
-        description: message('saveErrorDescription', '请稍后重试'),
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
         variant: 'destructive',
       })
     } finally {
       setIsResetting(false)
-    }
-  }
-
-  const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
-
-    // Update UI store, rotation store, and theme immediately for instant visual feedback
-    if (key === 'fontSize') {
-      setFontSize(value as UserSettings['fontSize'])
-    } else if (key === 'layoutMode') {
-      setLayoutMode(value as UserSettings['layoutMode'])
-    } else if (key === 'theme') {
-      setTheme(value as 'light' | 'dark' | 'system')
-    } else if (key === 'rotationMode') {
-      setRotationMode(value as 'fixed' | 'continuous')
-    } else if (key === 'rotationInterval') {
-      setRotationInterval(value as number)
     }
   }
 
@@ -216,8 +210,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
 
       if (!result || !result.success || typeof result.isPro !== 'boolean') {
         toast({
-          title: message('saveError', 'Save failed'),
-          description: result?.error || message('saveErrorDescription', 'Please try again later'),
+          title: t('saveError'),
+          description: result?.error || t('saveErrorDescription'),
           variant: 'destructive',
         })
         return
@@ -230,8 +224,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
       }))
     } catch {
       toast({
-        title: message('saveError', 'Save failed'),
-        description: message('saveErrorDescription', 'Please try again later'),
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
         variant: 'destructive',
       })
     }
@@ -248,7 +242,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
       })
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to update ads preference')
+        throw new Error(result.error || t('adsUpdateError'))
       }
 
       if (typeof window !== 'undefined') {
@@ -257,21 +251,23 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
       }
 
       toast({
-        title: message('saveSuccess', '设置已保存'),
-        description: checked ? '广告已开启' : '广告已关闭',
+        title: t('saveSuccess'),
+        description: checked ? t('adsEnabledState') : t('adsDisabledState'),
       })
     } catch (error) {
       updateSetting('adsEnabled', previousValue)
       toast({
-        title: message('saveError', 'Save failed'),
-        description:
-          error instanceof Error
-            ? error.message
-            : message('saveErrorDescription', 'Please try again later'),
+        title: t('saveError'),
+        description: error instanceof Error ? error.message : t('saveErrorDescription'),
         variant: 'destructive',
       })
     }
   }
+
+  const availableSourceCount = HOT_LIST_SOURCES.filter(
+    (source) => !settings.newsSources?.includes(source.id)
+  ).length
+  const enabledSourceCount = settings.newsSources?.length || 0
 
   return (
     <div
@@ -280,7 +276,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
         event.preventDefault()
       }}
     >
-      {/* 语言和主题设置 */}
       <Card>
         <CardHeader>
           <CardTitle>{t('theme')}</CardTitle>
@@ -308,7 +303,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             </Select>
           </div>
 
-          {/* 字体大小 - Guest 锁定 */}
           {features.fontSizeAdjustable ? (
             <div className="space-y-2">
               <Label htmlFor="fontSize">{t('fontSize')}</Label>
@@ -339,7 +333,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             />
           )}
 
-          {/* 布局模式 - Guest 锁定 */}
           {features.layoutModeSelectable ? (
             <div className="space-y-2">
               <Label htmlFor="layoutMode">{t('layout')}</Label>
@@ -370,13 +363,11 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
         </CardContent>
       </Card>
 
-      {/* 旋转设置 */}
       <Card>
         <CardHeader>
           <CardTitle>{t('rotation')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* 旋转模式 - Guest 锁定 */}
           {features.rotationModeSelectable ? (
             <div className="space-y-2">
               <Label htmlFor="rotationMode">{t('rotationMode')}</Label>
@@ -405,7 +396,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             />
           )}
 
-          {/* 旋转间隔 - Guest 锁定 */}
           {features.rotationIntervalAdjustable ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -442,7 +432,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
               checked={!isPaused}
               onCheckedChange={(checked) => {
                 updateSetting('animationEnabled', checked)
-                // Sync with rotation store
                 if (checked === isPaused) {
                   togglePause()
                 }
@@ -452,24 +441,20 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
         </CardContent>
       </Card>
 
-      {/* Guest 用户升级提示 */}
-      {isGuest && <UpgradePrompt variant="inline" className="my-4" />}
+      {isGuest ? <UpgradePrompt variant="inline" className="my-4" /> : null}
 
-      {/* 新闻内容设置 - 所有会员可见 */}
-      {!isGuest && (
+      {!isGuest ? (
         <Card>
           <CardHeader>
-            <CardTitle>新闻内容</CardTitle>
-            <CardDescription>选择您感兴趣的新闻来源</CardDescription>
+            <CardTitle>{t('newsContentTitle')}</CardTitle>
+            <CardDescription>{t('newsContentDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Unenabled Sources (Left Column) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                    待添加 (
-                    {HOT_LIST_SOURCES.filter((s) => !settings.newsSources?.includes(s.id)).length})
+                    {t('availableSources', { count: availableSourceCount })}
                   </Label>
                 </div>
                 <div className="bg-muted/30 min-h-[300px] rounded-lg border p-2">
@@ -502,23 +487,22 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                         </Button>
                       </motion.div>
                     ))}
-                    {HOT_LIST_SOURCES.filter((s) => !settings.newsSources?.includes(s.id))
-                      .length === 0 && (
+                    {availableSourceCount === 0 ? (
                       <div className="text-muted-foreground flex h-full flex-col items-center justify-center py-8 text-xs">
                         <Check className="mb-2 h-8 w-8 opacity-20" />
-                        已全部添加
+                        {t('allSourcesAdded')}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
 
-              {/* Enabled Sources (Right Column - Sortable) */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <Label className="text-primary text-xs font-medium tracking-wider uppercase">
-                    已启用 ({settings.newsSources?.length || 0}) - 可拖拽排序
+                    {t('enabledSources', { count: enabledSourceCount })}
                   </Label>
+                  <span className="text-muted-foreground text-xs">{t('dragToReorder')}</span>
                 </div>
                 <div className="bg-card min-h-[300px] rounded-lg border p-2">
                   <Reorder.Group
@@ -529,8 +513,11 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                   >
                     <AnimatePresence initial={false}>
                       {(settings.newsSources || []).map((sourceId) => {
-                        const source = HOT_LIST_SOURCES.find((s) => s.id === sourceId)
-                        if (!source) return null
+                        const source = HOT_LIST_SOURCES.find((item) => item.id === sourceId)
+                        if (!source) {
+                          return null
+                        }
+
                         return (
                           <Reorder.Item
                             key={source.id}
@@ -551,8 +538,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                               variant="ghost"
                               size="icon"
                               className="text-muted-foreground hover:text-destructive h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation() // Prevent triggering drag or other events
+                              onClick={(event) => {
+                                event.stopPropagation()
                                 const currentSources = settings.newsSources || []
                                 updateSetting(
                                   'newsSources',
@@ -566,30 +553,27 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                         )
                       })}
                     </AnimatePresence>
-                    {(settings.newsSources?.length || 0) === 0 && (
+                    {enabledSourceCount === 0 ? (
                       <div className="text-muted-foreground flex h-full flex-col items-center justify-center py-8 text-xs">
-                        请从左侧添加新闻源
+                        {t('addSourcesHint')}
                       </div>
-                    )}
+                    ) : null}
                   </Reorder.Group>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Pro 解锁按钮（临时测试用） */}
-      {!isGuest && (
+      {!isGuest ? (
         <Card className={isPro ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20' : ''}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {isPro ? '🎉 Pro 已激活' : '⭐ Pro 功能'}
+              {isPro ? t('proStatusActiveTitle') : t('proStatusInactiveTitle')}
             </CardTitle>
             <CardDescription>
-              {isPro
-                ? '您已解锁所有 Pro 功能，包括关闭广告、完整统计、健康提醒等'
-                : '解锁 Pro 功能：关闭广告、完整统计、健康提醒、OPML 导入导出等'}
+              {isPro ? t('proStatusActiveDescription') : t('proStatusInactiveDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -608,50 +592,44 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                   : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
               }
             >
-              {isTogglingPro && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isPro ? '取消 Pro（测试）' : '一键解锁 Pro（测试）'}
+              {isTogglingPro ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isPro ? t('disableProTesting') : t('enableProTesting')}
             </Button>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* 新闻内容设置 - 所有会员可见 */}
-
-      {/* 自定义 RSS 设置 - Pro 功能 */}
-      {isPro && (
+      {isPro ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t('newsSource') || '自定义订阅'}</CardTitle>
-            <CardDescription>
-              {t('newsSourceDescription') || '管理您的自定义 RSS 新闻源'}
-            </CardDescription>
+            <CardTitle>{t('customSubscriptionTitle')}</CardTitle>
+            <CardDescription>{t('customSubscriptionDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>RSS 订阅管理</Label>
-                <p className="text-muted-foreground text-sm">添加或移除自定义 RSS 新闻源</p>
+                <Label>{t('rssManagementLabel')}</Label>
+                <p className="text-muted-foreground text-sm">{t('rssManagementDescription')}</p>
               </div>
               <Button variant="outline" asChild>
-                <a href="/rss">管理订阅</a>
+                <a href="/rss">{t('manageSubscriptions')}</a>
               </Button>
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* 广告设置 - Pro 功能 */}
-      {isPro && (
+      {isPro ? (
         <Card>
           <CardHeader>
-            <CardTitle>广告设置</CardTitle>
-            <CardDescription>管理广告显示偏好</CardDescription>
+            <CardTitle>{t('adsTitle')}</CardTitle>
+            <CardDescription>{t('adsDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="adsEnabled">显示广告</Label>
-                <p className="text-muted-foreground text-sm">关闭后将不再显示广告</p>
+                <Label htmlFor="adsEnabled">{t('showAds')}</Label>
+                <p className="text-muted-foreground text-sm">{t('showAdsDescription')}</p>
               </div>
               <Switch
                 id="adsEnabled"
@@ -662,17 +640,15 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* 健康提醒设置 - Pro 功能 */}
-      {isPro && (
+      {isPro ? (
         <Card>
           <CardHeader>
             <CardTitle>{t('notifications')}</CardTitle>
-            <CardDescription>{t('dailyGoalDescription')}</CardDescription>
+            <CardDescription>{t('wellnessDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* 每日目标 - Pro 功能 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="dailyGoal">{t('dailyGoal')}</Label>
@@ -690,7 +666,6 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
               <p className="text-muted-foreground text-sm">{t('dailyGoalDescription')}</p>
             </div>
 
-            {/* 健康提醒 - Pro 功能 */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="notificationsEnabled">{t('notifications')}</Label>
@@ -704,9 +679,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* 操作按钮 - 仅登录用户可保存 */}
       {!isGuest ? (
         <div className="flex gap-4">
           <Button
@@ -719,8 +693,8 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             disabled={isPending || isResetting}
             className="flex-1"
           >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            保存
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {tCommon('save')}
           </Button>
           <Button
             type="button"
@@ -732,9 +706,9 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             disabled={isPending || isResetting}
             variant="outline"
           >
-            {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {!isResetting && <RotateCcw className="mr-2 h-4 w-4" />}
-            重置
+            {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {!isResetting ? <RotateCcw className="mr-2 h-4 w-4" /> : null}
+            {tCommon('reset')}
           </Button>
         </div>
       ) : (

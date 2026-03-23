@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Button } from '@/components/ui/button'
 import { logError } from '@/lib/utils/error-handler'
 
 interface ErrorBoundaryProps {
@@ -10,13 +11,10 @@ interface ErrorBoundaryProps {
   reset: () => void
 }
 
-/**
- * Error Boundary component for catching and displaying errors
- * Used by Next.js error.tsx files
- */
 export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
+  const t = useTranslations('common')
+
   useEffect(() => {
-    // Log error to monitoring service
     logError(error, {
       digest: error.digest,
       component: 'ErrorBoundary',
@@ -33,17 +31,21 @@ export function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">出错了</h2>
-          <p className="text-muted-foreground">{error.message || '发生了未知错误，请稍后重试'}</p>
-          {error.digest && <p className="text-muted-foreground text-xs">错误ID: {error.digest}</p>}
+          <h2 className="text-2xl font-bold tracking-tight">{t('error')}</h2>
+          <p className="text-muted-foreground">{error.message || t('unknownError')}</p>
+          {error.digest ? (
+            <p className="text-muted-foreground text-xs">
+              {t('errorId')}: {error.digest}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Button onClick={reset} variant="default">
-            重试
+            {t('retry')}
           </Button>
           <Button onClick={() => (window.location.href = '/')} variant="outline">
-            返回首页
+            {t('goHome')}
           </Button>
         </div>
       </div>
