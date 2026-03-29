@@ -77,7 +77,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.30.0",
+    "@cloudflare/vite-plugin": "^1.30.2",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@eslint/eslintrc": "^3.3.5",
@@ -90,10 +90,10 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
@@ -108,7 +108,7 @@
     "tailwindcss": "^4.2.2",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3",
-    "vite": "^8.0.1",
+    "vite": "^8.0.3",
     "vitest": "^4.1.0",
     "wrangler": "^4.76.0"
   },
