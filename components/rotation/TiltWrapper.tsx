@@ -22,6 +22,25 @@ const BATCH_INTERVAL_MS = 5 * 60 * 1000 // Flush every 5 minutes
 const subscribeToHydration = () => () => {}
 const getHydratedSnapshot = () => true
 const getServerHydratedSnapshot = () => false
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+
+function subscribeToReducedMotion(callback: () => void) {
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return () => {}
+  }
+
+  const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY)
+  mediaQuery.addEventListener('change', callback)
+  return () => mediaQuery.removeEventListener('change', callback)
+}
+
+function getReducedMotionSnapshot() {
+  return typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia(REDUCED_MOTION_QUERY).matches
+    : false
+}
+
+const getServerReducedMotionSnapshot = () => false
 
 export function TiltWrapper({
   children,
@@ -38,7 +57,11 @@ export function TiltWrapper({
   const previousAngle = useRef<number>(0)
   const pendingRotations = useRef<PendingRotation[]>([])
   const pathname = usePathname()
-  const prefersReducedMotion = false
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getServerReducedMotionSnapshot
+  )
 
   // Use props if provided, otherwise use store values
   const effectiveMode = propMode ?? mode

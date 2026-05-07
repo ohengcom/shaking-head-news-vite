@@ -33,6 +33,7 @@
     "start": "vite preview --host --port 3001",
     "deploy": "vite build && wrangler deploy",
     "check": "npm run lint && npm run type-check && npm test && npm run build",
+    "types:worker": "wrangler types worker-configuration.d.ts --env-interface CloudflareEnv --include-runtime false --env-file .env.example",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "lint:unused": "knip --include files,dependencies,unlisted,unresolved,duplicates",
@@ -77,8 +78,10 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.30.0",
+    "@cloudflare/workers-types": "^4.20260507.1",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@cloudflare/workers-types": "^4.20260506.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.4.1",

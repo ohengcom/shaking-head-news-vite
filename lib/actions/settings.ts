@@ -224,8 +224,10 @@ export async function resetSettings(): Promise<{
 }
 
 /**
- * 切换 Pro 状态（临时测试用）
- * 将 Pro 状态存储在云端
+ * Toggle the self-hosted Pro preview flag.
+ *
+ * This repository does not include billing. Deployers can keep this preview enabled,
+ * replace it with their own entitlement logic, or remove the route entirely.
  */
 export async function toggleProStatus(): Promise<{
   success: boolean

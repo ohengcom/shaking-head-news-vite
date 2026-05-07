@@ -140,8 +140,8 @@
     "proStatusInactiveTitle": "Pro Features",
     "proStatusActiveDescription": "You have unlocked every Pro feature, including ad-free mode, full statistics, and health reminders.",
     "proStatusInactiveDescription": "Unlock Pro features: ad-free mode, full statistics, health reminders, OPML import/export, and more.",
-    "enableProTesting": "Unlock Pro in one click (test)",
-    "disableProTesting": "Disable Pro (test)",
+    "enableProTesting": "Enable Pro preview",
+    "disableProTesting": "Disable Pro preview",
     "customSubscriptionTitle": "Custom Subscriptions",
     "customSubscriptionDescription": "Manage your custom RSS news sources",
     "rssManagementLabel": "RSS Subscription Management",
@@ -366,11 +366,11 @@
     "memberPrice": "Free",
     "memberDescription": "Login to unlock more features",
     "proTitle": "Pro",
-    "proPrice": "Limited Time Free",
+    "proPrice": "Self-hosted preview",
     "proDescription": "All premium features",
     "currentPlan": "Current Plan",
     "loginFree": "Login Free",
-    "oneClickActivate": "One-click Activate",
+    "oneClickActivate": "Enable preview",
     "loginToActivate": "Login to Activate",
     "comingSoon": "Coming Soon",
     "included": "Included",
@@ -440,7 +440,7 @@
         "03": "Ad-free experience"
       }
     },
-    "oneClickActivateButton": "Activate Pro",
+    "oneClickActivateButton": "Enable preview",
     "loginToActivateLink": "Sign in to activate"
   },
   "notFound": {

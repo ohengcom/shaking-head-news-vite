@@ -48,6 +48,7 @@ the UI degrades to an empty feed.
 
 ```bash
 npm run dev
+npm run types:worker
 npm run check
 npm run test:e2e:smoke
 ```

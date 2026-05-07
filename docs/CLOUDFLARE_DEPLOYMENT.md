@@ -23,6 +23,8 @@ Current `wrangler.jsonc` should keep these values:
 - `assets.directory = ./dist/client`
 - `assets.not_found_handling = single-page-application`
 - `assets.run_worker_first = ["/api/*", "/ads.txt"]`
+- `observability.enabled = true`
+- `observability.head_sampling_rate = 1`
 
 ## Recommended Variables
 
@@ -51,6 +53,7 @@ Build variables or plain env:
 
 ```bash
 npx wrangler whoami
+npm run types:worker
 npm run check
 npm run deploy
 ```

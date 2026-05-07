@@ -41,6 +41,19 @@ describe('TiltWrapper', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
     vi.mocked(useRotationStore).mockReturnValue(
       mockRotationStore as unknown as ReturnType<typeof useRotationStore>
     )
@@ -73,8 +86,7 @@ describe('TiltWrapper', () => {
     expect(screen.getByTestId('tilt-wrapper')).toBeInTheDocument()
   })
 
-  it('should ignore prefers-reduced-motion preference and still animate', () => {
-    // Mock matchMedia to return prefers-reduced-motion: reduce
+  it('should respect prefers-reduced-motion and render without motion wrapper', () => {
     const mockMatchMedia = vi.fn().mockImplementation((query) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       media: query,
@@ -97,8 +109,7 @@ describe('TiltWrapper', () => {
       </TiltWrapper>
     )
 
-    // Should still render WITH motion wrapper because we force it
-    expect(screen.getByTestId('tilt-wrapper')).toBeInTheDocument()
+    expect(screen.queryByTestId('tilt-wrapper')).not.toBeInTheDocument()
     expect(screen.getByText('Test Content')).toBeInTheDocument()
   })
 

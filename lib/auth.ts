@@ -1,18 +1,18 @@
 import { betterAuth } from 'better-auth'
 import { getCurrentRequest } from '@/lib/server/request-context'
-import type { KVNamespaceLike } from '@/lib/server/env'
+import { getGlobalWorkerEnv, type KVNamespaceLike } from '@/lib/server/env'
 
-const authBaseURL = process.env.BETTER_AUTH_URL
-const authSecret = process.env.BETTER_AUTH_SECRET
+function getRuntimeEnvValue(key: keyof CloudflareEnv | 'AUTH_MICROSOFT_REDIRECT_PATH') {
+  const workerValue = getGlobalWorkerEnv()?.[key as keyof CloudflareEnv]
+  if (typeof workerValue === 'string' && workerValue.trim().length > 0) {
+    return workerValue.trim()
+  }
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
-
-const microsoftClientId = process.env.AUTH_MICROSOFT_ENTRA_ID_ID
-const microsoftClientSecret = process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
-const microsoftTenantId = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || 'common'
-const microsoftRedirectPath =
-  process.env.AUTH_MICROSOFT_REDIRECT_PATH || '/api/auth/callback/microsoft-entra-id'
+  const processValue = process.env[key]
+  return typeof processValue === 'string' && processValue.trim().length > 0
+    ? processValue.trim()
+    : undefined
+}
 
 function toAbsoluteURL(baseURL: string | undefined, pathOrURL: string): string | undefined {
   if (!baseURL || !pathOrURL) {
@@ -30,8 +30,6 @@ function toAbsoluteURL(baseURL: string | undefined, pathOrURL: string): string |
     }
   }
 }
-
-const microsoftRedirectURI = toAbsoluteURL(authBaseURL, microsoftRedirectPath)
 
 function getSecondaryKV(): KVNamespaceLike | null {
   return globalThis.APP_SETTINGS_KV ?? null
@@ -59,6 +57,8 @@ function createSecondaryStorage(kv: KVNamespaceLike) {
 }
 
 function resolveBaseURL(request?: Request): string | null {
+  const authBaseURL = getRuntimeEnvValue('BETTER_AUTH_URL')
+
   if (authBaseURL?.trim()) {
     return authBaseURL
   }
@@ -70,38 +70,49 @@ function resolveBaseURL(request?: Request): string | null {
   return new URL(request.url).origin
 }
 
+function getSocialProviders(baseURL: string) {
+  const googleClientId = getRuntimeEnvValue('GOOGLE_CLIENT_ID')
+  const googleClientSecret = getRuntimeEnvValue('GOOGLE_CLIENT_SECRET')
+  const microsoftClientId = getRuntimeEnvValue('AUTH_MICROSOFT_ENTRA_ID_ID')
+  const microsoftClientSecret = getRuntimeEnvValue('AUTH_MICROSOFT_ENTRA_ID_SECRET')
+  const microsoftTenantId = getRuntimeEnvValue('AUTH_MICROSOFT_ENTRA_ID_TENANT_ID') || 'common'
+  const microsoftRedirectPath =
+    getRuntimeEnvValue('AUTH_MICROSOFT_REDIRECT_PATH') || '/api/auth/callback/microsoft-entra-id'
+  const microsoftRedirectURI = toAbsoluteURL(baseURL, microsoftRedirectPath)
+
+  return {
+    ...(googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : {}),
+    ...(microsoftClientId && microsoftClientSecret
+      ? {
+          microsoft: {
+            clientId: microsoftClientId,
+            clientSecret: microsoftClientSecret,
+            tenantId: microsoftTenantId,
+            disableDefaultScope: true,
+            disableProfilePhoto: false,
+            scope: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
+            ...(microsoftRedirectURI ? { redirectURI: microsoftRedirectURI } : {}),
+          },
+        }
+      : {}),
+  }
+}
+
 function createAuthServer(baseURL: string) {
   const kv = getSecondaryKV()
   return betterAuth({
     baseURL,
-    secret: authSecret!,
-    socialProviders,
+    secret: getRuntimeEnvValue('BETTER_AUTH_SECRET')!,
+    socialProviders: getSocialProviders(baseURL),
     ...(kv ? { secondaryStorage: createSecondaryStorage(kv) } : {}),
   })
-}
-
-const socialProviders = {
-  ...(googleClientId && googleClientSecret
-    ? {
-        google: {
-          clientId: googleClientId,
-          clientSecret: googleClientSecret,
-        },
-      }
-    : {}),
-  ...(microsoftClientId && microsoftClientSecret
-    ? {
-        microsoft: {
-          clientId: microsoftClientId,
-          clientSecret: microsoftClientSecret,
-          tenantId: microsoftTenantId,
-          disableDefaultScope: true,
-          disableProfilePhoto: false,
-          scope: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
-          ...(microsoftRedirectURI ? { redirectURI: microsoftRedirectURI } : {}),
-        },
-      }
-    : {}),
 }
 
 type AuthServer = ReturnType<typeof createAuthServer>
@@ -118,7 +129,7 @@ export function getAuthServer(request?: Request): AuthServer | null {
 
   authServerInitialized = true
 
-  if (!resolvedBaseURL || !authSecret) {
+  if (!resolvedBaseURL || !getRuntimeEnvValue('BETTER_AUTH_SECRET')) {
     console.warn('[Auth] BETTER_AUTH_URL/BETTER_AUTH_SECRET is missing or unresolved')
     authServerInstance = null
     authServerBaseURL = resolvedBaseURL
@@ -194,6 +205,14 @@ export async function auth(request?: Request): Promise<AppSession | null> {
 export async function handleAuthRequest(request: Request): Promise<Response> {
   const authServer = getAuthServer(request)
   if (!authServer) {
+    if (new URL(request.url).pathname.endsWith('/get-session')) {
+      return Response.json(null, {
+        headers: {
+          'cache-control': 'no-store',
+        },
+      })
+    }
+
     return Response.json({ error: 'Auth is not configured' }, { status: 503 })
   }
 

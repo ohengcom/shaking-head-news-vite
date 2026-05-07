@@ -6,6 +6,7 @@
 - API: Cloudflare Worker powered by Hono
 - Persistence: Cloudflare KV via the `APP_SETTINGS_KV` binding
 - Auth: Better Auth mounted at `/api/auth/*`
+- Observability: Cloudflare Workers observability enabled in `wrangler.jsonc`
 
 ## Request Flow
 
@@ -20,6 +21,7 @@
 - `src/`: active browser runtime, routes, providers, and Vite-only entrypoints
 - `src/styles/globals.css`: active shared stylesheet for the Vite app
 - `worker/`: Cloudflare Worker entry and HTTP routing
+- `worker-configuration.d.ts`: generated Worker binding types from `wrangler types`
 - `components/`: shared UI and feature components used by the active SPA
 - `lib/actions/`: Worker-side business logic
 - `lib/api/*-client.ts`: browser fetch wrappers for Worker APIs
@@ -39,3 +41,13 @@ maps those imports to local shims for:
 
 These shims keep the current runtime Cloudflare-native while allowing incremental cleanup of
 older component code.
+
+## Worker Types
+
+Worker bindings are generated with:
+
+```bash
+npm run types:worker
+```
+
+Regenerate this file after changing `wrangler.jsonc` or `.env.example`.

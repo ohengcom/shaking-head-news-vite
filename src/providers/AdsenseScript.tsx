@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { getAdSenseClientId } from '@/lib/config/adsense'
+import { isProductionRuntime } from '@/lib/config/runtime-env'
 
 const SCRIPT_ID = 'adsense-script'
 
@@ -9,6 +10,10 @@ export function AdsenseScript() {
   const clientId = getAdSenseClientId()
 
   useEffect(() => {
+    if (!isProductionRuntime()) {
+      return
+    }
+
     if (!clientId || typeof document === 'undefined') {
       return
     }

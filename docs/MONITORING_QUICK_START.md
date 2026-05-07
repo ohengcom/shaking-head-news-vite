@@ -20,5 +20,6 @@ VITE_LOG_LEVEL=info
 1. Configure `VITE_LOG_LEVEL`.
 2. Add `VITE_GA_ID` if Google Analytics is required.
 3. Add `VITE_SENTRY_DSN` if Sentry is required.
-4. Add `VITE_VERCEL_ANALYTICS` only if that integration is explicitly needed.
-5. Rebuild with `npm run build`.
+4. Keep Worker observability enabled in `wrangler.jsonc` for Cloudflare dashboard logs and traces.
+5. Add `VITE_VERCEL_ANALYTICS` only if that integration is explicitly needed.
+6. Rebuild with `npm run build`.

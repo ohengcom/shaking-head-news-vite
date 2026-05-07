@@ -140,8 +140,8 @@
     "proStatusInactiveTitle": "Pro 功能",
     "proStatusActiveDescription": "您已解锁所有 Pro 功能，包括关闭广告、完整统计、健康提醒等。",
     "proStatusInactiveDescription": "解锁 Pro 功能：关闭广告、完整统计、健康提醒、OPML 导入导出等。",
-    "enableProTesting": "一键解锁 Pro（测试）",
-    "disableProTesting": "取消 Pro（测试）",
+    "enableProTesting": "启用 Pro 预览",
+    "disableProTesting": "关闭 Pro 预览",
     "customSubscriptionTitle": "自定义订阅",
     "customSubscriptionDescription": "管理您的自定义 RSS 新闻源",
     "rssManagementLabel": "RSS 订阅管理",
@@ -366,11 +366,11 @@
     "memberPrice": "免费",
     "memberDescription": "登录解锁更多功能",
     "proTitle": "Pro",
-    "proPrice": "限时免费",
+    "proPrice": "自托管预览",
     "proDescription": "全部高级功能",
     "currentPlan": "当前方案",
     "loginFree": "免费登录",
-    "oneClickActivate": "一键激活",
+    "oneClickActivate": "启用预览",
     "loginToActivate": "登录激活",
     "comingSoon": "即将推出",
     "included": "包含",
@@ -440,7 +440,7 @@
         "03": "去广告"
       }
     },
-    "oneClickActivateButton": "一键激活",
+    "oneClickActivateButton": "启用预览",
     "loginToActivateLink": "登录后可激活"
   },
   "notFound": {

@@ -5,26 +5,30 @@
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "main": "./worker/index.ts",
   "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
   "routes": [
     {
       "pattern": "sn.oheng.com/*",
-      "zone_name": "oheng.com"
-    }
+      "zone_name": "oheng.com",
+    },
   ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/ads.txt"]
+    "run_worker_first": ["/api/*", "/ads.txt"],
   },
   "images": {
-    "binding": "IMAGES"
+    "binding": "IMAGES",
   },
   "kv_namespaces": [
     {
       "binding": "APP_SETTINGS_KV",
       "id": "e0417a0723cc4d3c8b680b0cbe936d30",
-      "preview_id": "8e6ea6e268b9418f8ae198979c1f6c22"
-    }
-  ]
+      "preview_id": "8e6ea6e268b9418f8ae198979c1f6c22",
+    },
+  ],
 }

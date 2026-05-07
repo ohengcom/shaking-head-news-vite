@@ -4,6 +4,7 @@
 
 - `npm run lint`
 - `npm run lint:unused`
+- `npm run types:worker`
 - `npm run type-check`
 - `npm test`
 - `npm run build`
@@ -23,6 +24,7 @@ For release verification:
 
 ```bash
 npm run lint:unused
+npm run types:worker
 npm run check
 npm run test:e2e
 ```

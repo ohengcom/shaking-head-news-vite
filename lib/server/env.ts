@@ -1,14 +1,7 @@
-export interface KVNamespaceLike {
-  get(key: string, type?: 'text'): Promise<string | null>
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
-  delete(key: string): Promise<void>
-}
+export type KVNamespaceLike = CloudflareEnv['APP_SETTINGS_KV']
+export type AssetsBindingLike = CloudflareEnv['ASSETS']
 
-export interface AssetsBindingLike {
-  fetch(request: Request): Promise<Response>
-}
-
-export interface AppWorkerEnv {
+export interface AppWorkerEnv extends Partial<CloudflareEnv> {
   APP_SETTINGS_KV: KVNamespaceLike
   ASSETS?: AssetsBindingLike
 }

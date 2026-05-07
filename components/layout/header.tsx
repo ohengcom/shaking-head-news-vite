@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Newspaper, Sparkles, Crown } from 'lucide-react'
+import { Newspaper, Sparkles, Crown, Github } from 'lucide-react'
 import { ThemeToggle } from '@/components/settings/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
@@ -113,6 +113,18 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild className="hidden gap-2 sm:inline-flex">
+              <a
+                href="https://github.com/ohengcom/shaking-head-news-vite"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open GitHub repository"
+              >
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
+            </Button>
+
             <ThemeToggle />
 
             {isLoading ? null : user ? (

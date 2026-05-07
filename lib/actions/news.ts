@@ -16,10 +16,7 @@ import { fetchTrending, type TrendingItem } from '@/lib/api/trending'
 import { getHotList } from '@/lib/api/hot-list'
 import { getEnvValue, getRuntimeMode, isNonProductionRuntime } from '@/lib/config/runtime-env'
 
-// Configuration
 const DEFAULT_NEWS_API_BASE_URL = 'https://news.ravelloh.top'
-const DEFAULT_REVALIDATE = 3600
-const RSS_REVALIDATE = 1800
 const suppressedNewsFetchWarnings = new Set<string>()
 
 function getNewsApiBaseUrl() {
@@ -87,7 +84,7 @@ function logNewsFetchFailure(
 }
 
 /**
- * Get news from the API with ISR caching
+ * Get news from the upstream API.
  *
  * @param language - Language for news content ('zh' or 'en')
  * @param source - Optional specific news source
@@ -101,7 +98,6 @@ const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string
 
   try {
     const response = await retryWithBackoff(async () => {
-      void DEFAULT_REVALIDATE
       const res = await fetch(url)
 
       if (!res.ok) {
@@ -166,6 +162,8 @@ export async function refreshNews(language?: 'zh' | 'en', source?: string) {
   try {
     void language
     void source
+    // The active Vite/Worker runtime does not use Next.js ISR. This endpoint is kept as a
+    // compatibility no-op for existing UI refresh controls.
     return { success: true }
   } catch (error) {
     logError(error, {
@@ -345,7 +343,6 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
           'User-Agent': 'ShakingHeadNews/1.0',
         },
       })
-      void RSS_REVALIDATE
 
       if (!res.ok) {
         throw new NewsAPIError(`Failed to fetch RSS feed: ${res.statusText}`, res.status, rssUrl)
