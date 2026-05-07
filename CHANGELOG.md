@@ -5,6 +5,19 @@ All notable changes to Shaking Head News will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Active Style Entry**: Moved the Vite runtime stylesheet to `src/styles/globals.css` and left `app/globals.css` as a legacy wrapper
+- **Tooling**: Added `npm run check`, `npm run lint:unused`, `npm run test:e2e:smoke`, and `npm run clean`
+- **CI/CD**: Updated GitHub Actions to the current npm version, added Knip scanning, and fixed the Cloudflare deployment workflow to use the active Vite build path
+
+### Removed
+
+- **Dead Code**: Deleted unused feature, monitoring, and compatibility files that were no longer referenced by the active Vite/Worker runtime
+- **Unused Dependencies**: Removed direct packages that were only supporting deleted or legacy-only code paths
+
 ## [2.3.1] - 2026-03-05
 
 ### Changed

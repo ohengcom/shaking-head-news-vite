@@ -11,7 +11,9 @@ vi.mock('next/navigation', () => ({
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
-  motion: {
+  LazyMotion: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  domAnimation: {},
+  m: {
     div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
       <div {...props}>{children}</div>
     ),

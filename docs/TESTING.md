@@ -3,31 +3,34 @@
 ## Validation Commands
 
 - `npm run lint`
+- `npm run lint:unused`
 - `npm run type-check`
 - `npm test`
 - `npm run build`
+- `npm run test:e2e:smoke`
 - `npm run test:e2e`
 
-## Current Expectations
+## Recommended Local Order
 
-- Unit tests should pass under Vitest without relying on Next.js runtime APIs.
-- Build should produce both Worker and client bundles successfully.
-- SPA routes should resolve through the Cloudflare asset fallback configuration.
-
-## Fast Local Loop
+For routine development:
 
 ```bash
-npm test
-npm run build
+npm run check
+npm run test:e2e:smoke
 ```
 
-## Before Deploy
-
-Run at least:
+For release verification:
 
 ```bash
-npm run lint
-npm run type-check
-npm test
-npm run build
+npm run lint:unused
+npm run check
+npm run test:e2e
 ```
+
+## Expectations
+
+- Unit tests run under Vitest without depending on the archived Next.js runtime.
+- Build emits both Worker and browser artifacts successfully.
+- Chromium smoke tests should pass locally with the Vite dev server.
+- The full Playwright browser matrix is intended for broader compatibility verification and
+  is slower than the smoke suite.

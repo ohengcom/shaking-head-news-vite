@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, lazy } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTranslations } from 'next-intl'
 import { Activity, TrendingUp, Target, Clock } from 'lucide-react'
-import { StatsChart } from './StatsChart'
-import { HealthReminder } from './HealthReminder'
 
 interface SummaryStats {
   today: {
@@ -37,6 +35,43 @@ interface StatsDisplayProps {
   dailyGoal: number
 }
 
+const StatsChart = lazy(async () => ({
+  default: (await import('./StatsChart')).StatsChart,
+}))
+
+const HealthReminder = lazy(async () => ({
+  default: (await import('./HealthReminder')).HealthReminder,
+}))
+
+function HealthReminderFallback() {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="bg-muted h-5 w-40 animate-pulse rounded-md" />
+        <div className="bg-muted h-4 w-64 animate-pulse rounded-md" />
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="bg-muted h-4 w-28 animate-pulse rounded-md" />
+            <div className="bg-muted h-3 w-40 animate-pulse rounded-md" />
+          </div>
+          <div className="bg-muted h-9 w-32 animate-pulse rounded-md" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function StatsChartFallback() {
+  return (
+    <div className="space-y-4">
+      <div className="bg-muted h-[300px] w-full animate-pulse rounded-xl" />
+      <div className="bg-muted h-3 w-24 animate-pulse rounded-md" />
+    </div>
+  )
+}
+
 /**
  * 统计数据展示组件
  * 需求: 8.2 - 展示每日、每周和每月的运动次数
@@ -44,7 +79,7 @@ interface StatsDisplayProps {
  */
 export function StatsDisplay({ initialStats, dailyGoal }: StatsDisplayProps) {
   const t = useTranslations('stats')
-  const [stats] = useState<SummaryStats>(initialStats)
+  const stats = initialStats
 
   // 格式化时长（秒转为分钟）
   const formatDuration = (seconds: number) => {
@@ -59,7 +94,9 @@ export function StatsDisplay({ initialStats, dailyGoal }: StatsDisplayProps) {
   return (
     <div className="space-y-6">
       {/* 健康提醒组件 */}
-      <HealthReminder dailyGoal={dailyGoal} currentCount={stats.today.count} />
+      <Suspense fallback={<HealthReminderFallback />}>
+        <HealthReminder dailyGoal={dailyGoal} currentCount={stats.today.count} />
+      </Suspense>
 
       {/* 统计卡片 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -148,7 +185,9 @@ export function StatsDisplay({ initialStats, dailyGoal }: StatsDisplayProps) {
             <CardDescription>{t('last7Days')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <StatsChart data={stats.dailyData} type="week" />
+            <Suspense fallback={<StatsChartFallback />}>
+              <StatsChart data={stats.dailyData} type="week" />
+            </Suspense>
           </CardContent>
         </Card>
 
@@ -158,7 +197,9 @@ export function StatsDisplay({ initialStats, dailyGoal }: StatsDisplayProps) {
             <CardDescription>{t('last30Days')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <StatsChart data={stats.monthlyData} type="month" />
+            <Suspense fallback={<StatsChartFallback />}>
+              <StatsChart data={stats.monthlyData} type="month" />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

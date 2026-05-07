@@ -3,6 +3,7 @@ import { useSession } from '@/lib/auth-client'
 import { getSettingsViaApi } from '@/lib/api/settings-client'
 import { SessionProvider } from '@/components/auth/SessionProvider'
 import { UIWrapper } from '@/components/layout/UIWrapper'
+import { RuntimeRecovery } from '@/components/RuntimeRecovery'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { I18nProvider, useSetAppLocale } from '@/lib/client-i18n'
@@ -48,6 +49,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <SessionProvider>
         <I18nProvider>
           <AppLocaleSync />
+          <RuntimeRecovery />
           <UIWrapper>
             {children}
             <Toaster />

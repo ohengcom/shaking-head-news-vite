@@ -6,8 +6,8 @@
  * using property-based testing with fast-check.
  */
 
+import fc from 'fast-check'
 import { describe, it, expect } from 'vitest'
-import { fc, test } from '@fast-check/vitest'
 import { hslToRgb, getContrastRatio, parseHslString, meetsWcagAA } from '@/lib/utils/color'
 
 /**
@@ -125,48 +125,52 @@ describe('Theme Property Tests', () => {
      * Property-based test: For any valid HSL color pair where one is significantly
      * lighter than the other, the contrast calculation should be consistent
      */
-    test.prop(
-      [
-        fc.integer({ min: 0, max: 360 }), // hue1
-        fc.integer({ min: 0, max: 100 }), // saturation1
-        fc.integer({ min: 0, max: 30 }), // lightness1 (dark)
-        fc.integer({ min: 0, max: 360 }), // hue2
-        fc.integer({ min: 0, max: 100 }), // saturation2
-        fc.integer({ min: 70, max: 100 }), // lightness2 (light)
-      ],
-      { numRuns: 100 }
-    )('contrast ratio is always >= 1 for any color pair', (h1, s1, l1, h2, s2, l2) => {
-      const color1 = hslToRgb(h1, s1, l1)
-      const color2 = hslToRgb(h2, s2, l2)
-      const ratio = getContrastRatio(color1, color2)
+    it('contrast ratio is always >= 1 for any color pair', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 360 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 0, max: 30 }),
+          fc.integer({ min: 0, max: 360 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 70, max: 100 }),
+          (h1, s1, l1, h2, s2, l2) => {
+            const color1 = hslToRgb(h1, s1, l1)
+            const color2 = hslToRgb(h2, s2, l2)
+            const ratio = getContrastRatio(color1, color2)
 
-      // Contrast ratio is always at least 1:1 (same color)
-      expect(ratio).toBeGreaterThanOrEqual(1)
-      // Contrast ratio cannot exceed 21:1 (black on white)
-      expect(ratio).toBeLessThanOrEqual(21)
+            expect(ratio).toBeGreaterThanOrEqual(1)
+            expect(ratio).toBeLessThanOrEqual(21)
+          }
+        ),
+        { numRuns: 100 }
+      )
     })
 
     /**
      * Property-based test: Contrast ratio is symmetric
      */
-    test.prop(
-      [
-        fc.integer({ min: 0, max: 360 }),
-        fc.integer({ min: 0, max: 100 }),
-        fc.integer({ min: 0, max: 100 }),
-        fc.integer({ min: 0, max: 360 }),
-        fc.integer({ min: 0, max: 100 }),
-        fc.integer({ min: 0, max: 100 }),
-      ],
-      { numRuns: 100 }
-    )('contrast ratio is symmetric (order of colors does not matter)', (h1, s1, l1, h2, s2, l2) => {
-      const color1 = hslToRgb(h1, s1, l1)
-      const color2 = hslToRgb(h2, s2, l2)
+    it('contrast ratio is symmetric (order of colors does not matter)', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 360 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 0, max: 360 }),
+          fc.integer({ min: 0, max: 100 }),
+          fc.integer({ min: 0, max: 100 }),
+          (h1, s1, l1, h2, s2, l2) => {
+            const color1 = hslToRgb(h1, s1, l1)
+            const color2 = hslToRgb(h2, s2, l2)
 
-      const ratio1 = getContrastRatio(color1, color2)
-      const ratio2 = getContrastRatio(color2, color1)
+            const ratio1 = getContrastRatio(color1, color2)
+            const ratio2 = getContrastRatio(color2, color1)
 
-      expect(ratio1).toBeCloseTo(ratio2, 10)
+            expect(ratio1).toBeCloseTo(ratio2, 10)
+          }
+        ),
+        { numRuns: 100 }
+      )
     })
   })
 
@@ -209,32 +213,32 @@ describe('Theme Property Tests', () => {
      * Property-based test: For any token name that exists in both themes,
      * the HSL values should be valid (parseable)
      */
-    test.prop([fc.constantFrom(...lightModeKeys)], { numRuns: 100 })(
-      'all token values are valid HSL strings',
-      (tokenKey) => {
-        const lightValue = lightModeTokens[tokenKey]
-        const darkValue = darkModeTokens[tokenKey]
+    it('all token values are valid HSL strings', () => {
+      fc.assert(
+        fc.property(fc.constantFrom(...lightModeKeys), (tokenKey) => {
+          const lightValue = lightModeTokens[tokenKey]
+          const darkValue = darkModeTokens[tokenKey]
 
-        // Both should be parseable
-        const lightHsl = parseHslString(lightValue)
-        const darkHsl = parseHslString(darkValue)
+          const lightHsl = parseHslString(lightValue)
+          const darkHsl = parseHslString(darkValue)
 
-        // HSL values should be in valid ranges
-        expect(lightHsl[0]).toBeGreaterThanOrEqual(0)
-        expect(lightHsl[0]).toBeLessThanOrEqual(360)
-        expect(lightHsl[1]).toBeGreaterThanOrEqual(0)
-        expect(lightHsl[1]).toBeLessThanOrEqual(100)
-        expect(lightHsl[2]).toBeGreaterThanOrEqual(0)
-        expect(lightHsl[2]).toBeLessThanOrEqual(100)
+          expect(lightHsl[0]).toBeGreaterThanOrEqual(0)
+          expect(lightHsl[0]).toBeLessThanOrEqual(360)
+          expect(lightHsl[1]).toBeGreaterThanOrEqual(0)
+          expect(lightHsl[1]).toBeLessThanOrEqual(100)
+          expect(lightHsl[2]).toBeGreaterThanOrEqual(0)
+          expect(lightHsl[2]).toBeLessThanOrEqual(100)
 
-        expect(darkHsl[0]).toBeGreaterThanOrEqual(0)
-        expect(darkHsl[0]).toBeLessThanOrEqual(360)
-        expect(darkHsl[1]).toBeGreaterThanOrEqual(0)
-        expect(darkHsl[1]).toBeLessThanOrEqual(100)
-        expect(darkHsl[2]).toBeGreaterThanOrEqual(0)
-        expect(darkHsl[2]).toBeLessThanOrEqual(100)
-      }
-    )
+          expect(darkHsl[0]).toBeGreaterThanOrEqual(0)
+          expect(darkHsl[0]).toBeLessThanOrEqual(360)
+          expect(darkHsl[1]).toBeGreaterThanOrEqual(0)
+          expect(darkHsl[1]).toBeLessThanOrEqual(100)
+          expect(darkHsl[2]).toBeGreaterThanOrEqual(0)
+          expect(darkHsl[2]).toBeLessThanOrEqual(100)
+        }),
+        { numRuns: 100 }
+      )
+    })
 
     /**
      * Property: Background tokens should have inverted lightness between modes

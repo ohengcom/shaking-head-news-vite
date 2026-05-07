@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": ["tailwindcss", "tailwindcss-animate"],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "hooks/**/*.ts",
+    "lib/**/*.{ts,tsx}",
+    "worker/**/*.ts",
+    "tests/**/*.{ts,tsx}",
+    "types/**/*.ts",
+    "messages/**/*.json"
+  ]
+}

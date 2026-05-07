@@ -14,11 +14,77 @@ import { getRSSSources } from '@/lib/actions/rss'
 import { fetchAiNews } from '@/lib/api/daily-news'
 import { fetchTrending, type TrendingItem } from '@/lib/api/trending'
 import { getHotList } from '@/lib/api/hot-list'
+import { getEnvValue, getRuntimeMode, isNonProductionRuntime } from '@/lib/config/runtime-env'
 
 // Configuration
-const NEWS_API_BASE_URL = process.env.NEWS_API_BASE_URL || 'https://news.ravelloh.top'
+const DEFAULT_NEWS_API_BASE_URL = 'https://news.ravelloh.top'
 const DEFAULT_REVALIDATE = 3600
 const RSS_REVALIDATE = 1800
+const suppressedNewsFetchWarnings = new Set<string>()
+
+function getNewsApiBaseUrl() {
+  return getEnvValue('NEWS_API_BASE_URL') || DEFAULT_NEWS_API_BASE_URL
+}
+
+function getUrlHostname(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+function isLocalHostname(hostname: string | null): boolean {
+  if (!hostname) {
+    return false
+  }
+
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.local')
+  )
+}
+
+function shouldSuppressNewsFetchError(error: unknown, url: string): error is NewsAPIError {
+  if (!isNonProductionRuntime() || !(error instanceof NewsAPIError)) {
+    return false
+  }
+
+  if (![401, 403, 404].includes(error.statusCode ?? 0)) {
+    return false
+  }
+
+  return !isLocalHostname(getUrlHostname(url))
+}
+
+function logNewsFetchFailure(
+  error: unknown,
+  context: {
+    action: string
+    url: string
+    language: 'zh' | 'en'
+    source?: string
+  }
+) {
+  if (!shouldSuppressNewsFetchError(error, context.url)) {
+    logError(error, context)
+    return
+  }
+
+  const warningKey = `${getRuntimeMode()}:${context.url}:${error.statusCode}`
+  if (suppressedNewsFetchWarnings.has(warningKey)) {
+    return
+  }
+
+  suppressedNewsFetchWarnings.add(warningKey)
+
+  const hostname = getUrlHostname(context.url) || context.url
+  console.warn(
+    `[news] Suppressed expected upstream ${error.statusCode} from ${hostname} during ${getRuntimeMode()}; using empty feed fallback.`
+  )
+}
 
 /**
  * Get news from the API with ISR caching
@@ -28,9 +94,10 @@ const RSS_REVALIDATE = 1800
  * @returns News response with items
  */
 const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string) => {
+  const newsApiBaseUrl = getNewsApiBaseUrl()
   const url = source
-    ? `${NEWS_API_BASE_URL}/${source}.json?lang=${language}`
-    : `${NEWS_API_BASE_URL}/latest.json?lang=${language}`
+    ? `${newsApiBaseUrl}/${source}.json?lang=${language}`
+    : `${newsApiBaseUrl}/latest.json?lang=${language}`
 
   try {
     const response = await retryWithBackoff(async () => {
@@ -65,8 +132,7 @@ const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string
 
     return transformedData
   } catch (error) {
-    // Log error for monitoring
-    logError(error, {
+    logNewsFetchFailure(error, {
       action: 'getNews',
       url,
       language,

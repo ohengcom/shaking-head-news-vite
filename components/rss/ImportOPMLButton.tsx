@@ -92,5 +92,3 @@ export function ImportOPMLButton() {
     </>
   )
 }
-
-export default ImportOPMLButton

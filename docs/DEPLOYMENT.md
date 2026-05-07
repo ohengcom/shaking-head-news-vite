@@ -3,10 +3,8 @@
 ## Standard Flow
 
 ```bash
-npm run lint
-npm run type-check
-npm test
-npm run build
+npm run lint:unused
+npm run check
 npm run deploy
 ```
 
@@ -15,16 +13,16 @@ npm run deploy
 - Worker entry: `worker/index.ts`
 - Static assets: `dist/client`
 - SPA fallback: enabled in `wrangler.jsonc`
-- API-first routing: `/api/*` and `/ads.txt` always hit the Worker first
+- Worker-first routes: `/api/*` and `/ads.txt`
 
-## Wrangler Notes
+## Notes
 
-- Check auth with `npx wrangler whoami`
-- Deploy with `wrangler deploy`
-- Routes are defined in `wrangler.jsonc`
-- Secrets should be stored with `wrangler secret put`
+- Verify Wrangler access with `npx wrangler whoami`.
+- Store private values with `wrangler secret put`.
+- Provide public client config through `VITE_*` build variables.
+- Keep `NEXT_PUBLIC_*` only as a temporary fallback for existing secrets.
 
-## Local Verification
+## Dry Run
 
 ```bash
 npm run build

@@ -3,8 +3,8 @@
 ## Prerequisites
 
 - Node.js 22+
-- npm 11+
-- Cloudflare account if you plan to deploy
+- npm 11.11+
+- Cloudflare account for remote deploys
 
 ## Install
 
@@ -20,7 +20,7 @@ BETTER_AUTH_URL=http://localhost:3001
 BETTER_AUTH_SECRET=
 ```
 
-## Optional Environment Variables
+## Common Optional Variables
 
 ```env
 NEWS_API_BASE_URL=https://news.ravelloh.top
@@ -32,19 +32,27 @@ VITE_ADSENSE_SLOT_FOOTER=
 VITE_ADSENSE_SLOT_INLINE=
 
 VITE_GA_ID=
+VITE_VERCEL_ANALYTICS=
 VITE_SENTRY_DSN=
 VITE_LOG_LEVEL=debug
 ```
 
-Preferred public variable prefix is `VITE_`. The codebase still reads legacy `NEXT_PUBLIC_*` names as a fallback during migration.
+Preferred public variable prefix is `VITE_`. Legacy `NEXT_PUBLIC_*` values are still accepted
+by the runtime helpers as a fallback during migration.
 
-## Local Development
+If `NEWS_API_BASE_URL` is not set, local development uses the public upstream feed by default.
+Expected upstream `401`/`403`/`404` responses are logged once in `development` and `test`, and
+the UI degrades to an empty feed.
+
+## Local Commands
 
 ```bash
 npm run dev
+npm run check
+npm run test:e2e:smoke
 ```
 
-The dev server runs on `http://localhost:3001`.
+Default local URL: `http://localhost:3001`
 
 ## Cloudflare Login
 

@@ -168,5 +168,3 @@ function StatsPlaceholder() {
     </div>
   )
 }
-
-export default BlurredStats

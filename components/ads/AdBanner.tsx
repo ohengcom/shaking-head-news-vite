@@ -373,5 +373,3 @@ function getAdDimensions(
 function getDefaultAdSlot(position: AdBannerProps['position']): string {
   return getAdSenseSlot(position || 'sidebar')
 }
-
-export default AdBanner

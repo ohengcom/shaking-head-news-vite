@@ -22,7 +22,7 @@ function getCandidateKeys(key: string): string[] {
   }
 
   if (key.startsWith('VITE_')) {
-    return [key]
+    return [key, `NEXT_PUBLIC_${key.slice('VITE_'.length)}`]
   }
 
   return [key, `VITE_${key}`]
@@ -70,6 +70,10 @@ export function isDevelopmentRuntime(): boolean {
   return getRuntimeMode() === 'development'
 }
 
+export function isTestRuntime(): boolean {
+  return getRuntimeMode() === 'test'
+}
+
 export function isProductionRuntime(): boolean {
   const importMetaEnv = getImportMetaEnv()
   if (typeof importMetaEnv?.PROD === 'boolean') {
@@ -77,4 +81,8 @@ export function isProductionRuntime(): boolean {
   }
 
   return getRuntimeMode() === 'production'
+}
+
+export function isNonProductionRuntime(): boolean {
+  return !isProductionRuntime()
 }

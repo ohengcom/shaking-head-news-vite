@@ -15,11 +15,11 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  NPM_VERSION: '11.5.2'
+  NPM_VERSION: '11.11.1'
 
 jobs:
   deploy:
-    name: Deploy (vinext -> Workers)
+    name: Deploy (Vite -> Workers)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -35,15 +35,15 @@ jobs:
       AUTH_MICROSOFT_ENTRA_ID_SECRET: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_SECRET }}
       AUTH_MICROSOFT_ENTRA_ID_TENANT_ID: ${{ secrets.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID }}
       NEWS_API_BASE_URL: ${{ secrets.NEWS_API_BASE_URL }}
-      NEXT_PUBLIC_LOG_LEVEL: ${{ secrets.NEXT_PUBLIC_LOG_LEVEL }}
-      NEXT_PUBLIC_ADSENSE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_ADSENSE_CLIENT_ID }}
-      NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR }}
-      NEXT_PUBLIC_ADSENSE_SLOT_HEADER: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_HEADER }}
-      NEXT_PUBLIC_ADSENSE_SLOT_FOOTER: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_FOOTER }}
-      NEXT_PUBLIC_ADSENSE_SLOT_INLINE: ${{ secrets.NEXT_PUBLIC_ADSENSE_SLOT_INLINE }}
-      NEXT_PUBLIC_GA_ID: ${{ secrets.NEXT_PUBLIC_GA_ID }}
-      NEXT_PUBLIC_VERCEL_ANALYTICS: ${{ secrets.NEXT_PUBLIC_VERCEL_ANALYTICS }}
-      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+      VITE_LOG_LEVEL: ${{ secrets.VITE_LOG_LEVEL }}
+      VITE_ADSENSE_CLIENT_ID: ${{ secrets.VITE_ADSENSE_CLIENT_ID }}
+      VITE_ADSENSE_SLOT_SIDEBAR: ${{ secrets.VITE_ADSENSE_SLOT_SIDEBAR }}
+      VITE_ADSENSE_SLOT_HEADER: ${{ secrets.VITE_ADSENSE_SLOT_HEADER }}
+      VITE_ADSENSE_SLOT_FOOTER: ${{ secrets.VITE_ADSENSE_SLOT_FOOTER }}
+      VITE_ADSENSE_SLOT_INLINE: ${{ secrets.VITE_ADSENSE_SLOT_INLINE }}
+      VITE_GA_ID: ${{ secrets.VITE_GA_ID }}
+      VITE_VERCEL_ANALYTICS: ${{ secrets.VITE_VERCEL_ANALYTICS }}
+      VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
     steps:
       - name: Checkout
@@ -80,15 +80,15 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$NEXT_PUBLIC_ADSENSE_CLIENT_ID" ]; then
-            echo "Warning: NEXT_PUBLIC_ADSENSE_CLIENT_ID is empty; build will fall back to the default publisher id"
+          if [ -z "$VITE_ADSENSE_CLIENT_ID" ]; then
+            echo "Warning: VITE_ADSENSE_CLIENT_ID is empty; build will fall back to the default publisher id"
           fi
 
-          if [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR" ] && \
-             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_HEADER" ] && \
-             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_FOOTER" ] && \
-             [ -z "$NEXT_PUBLIC_ADSENSE_SLOT_INLINE" ]; then
-            echo "Warning: all NEXT_PUBLIC_ADSENSE_SLOT_* secrets are empty; ad slots will remain disabled until configured"
+          if [ -z "$VITE_ADSENSE_SLOT_SIDEBAR" ] && \
+             [ -z "$VITE_ADSENSE_SLOT_HEADER" ] && \
+             [ -z "$VITE_ADSENSE_SLOT_FOOTER" ] && \
+             [ -z "$VITE_ADSENSE_SLOT_INLINE" ]; then
+            echo "Warning: all VITE_ADSENSE_SLOT_* secrets are empty; ad slots will remain disabled until configured"
           fi
 
       - name: Sync runtime auth secrets to Worker
@@ -113,25 +113,28 @@ jobs:
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_SECRET
           put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_TENANT_ID
           put_secret_if_present NEWS_API_BASE_URL
-          put_secret_if_present NEXT_PUBLIC_LOG_LEVEL
-          put_secret_if_present NEXT_PUBLIC_ADSENSE_CLIENT_ID
-          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR
-          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_HEADER
-          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_FOOTER
-          put_secret_if_present NEXT_PUBLIC_ADSENSE_SLOT_INLINE
+          put_secret_if_present VITE_LOG_LEVEL
+          put_secret_if_present VITE_ADSENSE_CLIENT_ID
+          put_secret_if_present VITE_ADSENSE_SLOT_SIDEBAR
+          put_secret_if_present VITE_ADSENSE_SLOT_HEADER
+          put_secret_if_present VITE_ADSENSE_SLOT_FOOTER
+          put_secret_if_present VITE_ADSENSE_SLOT_INLINE
+          put_secret_if_present VITE_GA_ID
+          put_secret_if_present VITE_VERCEL_ANALYTICS
+          put_secret_if_present VITE_SENTRY_DSN
 
-      - name: Build vinext output
+      - name: Validate and build Vite output
         run: |
           set -euo pipefail
           set +e
-          build_output="$(npm run build:vinext 2>&1)"
+          build_output="$(npm run check 2>&1)"
           build_code=$?
           set -e
 
           if [ "$build_code" -ne 0 ]; then
             echo "$build_output"
             build_snippet="$(printf '%s\n' "$build_output" | head -n 25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
-            echo "::error title=Build vinext output failed::$build_snippet"
+            echo "::error title=Validation/build failed::$build_snippet"
             exit "$build_code"
           fi
 

@@ -18,11 +18,8 @@
     "paths": {
       "@/*": ["./*"],
       "next-intl": ["./src/shims/next-intl.tsx"],
-      "next-intl/server": ["./src/shims/next-intl-server.ts"],
       "next/navigation": ["./src/shims/next-navigation.tsx"],
       "next/link": ["./src/shims/next-link.tsx"],
-      "next/image": ["./src/shims/next-image.tsx"],
-      "next/dynamic": ["./src/shims/next-dynamic.tsx"],
       "next/cache": ["./src/shims/next-cache.ts"],
       "next-themes": ["./src/shims/next-themes.tsx"]
     },
@@ -42,7 +39,6 @@
     "lib/**/*.ts",
     "lib/**/*.tsx",
     "messages/**/*.json",
-    "scripts/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "types/**/*.ts",
@@ -50,8 +46,7 @@
     "config/**/*.ts",
     "playwright.config.ts",
     "vite.config.ts",
-    "vitest.config.ts",
-    "worker/**/*.ts"
+    "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",
