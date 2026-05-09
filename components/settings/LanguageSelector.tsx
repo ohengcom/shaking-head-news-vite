@@ -1,6 +1,6 @@
 'use client'
 
-import { useSetAppLocale, useTranslations } from 'next-intl'
+import { useSetAppLocale, useTranslations } from '@/lib/i18n'
 import {
   Select,
   SelectContent,

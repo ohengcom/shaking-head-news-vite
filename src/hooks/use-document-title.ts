@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function useDocumentTitle(title: string) {
   const tCommon = useTranslations('common')

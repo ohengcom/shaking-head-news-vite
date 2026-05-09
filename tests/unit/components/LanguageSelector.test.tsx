@@ -5,8 +5,7 @@ import * as settingsClient from '@/lib/api/settings-client'
 
 const mockSetAppLocale = vi.fn()
 
-// Mock next-intl
-vi.mock('next-intl', () => ({
+vi.mock('@/lib/i18n', () => ({
   useTranslations: () => (key: string) => key,
   useSetAppLocale: () => mockSetAppLocale,
 }))

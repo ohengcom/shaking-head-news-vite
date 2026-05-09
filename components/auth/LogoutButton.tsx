@@ -2,7 +2,7 @@
 
 import { signOut } from '@/lib/auth-client'
 import { LogOut } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 export function LogoutButton() {

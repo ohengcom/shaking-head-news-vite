@@ -2,9 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { RotateCw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/lib/router'
 import { useTransition } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function RefreshButton() {
   const router = useRouter()

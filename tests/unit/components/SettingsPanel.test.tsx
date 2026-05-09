@@ -8,19 +8,18 @@ import { useUIStore } from '@/lib/stores/ui-store'
 const mockSetTheme = vi.fn()
 const mockSetAppLocale = vi.fn()
 
-vi.mock('next/navigation', () => ({
+vi.mock('@/lib/router', () => ({
   useRouter: () => ({
     refresh: vi.fn(),
   }),
 }))
 
-// Mock next-intl
-vi.mock('next-intl', () => ({
+vi.mock('@/lib/i18n', () => ({
   useTranslations: () => (key: string) => key,
   useSetAppLocale: () => mockSetAppLocale,
 }))
 
-vi.mock('next-themes', () => ({
+vi.mock('@/components/theme-provider', () => ({
   useTheme: () => ({
     theme: 'system',
     resolvedTheme: 'light',

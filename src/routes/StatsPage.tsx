@@ -4,7 +4,7 @@ import { StatsDisplay } from '@/components/stats/StatsDisplay'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { getSummaryStatsViaApi } from '@/lib/api/stats-client'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 type SummaryPayload = NonNullable<Awaited<ReturnType<typeof getSummaryStatsViaApi>>['payload']>
 

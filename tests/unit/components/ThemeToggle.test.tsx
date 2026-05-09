@@ -2,15 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
-// Mock next-themes
 const mockSetTheme = vi.fn()
 const mockUseTheme = vi.fn()
 
-vi.mock('next-intl', () => ({
+vi.mock('@/lib/i18n', () => ({
   useTranslations: () => (_key: string) => 'toggleTheme',
 }))
 
-vi.mock('next-themes', () => ({
+vi.mock('@/components/theme-provider', () => ({
   useTheme: () => mockUseTheme(),
 }))
 

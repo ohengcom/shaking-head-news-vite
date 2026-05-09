@@ -11,7 +11,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getAdSenseClientId, getAdSenseSlot } from '@/lib/config/adsense'
 import { isDevelopmentRuntime } from '@/lib/config/runtime-env'

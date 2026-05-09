@@ -25,19 +25,3 @@ export function useSearchParams() {
   const [params] = useReactRouterSearchParams()
   return params
 }
-
-export function redirect(href: string): never {
-  if (typeof window !== 'undefined') {
-    window.location.assign(href)
-  }
-
-  throw new Error(`Redirected to ${href}`)
-}
-
-export function notFound(): never {
-  if (typeof window !== 'undefined') {
-    window.location.assign('/404')
-  }
-
-  throw new Error('Not found')
-}

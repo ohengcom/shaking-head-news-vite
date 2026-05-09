@@ -31,7 +31,7 @@ npm run test:e2e
 
 ## Expectations
 
-- Unit tests run under Vitest without depending on the archived Next.js runtime.
+- Unit tests run under Vitest against the active Vite + Worker runtime.
 - Build emits both Worker and browser artifacts successfully.
 - Chromium smoke tests should pass locally with the Vite dev server.
 - The full Playwright browser matrix is intended for broader compatibility verification and

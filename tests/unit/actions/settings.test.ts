@@ -15,10 +15,6 @@ vi.mock('@/lib/storage', () => ({
   },
 }))
 
-vi.mock('next/cache', () => ({
-  revalidatePath: vi.fn(),
-}))
-
 vi.mock('@/lib/rate-limit', () => ({
   rateLimitByUser: vi.fn().mockResolvedValue({
     success: true,
@@ -37,7 +33,6 @@ vi.mock('@/lib/utils/input-validation', () => ({
 
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
-import { revalidatePath } from 'next/cache'
 import { rateLimitByUser } from '@/lib/rate-limit'
 
 describe('Settings Actions', () => {
@@ -216,7 +211,6 @@ describe('Settings Actions', () => {
       expect(result.success).toBe(true)
       expect(result.settings?.language).toBe('en')
       expect(setStorageItem).toHaveBeenCalled()
-      expect(revalidatePath).not.toHaveBeenCalled()
     })
 
     it('should respect rate limits', async () => {
@@ -264,16 +258,13 @@ describe('Settings Actions', () => {
       expect(result.error).toBeTruthy()
     })
 
-    it('should return success even when revalidatePath throws', async () => {
+    it('should still return success without runtime revalidation hooks', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
       vi.mocked(getStorageItem).mockResolvedValue(mockUserSettings)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
-      vi.mocked(revalidatePath).mockImplementation(() => {
-        throw new Error('revalidate failed')
-      })
 
       const result = await updateSettings({ language: 'en' })
 
@@ -324,15 +315,12 @@ describe('Settings Actions', () => {
       expect(result.error).toContain('Too many')
     })
 
-    it('should return success even when revalidatePath throws', async () => {
+    it('should still return success without runtime revalidation hooks', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
-      vi.mocked(revalidatePath).mockImplementation(() => {
-        throw new Error('revalidate failed')
-      })
 
       const result = await resetSettings()
 

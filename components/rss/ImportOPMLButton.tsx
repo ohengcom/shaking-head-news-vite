@@ -2,8 +2,8 @@
 
 import { useRef, useState, type ChangeEvent, type ElementRef } from 'react'
 import { Upload } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/lib/i18n'
+import { useRouter } from '@/lib/router'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { importOPMLViaApi } from '@/lib/api/rss-client'

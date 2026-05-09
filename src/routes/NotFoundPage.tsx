@@ -1,5 +1,5 @@
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import Link from '@/lib/link'
+import { useTranslations } from '@/lib/i18n'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 
 export function NotFoundPage() {

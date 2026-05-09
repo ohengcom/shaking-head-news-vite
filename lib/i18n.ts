@@ -1,8 +1,8 @@
 export {
-  I18nProvider as NextIntlClientProvider,
   getMessagesForLocale,
   getTranslations,
-  useAppLocale as useLocale,
+  I18nProvider,
+  useAppLocale,
   useSetAppLocale,
   useTranslations,
 } from '@/lib/client-i18n'

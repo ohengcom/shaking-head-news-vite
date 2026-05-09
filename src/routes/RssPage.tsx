@@ -7,7 +7,7 @@ import { useUserTier } from '@/hooks/use-user-tier'
 import { getRSSSourcesViaApi } from '@/lib/api/rss-client'
 import type { RSSSource } from '@/types/rss'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function RssPage() {
   const { isPro } = useUserTier()

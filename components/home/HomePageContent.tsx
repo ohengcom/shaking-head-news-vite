@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AlertCircle } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { AdBanner } from '@/components/ads/AdBanner'
 import { RefreshButton } from '@/components/common/RefreshButton'
 import { NewsList } from '@/components/news/NewsList'

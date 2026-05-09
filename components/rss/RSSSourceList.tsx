@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AlertCircle, GripVertical, Trash2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, Reorder, motion } from 'framer-motion'
 import { Check, GripVertical, Loader2, Lock, Plus, RotateCcw, X } from 'lucide-react'
-import { useSetAppLocale, useTranslations } from 'next-intl'
+import { useSetAppLocale, useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -25,7 +25,7 @@ import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useUIStore } from '@/lib/stores/ui-store'
 import { UserSettings } from '@/types/settings'
 import { useUserTier } from '@/hooks/use-user-tier'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { LanguageSelector } from './LanguageSelector'
 
 interface SettingsPanelProps {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { signIn, useSession } from '@/lib/auth-client'
 import { Check, X, Eye, Sparkles, Crown, User, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'

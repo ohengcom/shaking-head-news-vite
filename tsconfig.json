@@ -16,12 +16,7 @@
     "types": ["vite/client", "@cloudflare/workers-types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "next-intl": ["./src/shims/next-intl.tsx"],
-      "next/navigation": ["./src/shims/next-navigation.tsx"],
-      "next/link": ["./src/shims/next-link.tsx"],
-      "next/cache": ["./src/shims/next-cache.ts"],
-      "next-themes": ["./src/shims/next-themes.tsx"]
+      "@/*": ["./*"]
     },
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
@@ -48,16 +43,5 @@
     "vite.config.ts",
     "vitest.config.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "public",
-    ".next",
-    "app",
-    "i18n",
-    "i18n.ts",
-    "next-env.d.ts",
-    "proxy.ts",
-    "lib/i18n.ts"
-  ]
+  "exclude": ["node_modules", "dist", "public"]
 }

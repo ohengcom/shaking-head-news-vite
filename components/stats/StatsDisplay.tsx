@@ -2,7 +2,7 @@
 
 import { Suspense, lazy } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { Activity, TrendingUp, Target, Clock } from 'lucide-react'
 
 interface SummaryStats {

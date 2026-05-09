@@ -1,10 +1,10 @@
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import Link from '@/lib/link'
+import { useSearchParams } from '@/lib/router'
 import { useState } from 'react'
 import { signIn } from '@/lib/auth-client'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 function toSafeCallbackUrl(callbackUrl: string | null): string {
   if (!callbackUrl) {

@@ -16,11 +16,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': rootDir,
-      'next-intl': path.resolve(rootDir, 'src/shims/next-intl.tsx'),
-      'next/navigation': path.resolve(rootDir, 'src/shims/next-navigation.tsx'),
-      'next/link': path.resolve(rootDir, 'src/shims/next-link.tsx'),
-      'next/cache': path.resolve(rootDir, 'src/shims/next-cache.ts'),
-      'next-themes': path.resolve(rootDir, 'src/shims/next-themes.tsx'),
     },
   },
   plugins: [react(), cloudflare()],

@@ -1,5 +1,5 @@
 import { Github, Heart } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function Footer() {
   const t = useTranslations('footer')

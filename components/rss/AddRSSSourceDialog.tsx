@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/lib/i18n'
+import { useRouter } from '@/lib/router'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getHomeFeedViaApi } from '@/lib/api/content-client'
 import type { NewsItem } from '@/types/news'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function HomePage() {
   const [dailyNews, setDailyNews] = useState<NewsItem[]>([])

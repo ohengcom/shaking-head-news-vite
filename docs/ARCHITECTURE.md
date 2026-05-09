@@ -1,6 +1,6 @@
 # Architecture
 
-## Runtime Split
+## Runtime Model
 
 - Client: Vite SPA rendered in the browser with React Router
 - API: Cloudflare Worker powered by Hono
@@ -18,29 +18,25 @@
 
 ## Project Layout
 
-- `src/`: active browser runtime, routes, providers, and Vite-only entrypoints
-- `src/styles/globals.css`: active shared stylesheet for the Vite app
+- `src/`: active browser runtime, routes, providers, and Vite entrypoints
+- `src/styles/globals.css`: active shared stylesheet for the SPA
 - `worker/`: Cloudflare Worker entry and HTTP routing
 - `worker-configuration.d.ts`: generated Worker binding types from `wrangler types`
-- `components/`: shared UI and feature components used by the active SPA
+- `components/`: shared UI and feature components used by the SPA
 - `lib/actions/`: Worker-side business logic
 - `lib/api/*-client.ts`: browser fetch wrappers for Worker APIs
 - `lib/server/`: request-context and Worker environment helpers
-- `app/`: archived Next.js tree retained only for migration reference
+- `lib/i18n.ts`: local i18n bridge for the active runtime
+- `lib/router.ts`: local router helpers built on top of React Router
+- `lib/link.tsx`: local link wrapper used by shared components
 
-## Compatibility Layer
+## Design Intent
 
-Some shared components still import a subset of Next-flavored APIs. The active Vite runtime
-maps those imports to local shims for:
+This repository now has a single production runtime: `Vite + React Router + Cloudflare Worker`.
 
-- `next-intl`
-- `next/navigation`
-- `next/link`
-- `next/cache`
-- `next-themes`
-
-These shims keep the current runtime Cloudflare-native while allowing incremental cleanup of
-older component code.
+There is no archived Next.js application tree and no runtime aliasing for `next-*` modules.
+Shared code should depend on local runtime modules directly so the deployment target stays
+obvious to contributors.
 
 ## Worker Types
 

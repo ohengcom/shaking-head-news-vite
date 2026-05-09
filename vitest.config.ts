@@ -17,14 +17,13 @@ export default defineConfig({
     // Test file patterns
     include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     // Exclude patterns
-    exclude: ['node_modules', '.next', 'tests/e2e/**'],
+    exclude: ['node_modules', 'tests/e2e/**'],
     // Coverage configuration using V8 provider (recommended for Vitest 4.x)
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        '.next/',
         'tests/',
         '**/*.config.{js,ts,cjs,mjs}',
         '**/types/**',
@@ -41,11 +40,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': rootDir,
-      'next-intl': path.resolve(rootDir, 'src/shims/next-intl.tsx'),
-      'next/navigation': path.resolve(rootDir, 'src/shims/next-navigation.tsx'),
-      'next/link': path.resolve(rootDir, 'src/shims/next-link.tsx'),
-      'next/cache': path.resolve(rootDir, 'src/shims/next-cache.ts'),
-      'next-themes': path.resolve(rootDir, 'src/shims/next-themes.tsx'),
     },
   },
 })

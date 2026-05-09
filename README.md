@@ -1,28 +1,28 @@
 # Shaking Head News
 
-一边看新闻，一边让页面轻微倾斜，把一次短暂的刷新闻过程，顺手变成一次小幅度的颈部活动提醒。
+边读新闻，边做轻量颈部活动提醒。
 
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
 [![Frontend](https://img.shields.io/badge/frontend-Vite%20%2B%20React-646cff)](https://vite.dev/)
 [![Version](https://img.shields.io/badge/version-2.3.1-2563eb)](CHANGELOG.md)
 
-**在线演示：** https://sn.oheng.com  
-**仓库地址：** https://github.com/ohengcom/shaking-head-news-vite
+在线演示：https://sn.oheng.com  
+仓库地址：https://github.com/ohengcom/shaking-head-news-vite
 
 ## 项目定位
 
-大多数新闻阅读器只优化两件事：加载速度和内容密度。Shaking Head News 想做一点不一样的事：阅读区域会周期性地轻微旋转几度，提醒你不要一直保持同一个姿势盯着屏幕。
+Shaking Head News 不是普通新闻聚合页。它把“久坐刷新闻”这个场景，改造成一次低负担的颈部活动提醒：
 
-它既是一个小产品，也是一个可以直接参考的 Cloudflare-native 全栈示例：
+- 阅读区会做小幅、可控的倾斜或轮换
+- 用户在看新闻时会自然地轻微转头或调整姿势
+- 核心卖点不是“治疗”，而是“减少长时间固定姿势阅读”
 
-- 使用 Cloudflare Workers 托管静态资源和 API
-- 使用 Hono 编写 Worker 路由
-- 使用 Better Auth 做登录态管理
-- 使用 Cloudflare KV 存储用户设置、RSS 源和运动统计
-- 前端基于 React Router、Tailwind CSS 4、Radix UI、Framer Motion
-- 使用 Vitest、Playwright、Knip 做测试和仓库健康检查
-- 使用 GitHub Actions 自动部署到 Cloudflare Workers
+这个定位对用户是能讲通的，但前提是表达要足够克制、具体，避免夸大医疗效果。更准确的产品语言应当是：
+
+- 颈部活动提醒
+- 久坐阅读姿势打断
+- 边看新闻边做轻量头颈活动
 
 ## 功能概览
 
@@ -30,17 +30,17 @@
 - 登录用户可添加自定义 RSS 源
 - Pro 预览用户支持 OPML 导入导出
 - 可调节页面旋转模式、间隔和阅读偏好
-- 颈部活动统计和健康提醒界面
+- 颈部活动统计与提醒
 - 中英文界面
 - 明暗主题
-- 支持广告位配置，自托管部署可启用无广告 Pro 预览模式
+- 支持广告位配置和自托管 Pro 预览模式
 
-当前仓库中的 Pro 只是自托管预览能力，不包含真实计费流程。
+当前仓库中的 Pro 仅是自托管预览能力，不包含真实计费。
 
 ## 技术栈
 
 - 前端：Vite 8、React 19、React Router 7
-- 边缘 API：Cloudflare Worker + Hono
+- 边缘 API：Cloudflare Workers + Hono
 - 认证：Better Auth
 - 存储：Cloudflare KV
 - UI：Tailwind CSS 4、Radix UI、Framer Motion、lucide-react
@@ -50,15 +50,18 @@
 
 ## 运行结构
 
-- `src/main.tsx`：浏览器端入口
-- `src/styles/globals.css`：当前生效的浏览器样式
-- `worker/index.ts`：Cloudflare Worker 入口和 HTTP 路由
+- `src/main.tsx`：浏览器入口
+- `src/app/App.tsx`：SPA 根应用
+- `src/styles/globals.css`：主样式入口
+- `worker/index.ts`：Cloudflare Worker 入口和路由
+- `components/`：共享 UI 和业务组件
+- `lib/actions/`：Worker 侧业务逻辑
+- `lib/api/*-client.ts`：浏览器访问 Worker API 的封装
+- `lib/i18n.ts`、`lib/router.ts`、`lib/link.tsx`：当前主线运行时使用的本地能力封装
 - `wrangler.jsonc`：Worker、静态资源、KV、路由和 observability 配置
 - `worker-configuration.d.ts`：由 `wrangler types` 生成的 Worker bindings 类型
-- `components/`：共享 UI 和功能组件
-- `lib/actions/`：运行在 Worker 侧的业务逻辑
-- `lib/api/*-client.ts`：浏览器调用 Worker API 的封装
-- `app/`：历史 Next.js 迁移参考目录，不参与当前 Vite 运行时
+
+当前仓库主线已经是单一运行时：`Vite SPA + Cloudflare Worker`。不再保留 Next.js 兼容入口。
 
 ## 本地开发
 
@@ -85,11 +88,11 @@ openssl rand -hex 32
 
 ## 常用命令
 
-- `npm run dev`：启动本地 Vite 开发服务
+- `npm run dev`：启动本地开发服务
 - `npm run check`：执行 lint、type-check、单元测试和生产构建
 - `npm run test:e2e:smoke`：执行 Chromium smoke 测试
 - `npm run lint:unused`：检查未使用文件、导出、依赖和重复项
-- `npm run types:worker`：重新生成 Cloudflare Worker 类型
+- `npm run types:worker`：重新生成 Worker 类型
 - `npm run deploy`：构建并通过 Wrangler 部署
 - `npm run clean`：清理本地构建和测试产物
 
@@ -109,9 +112,9 @@ npm run deploy
 - `assets.not_found_handling = single-page-application`
 - `assets.run_worker_first = ["/api/*", "/ads.txt"]`
 - `observability.enabled = true`
-- `APP_SETTINGS_KV` 用于存储设置、统计、认证辅助存储和 RSS 状态
+- `APP_SETTINGS_KV` 用于存储设置、统计、认证辅助数据和 RSS 状态
 
-当你修改了 `wrangler.jsonc` 或 `.env.example` 后，记得重新生成 Worker 类型：
+修改 `wrangler.jsonc` 或 `.env.example` 后，记得重新生成 Worker 类型：
 
 ```bash
 npm run types:worker
@@ -119,14 +122,14 @@ npm run types:worker
 
 ## 项目健康状态
 
-当前仓库通过：
+当前仓库应长期保持通过：
 
 ```bash
 npm run lint:unused
 npm run check
 ```
 
-已知权衡和待清理项记录在 [Known Issues](docs/KNOWN_ISSUES.md)。目前最大的一项遗留是移除归档的 Next.js 目录，以及逐步替换掉临时的 Next 风格兼容 shim。
+已知权衡记录在 [Known Issues](docs/KNOWN_ISSUES.md)。
 
 ## 文档
 
@@ -140,11 +143,11 @@ npm run check
 
 ## 贡献
 
-欢迎提 issue 和小规模 PR。比较适合继续推进的方向：
+欢迎提 issue 和小规模 PR。比较值得继续投入的方向：
 
-- 清理剩余的 Next 兼容 shim
+- 强化首页首屏卖点表达和使用前后对比
+- 增加真实动效截图和短 GIF
 - 提升 RSS 解析的边界处理和稳定性
-- 增加截图和短 GIF 演示
 - 改善与 motion preference 相关的无障碍体验
 - 补充更多 Cloudflare 部署示例
 

@@ -4,7 +4,7 @@ import { Footer } from '@/components/layout/footer'
 import { Header } from '@/components/layout/header'
 import { TiltWrapper } from '@/components/rotation/TiltWrapper'
 import { RequireAuth } from '@/src/routes/RequireAuth'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 const HomePage = lazy(() =>
   import('@/src/routes/HomePage').then((module) => ({ default: module.HomePage }))

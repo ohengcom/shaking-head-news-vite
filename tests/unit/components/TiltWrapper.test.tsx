@@ -4,8 +4,7 @@ import { TiltWrapper } from '@/components/rotation/TiltWrapper'
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import * as statsActions from '@/lib/actions/stats'
 
-// Mock next/navigation
-vi.mock('next/navigation', () => ({
+vi.mock('@/lib/router', () => ({
   usePathname: () => '/',
 }))
 

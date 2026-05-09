@@ -1,6 +1,6 @@
 import { FeaturesComparison } from '@/components/features/FeaturesComparison'
 import { useUserTier } from '@/hooks/use-user-tier'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 
 export function FeaturesPage() {

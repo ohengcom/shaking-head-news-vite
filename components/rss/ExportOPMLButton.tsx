@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Download } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { exportOPMLViaApi } from '@/lib/api/rss-client'

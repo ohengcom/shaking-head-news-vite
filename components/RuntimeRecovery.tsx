@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/lib/router'
 import { useEffect, useRef } from 'react'
 
 const RELOAD_WINDOW_MS = 5 * 60 * 1000
@@ -46,7 +46,7 @@ function looksLikeHashedAssetUrl(url: string): boolean {
   try {
     const parsed = new URL(url, window.location.href)
     const { pathname } = parsed
-    const isAssetPath = pathname.includes('/assets/') || pathname.includes('/_next/static/')
+    const isAssetPath = pathname.includes('/assets/')
     const isCode = pathname.endsWith('.js') || pathname.endsWith('.css')
     return isAssetPath && isCode
   } catch {

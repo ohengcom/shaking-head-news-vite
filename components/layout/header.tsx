@@ -1,10 +1,10 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/lib/link'
 import { Newspaper, Sparkles, Crown, Github } from 'lucide-react'
 import { ThemeToggle } from '@/components/settings/ThemeToggle'
 import { Button } from '@/components/ui/button'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import { Badge } from '@/components/ui/badge'
 import {

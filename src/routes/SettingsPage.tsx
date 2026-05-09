@@ -3,7 +3,7 @@ import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { getSettingsViaApi } from '@/lib/api/settings-client'
 import type { UserSettings } from '@/types/settings'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from '@/lib/i18n'
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null)

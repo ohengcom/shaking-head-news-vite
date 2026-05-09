@@ -3,7 +3,7 @@
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname } from '@/lib/router'
 import { recordRotationViaApi } from '@/lib/api/stats-client'
 import { cn } from '@/lib/utils'
 

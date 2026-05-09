@@ -1,6 +1,6 @@
 import { AlertCircle } from 'lucide-react'
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import Link from '@/lib/link'
+import { useTranslations } from '@/lib/i18n'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { NewsItem as NewsItemType } from '@/types/news'
