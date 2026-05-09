@@ -9,7 +9,7 @@ rotation.
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
 [![Frontend](https://img.shields.io/badge/frontend-Vite%20%2B%20React-646cff)](https://vite.dev/)
-[![Version](https://img.shields.io/badge/version-2.3.1-2563eb)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.3.2-2563eb)](CHANGELOG.md)
 
 [Live Demo](https://sn.oheng.com) · [Self-host](#self-host-in-5-minutes) ·
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
@@ -148,6 +148,7 @@ Runtime: `Vite SPA + Cloudflare Worker`.
 - [Cloudflare Deployment](docs/CLOUDFLARE_DEPLOYMENT.md)
 - [Monitoring Quick Start](docs/MONITORING_QUICK_START.md)
 - [Known Issues](docs/KNOWN_ISSUES.md)
+- [Security Policy](SECURITY.md)
 
 ## Good First Issues
 

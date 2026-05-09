@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.2] - 2026-05-09
+
 ### Changed
 
 - **Project Packaging**: Reworked README, contribution docs, roadmap, issue templates, and social metadata to improve first-time evaluation
@@ -14,12 +16,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime Surface**: Cleaned the project surface so the active stack is presented as Vite SPA + Cloudflare Worker only
 - **Environment Variables**: Removed public-variable fallback aliases and standardized on `VITE_*` for client-exposed build config
 - **Tooling**: Added `npm run check`, `npm run lint:unused`, `npm run test:e2e:smoke`, and `npm run clean`
-- **CI/CD**: Updated GitHub Actions to the current npm version, added Knip scanning, and fixed the Cloudflare deployment workflow to use the active Vite build path
+- **CI/CD**: Updated GitHub Actions to the current npm version, added Knip scanning, upgraded action majors, added Dependabot coverage for GitHub Actions, and fixed the Cloudflare deployment workflow to use the active Vite build path
+- **Metadata**: Pointed package homepage metadata to the live Cloudflare deployment
 
 ### Removed
 
 - **Framework Residue**: Removed stale client directives, platform ignore files, fallback environment names, and framework-specific runtime recovery checks
 - **Unused Dependencies**: Removed direct packages that were only supporting deleted code paths
+
+### Added
+
+- **Preview Assets**: Added production-generated README screenshot and Open Graph image for repository and social previews
+- **Security Policy**: Added a vulnerability reporting policy for maintainers and self-hosters
+
+### Fixed
+
+- **Reduced Motion**: Kept the app shell test target stable when reduced-motion mode disables animation wrappers
 
 ## [2.3.1] - 2026-03-05
 
