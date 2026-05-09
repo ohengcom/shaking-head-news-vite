@@ -192,6 +192,7 @@ export function TiltWrapper({
           'h-screen overflow-x-hidden overflow-y-auto',
           !isSettingsPage && 'scrollbar-hide'
         )}
+        data-testid="tilt-wrapper"
       >
         {children}
       </div>

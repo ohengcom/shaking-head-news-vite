@@ -14,6 +14,8 @@ rotation.
 [Live Demo](https://sn.oheng.com) · [Self-host](#self-host-in-5-minutes) ·
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
+![Shaking Head News home screen](docs/assets/home-screenshot.png)
+
 ## Why It Exists
 
 Shaking Head News turns a common habit, reading news while sitting still, into a

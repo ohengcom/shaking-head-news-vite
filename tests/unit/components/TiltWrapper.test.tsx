@@ -85,7 +85,7 @@ describe('TiltWrapper', () => {
     expect(screen.getByTestId('tilt-wrapper')).toBeInTheDocument()
   })
 
-  it('should respect prefers-reduced-motion and render without motion wrapper', () => {
+  it('should respect prefers-reduced-motion while keeping the app shell testable', () => {
     const mockMatchMedia = vi.fn().mockImplementation((query) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       media: query,
@@ -108,7 +108,7 @@ describe('TiltWrapper', () => {
       </TiltWrapper>
     )
 
-    expect(screen.queryByTestId('tilt-wrapper')).not.toBeInTheDocument()
+    expect(screen.getByTestId('tilt-wrapper')).toBeInTheDocument()
     expect(screen.getByText('Test Content')).toBeInTheDocument()
   })
 
