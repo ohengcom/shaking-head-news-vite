@@ -42,7 +42,6 @@ jobs:
       VITE_ADSENSE_SLOT_FOOTER: ${{ secrets.VITE_ADSENSE_SLOT_FOOTER }}
       VITE_ADSENSE_SLOT_INLINE: ${{ secrets.VITE_ADSENSE_SLOT_INLINE }}
       VITE_GA_ID: ${{ secrets.VITE_GA_ID }}
-      VITE_VERCEL_ANALYTICS: ${{ secrets.VITE_VERCEL_ANALYTICS }}
       VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
     steps:
@@ -120,7 +119,6 @@ jobs:
           put_secret_if_present VITE_ADSENSE_SLOT_FOOTER
           put_secret_if_present VITE_ADSENSE_SLOT_INLINE
           put_secret_if_present VITE_GA_ID
-          put_secret_if_present VITE_VERCEL_ANALYTICS
           put_secret_if_present VITE_SENTRY_DSN
 
       - name: Validate and build Vite output

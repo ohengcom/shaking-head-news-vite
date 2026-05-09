@@ -1,6 +1,4 @@
-'use client'
-
-import { createAuthClient } from 'better-auth/react'
+﻿import { createAuthClient } from 'better-auth/react'
 
 const rawAuthClient = createAuthClient()
 

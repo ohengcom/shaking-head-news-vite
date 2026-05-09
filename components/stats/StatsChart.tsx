@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n'
 
 interface ChartData {

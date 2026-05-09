@@ -1,6 +1,4 @@
-'use client'
-
-import { Calendar, Loader2, Lock, Target, TrendingUp } from 'lucide-react'
+﻿import { Calendar, Loader2, Lock, Target, TrendingUp } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

@@ -8,18 +8,10 @@ afterEach(() => {
 })
 
 describe('runtime env helpers', () => {
-  it('prefers the canonical NEXT_PUBLIC key and falls back to VITE', () => {
-    process.env.NEXT_PUBLIC_GA_ID = ''
+  it('reads canonical VITE-prefixed keys', () => {
     process.env.VITE_GA_ID = 'vite-ga'
 
-    expect(getEnvValue('NEXT_PUBLIC_GA_ID')).toBe('vite-ga')
-  })
-
-  it('prefers the canonical VITE key and falls back to NEXT_PUBLIC', () => {
-    process.env.VITE_SENTRY_DSN = ''
-    process.env.NEXT_PUBLIC_SENTRY_DSN = 'legacy-dsn'
-
-    expect(getEnvValue('VITE_SENTRY_DSN')).toBe('legacy-dsn')
+    expect(getEnvValue('VITE_GA_ID')).toBe('vite-ga')
   })
 
   it('maps plain keys to their VITE-prefixed counterpart', () => {

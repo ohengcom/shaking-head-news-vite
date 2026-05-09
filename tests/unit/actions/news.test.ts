@@ -60,13 +60,11 @@ describe('News Actions', () => {
   })
 
   describe('getNews', () => {
-    // Note: getNews uses React's cache() function which makes mocking difficult
-    // These tests are skipped as they require integration testing
+    // These tests are skipped as they require integration testing.
     it.skip('should fetch news successfully with default language', async () => {
       const mockResponse = {
-        items: mockNewsItems,
-        total: mockNewsItems.length,
-        updatedAt: new Date().toISOString(),
+        date: '2026-01-01',
+        content: mockNewsItems.map((item) => item.title),
       }
 
       mockFetch.mockResolvedValue({
@@ -76,23 +74,14 @@ describe('News Actions', () => {
 
       const result = await getNews('zh')
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('latest.json?lang=zh'),
-        expect.objectContaining({
-          next: expect.objectContaining({
-            revalidate: 3600,
-            tags: expect.arrayContaining(['news', 'news-zh', 'news-latest']),
-          }),
-        })
-      )
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('latest.json?lang=zh'))
       expect(result.items).toHaveLength(mockNewsItems.length)
     })
 
     it.skip('should fetch news from specific source', async () => {
       const mockResponse = {
-        items: mockNewsItems,
-        total: mockNewsItems.length,
-        updatedAt: new Date().toISOString(),
+        date: '2026-01-01',
+        content: mockNewsItems.map((item) => item.title),
       }
 
       mockFetch.mockResolvedValue({
@@ -102,14 +91,7 @@ describe('News Actions', () => {
 
       await getNews('en', 'everydaynews')
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('everydaynews.json?lang=en'),
-        expect.objectContaining({
-          next: expect.objectContaining({
-            tags: expect.arrayContaining(['news', 'news-en', 'news-everydaynews']),
-          }),
-        })
-      )
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('everydaynews.json?lang=en'))
     })
 
     it.skip('should retry on fetch failure', async () => {
@@ -119,9 +101,8 @@ describe('News Actions', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            items: mockNewsItems,
-            total: mockNewsItems.length,
-            updatedAt: new Date().toISOString(),
+            date: '2026-01-01',
+            content: mockNewsItems.map((item) => item.title),
           }),
         })
 
@@ -299,16 +280,14 @@ describe('News Actions', () => {
   })
 
   describe('getNews (home page)', () => {
-    // Note: getNews uses React's cache() function
-    // These tests that rely on getNews are skipped
+    // These tests that rely on getNews are skipped.
     it.skip('should return default news when user is not authenticated', async () => {
       vi.mocked(auth).mockResolvedValue(null)
 
       // Mock getNews response via fetch
       const mockResponse = {
-        items: mockNewsItems,
-        total: mockNewsItems.length,
-        updatedAt: new Date().toISOString(),
+        date: '2026-01-01',
+        content: mockNewsItems.map((item) => item.title),
       }
       mockFetch.mockResolvedValue({
         ok: true,
@@ -318,10 +297,7 @@ describe('News Actions', () => {
       const result = await getNews('zh')
 
       expect(result.items).toHaveLength(mockNewsItems.length)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('latest.json'),
-        expect.any(Object)
-      )
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('latest.json'))
     })
 
     it.skip('should return default news when user has no RSS sources', async () => {
@@ -329,9 +305,8 @@ describe('News Actions', () => {
       vi.mocked(getRSSSources).mockResolvedValue([])
 
       const mockResponse = {
-        items: mockNewsItems,
-        total: mockNewsItems.length,
-        updatedAt: new Date().toISOString(),
+        date: '2026-01-01',
+        content: mockNewsItems.map((item) => item.title),
       }
       mockFetch.mockResolvedValue({
         ok: true,

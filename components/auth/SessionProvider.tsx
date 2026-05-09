@@ -1,5 +1,3 @@
-'use client'
-
-export function SessionProvider({ children }: { children: React.ReactNode }) {
+﻿export function SessionProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

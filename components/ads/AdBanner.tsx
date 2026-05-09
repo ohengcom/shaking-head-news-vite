@@ -8,8 +8,6 @@
  * - Pro: 可根据设置显示/隐藏
  */
 
-'use client'
-
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useTranslations } from '@/lib/i18n'
 import { cn } from '@/lib/utils'

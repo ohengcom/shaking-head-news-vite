@@ -3,8 +3,6 @@
  * ????????? Hook
  */
 
-'use client'
-
 import { useSession } from '@/lib/auth-client'
 import { useEffect, useState } from 'react'
 import {

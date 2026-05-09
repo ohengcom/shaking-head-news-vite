@@ -1,6 +1,4 @@
-'use client'
-
-import Link from '@/lib/link'
+﻿import Link from '@/lib/link'
 import { Newspaper, Sparkles, Crown, Github } from 'lucide-react'
 import { ThemeToggle } from '@/components/settings/ThemeToggle'
 import { Button } from '@/components/ui/button'

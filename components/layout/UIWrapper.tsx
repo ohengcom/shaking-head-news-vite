@@ -1,6 +1,4 @@
-'use client'
-
-import { useUIStore } from '@/lib/stores/ui-store'
+﻿import { useUIStore } from '@/lib/stores/ui-store'
 import { useEffect } from 'react'
 
 interface UIWrapperProps {

@@ -101,7 +101,7 @@ async function parseJsonBody<T>(request: Request): Promise<T> {
   return (await request.json()) as T
 }
 
-app.use('*', async (c, next) => {
+app.use('*', async (c, continueMiddleware) => {
   setGlobalWorkerEnv(c.env)
   await runWithRequestContext(
     {
@@ -109,7 +109,7 @@ app.use('*', async (c, next) => {
       env: c.env,
     },
     async () => {
-      await next()
+      await continueMiddleware()
     }
   )
 })

@@ -1,6 +1,4 @@
-'use client'
-
-import { signOut } from '@/lib/auth-client'
+﻿import { signOut } from '@/lib/auth-client'
 import { LogOut } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'

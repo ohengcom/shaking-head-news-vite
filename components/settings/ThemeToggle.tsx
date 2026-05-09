@@ -1,6 +1,4 @@
-'use client'
-
-import * as React from 'react'
+﻿import * as React from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { useTheme } from '@/components/theme-provider'

@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'

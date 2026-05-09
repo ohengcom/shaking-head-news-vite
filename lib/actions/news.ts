@@ -1,4 +1,3 @@
-import { cache } from 'react'
 import {
   RawNewsResponseSchema,
   NewsItemSchema,
@@ -17,7 +16,9 @@ import { getHotList } from '@/lib/api/hot-list'
 import { getEnvValue, getRuntimeMode, isNonProductionRuntime } from '@/lib/config/runtime-env'
 
 const DEFAULT_NEWS_API_BASE_URL = 'https://news.ravelloh.top'
+const NEWS_CACHE_TTL_MS = 5 * 60 * 1000
 const suppressedNewsFetchWarnings = new Set<string>()
+const newsCache = new Map<string, { expiresAt: number; value: NewsResponse }>()
 
 function getNewsApiBaseUrl() {
   return getEnvValue('NEWS_API_BASE_URL') || DEFAULT_NEWS_API_BASE_URL
@@ -83,14 +84,7 @@ function logNewsFetchFailure(
   )
 }
 
-/**
- * Get news from the upstream API.
- *
- * @param language - Language for news content ('zh' or 'en')
- * @param source - Optional specific news source
- * @returns News response with items
- */
-const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string) => {
+async function fetchNews(language: 'zh' | 'en' = 'zh', source?: string): Promise<NewsResponse> {
   const newsApiBaseUrl = getNewsApiBaseUrl()
   const url = source
     ? `${newsApiBaseUrl}/${source}.json?lang=${language}`
@@ -146,10 +140,28 @@ const getNewsCached = cache(async (language: 'zh' | 'en' = 'zh', source?: string
 
     throw new NewsAPIError('Failed to fetch news. Please try again later.', 500, source)
   }
-})
+}
 
+/**
+ * Get news from the upstream API.
+ *
+ * @param language - Language for news content ('zh' or 'en')
+ * @param source - Optional specific news source
+ * @returns News response with items
+ */
 export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
-  return getNewsCached(language, source)
+  const cacheKey = `${language}:${source || 'latest'}`
+  const cached = newsCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.value
+  }
+
+  const value = await fetchNews(language, source)
+  newsCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + NEWS_CACHE_TTL_MS,
+  })
+  return value
 }
 
 /**
@@ -160,10 +172,11 @@ export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
  */
 export async function refreshNews(language?: 'zh' | 'en', source?: string) {
   try {
-    void language
-    void source
-    // The active Vite/Worker runtime does not use Next.js ISR. This endpoint is kept as a
-    // compatibility no-op for existing UI refresh controls.
+    if (language || source) {
+      newsCache.delete(`${language || 'zh'}:${source || 'latest'}`)
+    } else {
+      newsCache.clear()
+    }
     return { success: true }
   } catch (error) {
     logError(error, {

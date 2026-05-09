@@ -32,11 +32,9 @@
 
 ## Design Intent
 
-This repository now has a single production runtime: `Vite + React Router + Cloudflare Worker`.
-
-There is no archived Next.js application tree and no runtime aliasing for `next-*` modules.
-Shared code should depend on local runtime modules directly so the deployment target stays
-obvious to contributors.
+This repository has a single production runtime: `Vite + React Router + Cloudflare Worker`.
+Shared code depends on local runtime modules directly so the deployment target stays obvious to
+contributors.
 
 ## Worker Types
 

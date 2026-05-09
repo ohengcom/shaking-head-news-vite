@@ -3,8 +3,6 @@
  * 升级提示组件（支持多种变体）
  */
 
-'use client'
-
 import { X, Sparkles, LogIn } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { signIn } from '@/lib/auth-client'

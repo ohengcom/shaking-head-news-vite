@@ -1,8 +1,5 @@
 /**
- * Server-side User Tier Utilities
- * 服务端用户层级检测工具
- *
- * 用于 Server Components
+ * Worker-side user tier utilities.
  */
 
 import { getCurrentUser, hasProSubscription } from '@/lib/dal/auth'
@@ -35,9 +32,6 @@ export interface ServerUserTier {
   hasFeature: (feature: keyof FeatureConfig) => boolean
 }
 
-/**
- * 获取用户层级（用于 Server Components）
- */
 export async function getUserTier(): Promise<ServerUserTier> {
   const user = await getCurrentUser()
 

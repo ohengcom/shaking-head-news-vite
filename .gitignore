@@ -27,8 +27,6 @@ lerna-debug.log*
 .env.keys
 .env
 
-# Vercel
-.vercel
 .wrangler
 worker-*-response.txt
 

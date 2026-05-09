@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'

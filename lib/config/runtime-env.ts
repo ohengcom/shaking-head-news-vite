@@ -17,12 +17,8 @@ function getProcessEnv(): EnvRecord | null {
 }
 
 function getCandidateKeys(key: string): string[] {
-  if (key.startsWith('NEXT_PUBLIC_')) {
-    return [key, `VITE_${key.slice('NEXT_PUBLIC_'.length)}`]
-  }
-
   if (key.startsWith('VITE_')) {
-    return [key, `NEXT_PUBLIC_${key.slice('VITE_'.length)}`]
+    return [key]
   }
 
   return [key, `VITE_${key}`]

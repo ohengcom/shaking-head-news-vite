@@ -1,6 +1,4 @@
-'use client'
-
-import type { HomePersonalizationResponse } from '@/types/home'
+﻿import type { HomePersonalizationResponse } from '@/types/home'
 
 export async function getHomePersonalizationViaApi(): Promise<HomePersonalizationResponse> {
   try {

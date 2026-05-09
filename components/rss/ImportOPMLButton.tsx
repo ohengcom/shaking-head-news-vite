@@ -1,6 +1,4 @@
-'use client'
-
-import { useRef, useState, type ChangeEvent, type ElementRef } from 'react'
+﻿import { useRef, useState, type ChangeEvent, type ElementRef } from 'react'
 import { Upload } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'

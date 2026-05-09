@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { AnimatePresence, Reorder, motion } from 'framer-motion'
 import { Check, GripVertical, Loader2, Lock, Plus, RotateCcw, X } from 'lucide-react'
 import { useSetAppLocale, useTranslations } from '@/lib/i18n'

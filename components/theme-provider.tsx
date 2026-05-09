@@ -1,6 +1,4 @@
-'use client'
-
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+﻿import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 type AttributeMode = 'class' | 'data-theme'

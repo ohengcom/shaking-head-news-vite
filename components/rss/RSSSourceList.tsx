@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { AlertCircle, GripVertical, Trash2 } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { Badge } from '@/components/ui/badge'

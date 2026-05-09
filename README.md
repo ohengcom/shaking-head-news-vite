@@ -57,11 +57,11 @@ Shaking Head News 不是普通新闻聚合页。它把“久坐刷新闻”这�
 - `components/`：共享 UI 和业务组件
 - `lib/actions/`：Worker 侧业务逻辑
 - `lib/api/*-client.ts`：浏览器访问 Worker API 的封装
-- `lib/i18n.ts`、`lib/router.ts`、`lib/link.tsx`：当前主线运行时使用的本地能力封装
+- `lib/i18n.ts`、`lib/router.ts`、`lib/link.tsx`：浏览器运行时使用的本地能力封装
 - `wrangler.jsonc`：Worker、静态资源、KV、路由和 observability 配置
 - `worker-configuration.d.ts`：由 `wrangler types` 生成的 Worker bindings 类型
 
-当前仓库主线已经是单一运行时：`Vite SPA + Cloudflare Worker`。不再保留 Next.js 兼容入口。
+当前仓库运行时：`Vite SPA + Cloudflare Worker`。
 
 ## 本地开发
 

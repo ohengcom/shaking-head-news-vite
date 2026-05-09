@@ -1,6 +1,4 @@
-'use client'
-
-import type { UserSettings } from '@/types/settings'
+﻿import type { UserSettings } from '@/types/settings'
 
 type SettingsApiAction = 'update' | 'reset' | 'togglePro'
 

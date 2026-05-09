@@ -32,13 +32,11 @@ VITE_ADSENSE_SLOT_FOOTER=
 VITE_ADSENSE_SLOT_INLINE=
 
 VITE_GA_ID=
-VITE_VERCEL_ANALYTICS=
 VITE_SENTRY_DSN=
 VITE_LOG_LEVEL=debug
 ```
 
-Preferred public variable prefix is `VITE_`. Legacy `NEXT_PUBLIC_*` values are still accepted
-by the runtime helpers as a fallback during migration.
+Public client configuration uses the `VITE_` prefix.
 
 If `NEWS_API_BASE_URL` is not set, local development uses the public upstream feed by default.
 Expected upstream `401`/`403`/`404` responses are logged once in `development` and `test`, and

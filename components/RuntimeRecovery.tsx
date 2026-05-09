@@ -1,5 +1,3 @@
-'use client'
-
 import { useRouter } from '@/lib/router'
 import { useEffect, useRef } from 'react'
 
@@ -30,15 +28,6 @@ function looksLikeChunkLoadError(message: string): boolean {
     normalized.includes('failed to fetch dynamically imported module') ||
     normalized.includes('importing a module script failed') ||
     normalized.includes('error loading dynamically imported module')
-  )
-}
-
-function looksLikeServerComponentRenderError(message: string): boolean {
-  const normalized = message.toLowerCase()
-  return (
-    normalized.includes('server components render') ||
-    normalized.includes('server component render') ||
-    normalized.includes('digest property is included')
   )
 }
 
@@ -186,7 +175,7 @@ export function RuntimeRecovery() {
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const message = getMessage(event.reason)
-      if (looksLikeChunkLoadError(message) || looksLikeServerComponentRenderError(message)) {
+      if (looksLikeChunkLoadError(message)) {
         triggerHardReload(`unhandledrejection:${message}`)
       }
     }
@@ -194,7 +183,7 @@ export function RuntimeRecovery() {
     const handleWindowError = (event: Event) => {
       if (event instanceof ErrorEvent) {
         const message = getMessage(event.error || event.message)
-        if (looksLikeChunkLoadError(message) || looksLikeServerComponentRenderError(message)) {
+        if (looksLikeChunkLoadError(message)) {
           triggerHardReload(`error:${message}`)
         }
         return

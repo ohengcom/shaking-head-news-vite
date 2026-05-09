@@ -1,6 +1,4 @@
-'use client'
-
-import { Button } from '@/components/ui/button'
+﻿import { Button } from '@/components/ui/button'
 import { RotateCw } from 'lucide-react'
 import { useRouter } from '@/lib/router'
 import { useTransition } from 'react'

@@ -9,14 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Active Style Entry**: Moved the Vite runtime stylesheet to `src/styles/globals.css` and left `app/globals.css` as a legacy wrapper
+- **Runtime Surface**: Cleaned the project surface so the active stack is presented as Vite SPA + Cloudflare Worker only
+- **Environment Variables**: Removed public-variable fallback aliases and standardized on `VITE_*` for client-exposed build config
 - **Tooling**: Added `npm run check`, `npm run lint:unused`, `npm run test:e2e:smoke`, and `npm run clean`
 - **CI/CD**: Updated GitHub Actions to the current npm version, added Knip scanning, and fixed the Cloudflare deployment workflow to use the active Vite build path
 
 ### Removed
 
-- **Dead Code**: Deleted unused feature, monitoring, and compatibility files that were no longer referenced by the active Vite/Worker runtime
-- **Unused Dependencies**: Removed direct packages that were only supporting deleted or legacy-only code paths
+- **Framework Residue**: Removed stale client directives, platform ignore files, fallback environment names, and framework-specific runtime recovery checks
+- **Unused Dependencies**: Removed direct packages that were only supporting deleted code paths
 
 ## [2.3.1] - 2026-03-05
 
@@ -34,15 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Version Label**: Marked this release as `vite edition` to distinguish it from earlier Next.js-only iteration
-- **Auth Migration**: Replaced NextAuth route with Better Auth route handler at `app/api/auth/[...all]/route.ts`
-- **Build Paths**: Kept both Next.js and vinext build scripts to support migration verification
+- **Runtime**: Adopted the Vite SPA + Cloudflare Worker runtime model
+- **Auth**: Standardized authentication on Better Auth under `/api/auth/*`
+- **Build Paths**: Standardized production output under the Cloudflare Workers build path
 - **Environment Docs**: Updated `.env.example` to match currently used variables (auth, ads, analytics, monitoring)
 - **Project Docs**: Rebuilt core documentation under `docs/` (setup, architecture, deployment, testing, monitoring, known issues)
 
 ### Fixed
 
-- **Stale Labels**: Updated About page tech stack label from `NextAuth.js v5` to `Better Auth`
+- **Stale Labels**: Updated About page tech stack label to `Better Auth`
 - **Testing Guide Script**: Updated auth env var names in `scripts/start-testing.ps1`
 
 ## [2.2.0] - 2026-01-26
@@ -56,7 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Rate Limiting**: Relaxed strict rate limits (Std: 300/min, Relaxed: 1000/min) to prevent false positives for active users
 - **Layout**: Increased desktop layout spacing (gap-24) to improve visual separation between content and sidebars
-- **Project Structure**: Renamed `proxy.ts` to `middleware.ts` within documentation (conceptual) but kept file as `proxy.ts` for Next.js 16 compatibility
 - **Cleanup**: Removed redundant machine-specific configuration files and documentation
 
 ### Fixed
@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Pro Status Sync**: Fixed Pro status not updating across all server components (Header, RSS page, Stats page)
+- **Pro Status Sync**: Fixed Pro status not updating across shared page surfaces (Header, RSS page, Stats page)
 - **BlurredStats**: Fixed stats page showing guest content for Pro users by passing server tier to component
 - **SessionProvider**: Added SessionProvider to fix useSession hook errors
 
@@ -87,26 +87,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Tech Stack Upgrade**: Upgraded to Next.js 16.0.6, React 19.2.0, and Tailwind CSS 4.1.17
+- **Tech Stack Upgrade**: Upgraded to React 19.2.0 and Tailwind CSS 4.1.17
 - **Rotation Enhancement**: Increased minimum rotation angle from 5-10 degrees to 8-25 degrees for improved shaking effect visibility
-- **Configuration**: Removed deprecated `experimental.serverActions` config (now enabled by default in Next.js 16)
 
 ### Fixed
 
-- **Next.js 16 Compatibility**: Updated `revalidateTag` calls to include required second parameter `{ expire: 0 }`
-- **Build Configuration**: Removed ignored `memory` setting from `vercel.json`
-- **Node Version**: Updated to Node.js 22.x for Vercel deployment consistency
+- **Build Configuration**: Removed ignored deployment settings
+- **Node Version**: Updated to Node.js 22.x for deployment consistency
 
 ## [2.0.0] - 2025-11-13
 
 ### Major Rewrite
 
-Complete rewrite from Vue 3 browser extension to Next.js 15 web application.
+Complete rewrite from a browser extension to a hosted web application.
 
 ### Added
 
-- **Modern Tech Stack**: Next.js 16, React 19, TypeScript
-- **User Authentication**: Google OAuth via NextAuth.js
+- **Modern Tech Stack**: React 19, TypeScript
+- **User Authentication**: OAuth-based sign-in
 - **Cloud Sync**: Settings sync via persistent cloud-backed storage
 - **RSS Management**: Add, manage, and export custom RSS feeds
 - **Statistics Dashboard**: Track rotation activity with charts
@@ -114,7 +112,7 @@ Complete rewrite from Vue 3 browser extension to Next.js 15 web application.
 - **Internationalization**: Full Chinese and English support
 - **Theme Support**: Light, dark, and system theme modes
 - **Responsive Design**: Mobile-first, works on all devices
-- **Performance**: ISR caching, optimized images, code splitting
+- **Performance**: Optimized assets and code splitting
 - **Security**: Rate limiting, input validation, CSP headers
 - **Testing**: Unit tests (Vitest), E2E tests (Playwright)
 - **CI/CD**: GitHub Actions workflow
@@ -124,8 +122,6 @@ Complete rewrite from Vue 3 browser extension to Next.js 15 web application.
 
 - Migrated from browser extension to web application
 - Replaced Pinia with Zustand for state management
-- Replaced Vue Router with Next.js App Router
-- Replaced Vite with Turbopack
 - Improved UI with Tailwind CSS 4 and Shadcn/ui
 - Enhanced accessibility features
 

@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { getAdSenseClientId } from '@/lib/config/adsense'
 import { isProductionRuntime } from '@/lib/config/runtime-env'
 

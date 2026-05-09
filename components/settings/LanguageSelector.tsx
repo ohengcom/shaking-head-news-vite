@@ -1,6 +1,4 @@
-'use client'
-
-import { useSetAppLocale, useTranslations } from '@/lib/i18n'
+﻿import { useSetAppLocale, useTranslations } from '@/lib/i18n'
 import {
   Select,
   SelectContent,
