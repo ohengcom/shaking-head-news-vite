@@ -8,6 +8,14 @@ npm run check
 npm run deploy
 ```
 
+For a fresh Cloudflare project, create KV namespaces first:
+
+```bash
+npx wrangler kv namespace create APP_SETTINGS_KV
+npx wrangler kv namespace create APP_SETTINGS_KV --preview
+npm run types:worker
+```
+
 ## Current Cloudflare Topology
 
 - Worker entry: `worker/index.ts`
@@ -20,6 +28,7 @@ npm run deploy
 - Verify Wrangler access with `npx wrangler whoami`.
 - Store private values with `wrangler secret put`.
 - Provide public client config through `VITE_*` build variables.
+- Keep `BETTER_AUTH_URL` aligned with the deployed origin.
 
 ## Dry Run
 

@@ -34,7 +34,7 @@
   },
   "home": {
     "title": "欢迎来到摇头看新闻",
-    "subtitle": "在浏览新闻的同时，通过页面旋转帮助您改善颈椎健康",
+    "subtitle": "边看新闻，边用轻微页面旋转打断固定阅读姿势",
     "features": {
       "news": {
         "title": "📰 实时新闻",
@@ -42,11 +42,11 @@
       },
       "rotation": {
         "title": "🔄 页面旋转",
-        "description": "自动旋转页面，帮助您活动颈椎"
+        "description": "用轻微页面旋转提醒您打断固定阅读姿势"
       },
       "stats": {
-        "title": "📊 健康统计",
-        "description": "追踪您的颈椎运动数据，养成健康习惯"
+        "title": "📊 阅读活动统计",
+        "description": "记录阅读活动和姿势打断提醒"
       },
       "i18n": {
         "title": "🌍 多语言支持",
@@ -129,7 +129,7 @@
     "normal": "正常",
     "compact": "紧凑",
     "dailyGoal": "每日目标",
-    "dailyGoalDescription": "设置每日颈椎运动目标次数",
+    "dailyGoalDescription": "设置每日姿势打断提醒目标次数",
     "notifications": "通知提醒",
     "notificationsDescription": "启用健康提醒通知",
     "saveSuccess": "设置已保存",
@@ -165,7 +165,7 @@
   },
   "stats": {
     "title": "统计数据",
-    "pageDescription": "查看您的颈椎运动趋势和历史统计。",
+    "pageDescription": "查看您的阅读活动趋势和历史统计。",
     "loading": "正在加载统计数据...",
     "loadError": "加载统计数据失败",
     "today": "今日",
@@ -177,7 +177,7 @@
     "goal": "目标",
     "goalProgress": "目标进度",
     "goalAchieved": "🎉 恭喜达成目标！",
-    "goalAchievedMessage": "您今天已完成 {count} 次颈椎运动，继续保持！",
+    "goalAchievedMessage": "您今天已完成 {count} 次姿势打断提醒，继续保持！",
     "keepGoing": "继续加油！",
     "noData": "暂无数据",
     "minutes": "分钟",
@@ -194,8 +194,8 @@
     "duration": "时长",
     "healthReminder": "健康提醒",
     "healthReminderDescription": "启用通知以在长时间未运动时收到提醒",
-    "healthReminderTitle": "该活动颈椎了！",
-    "healthReminderBody": "您已经超过 2 小时没有进行颈椎运动了，休息一下，活动活动吧！",
+    "healthReminderTitle": "该打断固定姿势了",
+    "healthReminderBody": "您已经连续阅读一段时间了，休息一下，轻微活动后再回来。",
     "notificationsOn": "通知已启用",
     "notificationsOff": "通知已禁用",
     "notificationsOnDescription": "我们会在您长时间未运动时提醒您",
@@ -203,7 +203,7 @@
     "enableNotifications": "启用通知",
     "disableNotifications": "禁用通知",
     "notificationEnabled": "通知已启用",
-    "notificationEnabledMessage": "我们会在您需要时提醒您活动颈椎",
+    "notificationEnabledMessage": "我们会在合适的时候提醒您打断固定姿势",
     "notificationDisabled": "通知已禁用",
     "notificationDisabledMessage": "您将不会收到健康提醒",
     "notificationDenied": "通知权限被拒绝",
@@ -215,9 +215,9 @@
     "fullStatsTitle": "完整统计数据",
     "fullStatsDescription": "升级到 Pro 查看详细图表和历史数据",
     "healthReminderComingSoon": "健康提醒功能即将推出",
-    "healthReminderComingSoonDescription": "设置定时提醒，帮助您养成健康习惯",
+    "healthReminderComingSoonDescription": "设置定时提醒，帮助您减少长时间固定姿势阅读",
     "exerciseGoalsComingSoon": "运动目标功能即将推出",
-    "exerciseGoalsComingSoonDescription": "设置每日目标，追踪您的颈椎运动进度"
+    "exerciseGoalsComingSoonDescription": "设置每日目标，追踪您的姿势打断提醒进度"
   },
   "rss": {
     "title": "RSS 源管理",
@@ -305,7 +305,7 @@
     "metaTitle": "关于 - 摇头看新闻",
     "metaDescription": "了解摇头看新闻的功能特色",
     "background": "项目背景",
-    "backgroundDescription": "长时间使用电脑和手机会导致颈椎问题。本项目通过在浏览新闻时自动旋转页面，帮助用户在获取信息的同时活动颈椎，改善颈椎健康。",
+    "backgroundDescription": "长时间使用电脑和手机时，人很容易保持固定阅读姿势。本项目通过在浏览新闻时轻微旋转页面，提醒用户打断固定姿势。",
     "techStack": "技术栈",
     "license": "本项目遵循 MPL-2.0 开源协议。"
   },

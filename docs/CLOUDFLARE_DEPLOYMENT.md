@@ -48,6 +48,46 @@ Build variables or plain env:
 - `VITE_SENTRY_DSN`
 - `VITE_LOG_LEVEL`
 
+## Create KV Namespaces
+
+```bash
+npx wrangler kv namespace create APP_SETTINGS_KV
+npx wrangler kv namespace create APP_SETTINGS_KV --preview
+```
+
+Copy the generated values into `wrangler.jsonc`:
+
+```jsonc
+"kv_namespaces": [
+  {
+    "binding": "APP_SETTINGS_KV",
+    "id": "<production-id>",
+    "preview_id": "<preview-id>",
+  },
+]
+```
+
+Then regenerate Worker binding types:
+
+```bash
+npm run types:worker
+```
+
+## Configure Secrets
+
+At minimum, set the auth secret before production deploys:
+
+```bash
+printf '<your-production-secret>' | npx wrangler secret put BETTER_AUTH_SECRET
+```
+
+Optional OAuth provider secrets:
+
+```bash
+printf '<google-secret>' | npx wrangler secret put GOOGLE_CLIENT_SECRET
+printf '<microsoft-secret>' | npx wrangler secret put AUTH_MICROSOFT_ENTRA_ID_SECRET
+```
+
 ## Deploy
 
 ```bash

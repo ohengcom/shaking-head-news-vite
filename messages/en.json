@@ -34,7 +34,7 @@
   },
   "home": {
     "title": "Welcome to Shaking Head News",
-    "subtitle": "Improve your neck health through page rotation while browsing news",
+    "subtitle": "Read the news with gentle posture-break prompts",
     "features": {
       "news": {
         "title": "📰 Real-time News",
@@ -42,11 +42,11 @@
       },
       "rotation": {
         "title": "🔄 Page Rotation",
-        "description": "Automatic page rotation to help exercise your neck"
+        "description": "Gentle page rotation nudges you to break a fixed reading posture"
       },
       "stats": {
-        "title": "📊 Health Statistics",
-        "description": "Track your neck exercise data and build healthy habits"
+        "title": "📊 Reading Activity",
+        "description": "Track reading activity and posture-break prompts"
       },
       "i18n": {
         "title": "🌍 Multi-language Support",
@@ -129,7 +129,7 @@
     "normal": "Normal",
     "compact": "Compact",
     "dailyGoal": "Daily Goal",
-    "dailyGoalDescription": "Set daily neck exercise goal count",
+    "dailyGoalDescription": "Set a daily posture-break prompt goal",
     "notifications": "Notifications",
     "notificationsDescription": "Enable health reminder notifications",
     "saveSuccess": "Settings saved",
@@ -165,7 +165,7 @@
   },
   "stats": {
     "title": "Statistics",
-    "pageDescription": "Track your neck exercise progress and long-term trends.",
+    "pageDescription": "Track reading activity and long-term posture-break trends.",
     "loading": "Loading statistics...",
     "loadError": "Failed to load statistics",
     "today": "Today",
@@ -177,7 +177,7 @@
     "goal": "Goal",
     "goalProgress": "Goal Progress",
     "goalAchieved": "🎉 Congratulations! Goal achieved!",
-    "goalAchievedMessage": "You've completed {count} neck exercises today. Keep it up!",
+    "goalAchievedMessage": "You've completed {count} posture-break prompts today. Keep it up!",
     "keepGoing": "Keep going!",
     "noData": "No data available",
     "minutes": "min",
@@ -194,8 +194,8 @@
     "duration": "Duration",
     "healthReminder": "Health Reminder",
     "healthReminderDescription": "Enable notifications to receive reminders when inactive for too long",
-    "healthReminderTitle": "Time to Exercise Your Neck!",
-    "healthReminderBody": "You haven't exercised your neck for over 2 hours. Take a break and move around!",
+    "healthReminderTitle": "Time for a posture break",
+    "healthReminderBody": "You've been reading for a while. Take a short break, move gently, then come back.",
     "notificationsOn": "Notifications Enabled",
     "notificationsOff": "Notifications Disabled",
     "notificationsOnDescription": "We'll remind you when you haven't exercised for a while",
@@ -203,7 +203,7 @@
     "enableNotifications": "Enable Notifications",
     "disableNotifications": "Disable Notifications",
     "notificationEnabled": "Notifications Enabled",
-    "notificationEnabledMessage": "We'll remind you to exercise your neck when needed",
+    "notificationEnabledMessage": "We'll remind you to break fixed posture when needed",
     "notificationDisabled": "Notifications Disabled",
     "notificationDisabledMessage": "You won't receive health reminders",
     "notificationDenied": "Notification Permission Denied",
@@ -215,7 +215,7 @@
     "fullStatsTitle": "Full statistics",
     "fullStatsDescription": "Upgrade to Pro to view detailed charts and historical data",
     "healthReminderComingSoon": "Health reminders are coming soon",
-    "healthReminderComingSoonDescription": "Set scheduled reminders to help build a healthier routine",
+    "healthReminderComingSoonDescription": "Set scheduled reminders to reduce long fixed-position reading sessions",
     "exerciseGoalsComingSoon": "Exercise goals are coming soon",
     "exerciseGoalsComingSoonDescription": "Set a daily target and track your neck exercise progress"
   },
@@ -305,7 +305,7 @@
     "metaTitle": "About - Shaking Head News",
     "metaDescription": "Learn about the features of Shaking Head News",
     "background": "Project Background",
-    "backgroundDescription": "Prolonged use of computers and phones can lead to cervical spine issues. This project helps users exercise their neck while browsing news through automatic page rotation, improving cervical health.",
+    "backgroundDescription": "Long reading sessions on computers and phones often keep people in one posture. This project uses gentle page rotation while reading news to prompt posture breaks.",
     "techStack": "Tech Stack",
     "license": "This project is licensed under the MPL-2.0 License."
   },

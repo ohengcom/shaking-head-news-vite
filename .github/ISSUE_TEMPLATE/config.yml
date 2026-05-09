@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Live demo
+    url: https://sn.oheng.com
+    about: Try the hosted demo before filing a product issue.

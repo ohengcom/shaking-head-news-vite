@@ -1,6 +1,6 @@
 {
   "name": "shaking-head-news-vite",
-  "description": "Cloudflare-native Vite news app with neck health rotation features",
+  "description": "Cloudflare-native Vite news reader with gentle posture-break rotation prompts",
   "version": "2.3.1",
   "repository": {
     "type": "git",
@@ -12,9 +12,12 @@
     "react",
     "hono",
     "news",
-    "health",
-    "cervical spondylosis",
-    "web app"
+    "rss-reader",
+    "opml",
+    "news-aggregator",
+    "posture-break",
+    "wellness",
+    "web-app"
   ],
   "author": "ohengcom <ohengcom@users.noreply.github.com>",
   "license": "MPL-2.0",

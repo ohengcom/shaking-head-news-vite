@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Project Packaging**: Reworked README, contribution docs, roadmap, issue templates, and social metadata to improve first-time evaluation
+- **Product Language**: Replaced health-outcome wording with posture-break and gentle-reminder language
 - **Runtime Surface**: Cleaned the project surface so the active stack is presented as Vite SPA + Cloudflare Worker only
 - **Environment Variables**: Removed public-variable fallback aliases and standardized on `VITE_*` for client-exposed build config
 - **Tooling**: Added `npm run check`, `npm run lint:unused`, `npm run test:e2e:smoke`, and `npm run clean`

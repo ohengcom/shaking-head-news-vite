@@ -20,6 +20,12 @@ BETTER_AUTH_URL=http://localhost:3001
 BETTER_AUTH_SECRET=
 ```
 
+Generate a local secret with:
+
+```bash
+openssl rand -hex 32
+```
+
 ## Common Optional Variables
 
 ```env
@@ -65,4 +71,23 @@ If not authenticated:
 
 ```bash
 npx wrangler login
+```
+
+## Cloudflare KV
+
+Persistent settings, stats, auth helper data, and RSS state use the `APP_SETTINGS_KV`
+binding configured in `wrangler.jsonc`.
+
+Create production and preview namespaces:
+
+```bash
+npx wrangler kv namespace create APP_SETTINGS_KV
+npx wrangler kv namespace create APP_SETTINGS_KV --preview
+```
+
+Copy the generated `id` and `preview_id` into `wrangler.jsonc`, then regenerate Worker
+types:
+
+```bash
+npm run types:worker
 ```

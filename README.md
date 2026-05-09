@@ -1,104 +1,107 @@
 # Shaking Head News
 
-边读新闻，边做轻量颈部活动提醒。
+A tiny news reader that nudges you to break fixed reading posture with gentle page
+rotation.
 
+边看新闻，边用轻微页面旋转打断固定阅读姿势。
+
+[![CI](https://github.com/ohengcom/shaking-head-news-vite/actions/workflows/ci.yml/badge.svg)](https://github.com/ohengcom/shaking-head-news-vite/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
 [![Frontend](https://img.shields.io/badge/frontend-Vite%20%2B%20React-646cff)](https://vite.dev/)
 [![Version](https://img.shields.io/badge/version-2.3.1-2563eb)](CHANGELOG.md)
 
-在线演示：https://sn.oheng.com  
-仓库地址：https://github.com/ohengcom/shaking-head-news-vite
+[Live Demo](https://sn.oheng.com) · [Self-host](#self-host-in-5-minutes) ·
+[Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
-## 项目定位
+## Why It Exists
 
-Shaking Head News 不是普通新闻聚合页。它把“久坐刷新闻”这个场景，改造成一次低负担的颈部活动提醒：
+Shaking Head News turns a common habit, reading news while sitting still, into a
+low-friction posture break:
 
-- 阅读区会做小幅、可控的倾斜或轮换
-- 用户在看新闻时会自然地轻微转头或调整姿势
-- 核心卖点不是“治疗”，而是“减少长时间固定姿势阅读”
+- the reading area tilts or rotates gently at configurable intervals
+- daily brief, IT news, hot lists, and custom RSS feeds live in one place
+- OPML import/export makes it practical for self-hosted personal feeds
+- settings, RSS sources, and reading stats can be stored in Cloudflare KV
 
-这个定位对用户是能讲通的，但前提是表达要足够克制、具体，避免夸大医疗效果。更准确的产品语言应当是：
+It is not a medical or treatment tool. The product language is intentionally scoped to
+posture breaks, gentle movement prompts, and reducing long stretches of fixed-position
+reading.
 
-- 颈部活动提醒
-- 久坐阅读姿势打断
-- 边看新闻边做轻量头颈活动
+## Feature Highlights
 
-## 功能概览
+- Daily brief and IT news aggregation
+- Custom RSS sources for signed-in users
+- OPML import/export in the self-hosted Pro preview mode
+- Configurable rotation mode, interval, angle, font size, and layout density
+- Reading activity stats and reminder prompts
+- Chinese and English UI
+- Light/dark/system themes
+- Cloudflare-native API runtime with Hono and KV
+- Vitest unit tests, Playwright E2E tests, Knip unused-code scanning, and CI
 
-- 每日简报和 IT 资讯聚合
-- 登录用户可添加自定义 RSS 源
-- Pro 预览用户支持 OPML 导入导出
-- 可调节页面旋转模式、间隔和阅读偏好
-- 颈部活动统计与提醒
-- 中英文界面
-- 明暗主题
-- 支持广告位配置和自托管 Pro 预览模式
+The Pro mode in this repository is a self-hosted feature preview. It does not include
+billing. Deployers can wire it to their own entitlement system, keep the preview toggle,
+or remove the gated features.
 
-当前仓库中的 Pro 仅是自托管预览能力，不包含真实计费。
+## Tech Stack
 
-## 技术栈
+- Frontend: Vite 8, React 19, React Router 7
+- Edge API: Cloudflare Workers + Hono
+- Auth: Better Auth
+- Storage: Cloudflare KV
+- UI: Tailwind CSS 4, Radix UI, Framer Motion, lucide-react
+- Validation: Zod
+- Tests: Vitest + Playwright
+- Deployment: Wrangler + GitHub Actions
 
-- 前端：Vite 8、React 19、React Router 7
-- 边缘 API：Cloudflare Workers + Hono
-- 认证：Better Auth
-- 存储：Cloudflare KV
-- UI：Tailwind CSS 4、Radix UI、Framer Motion、lucide-react
-- 校验：Zod
-- 测试：Vitest + Playwright
-- 部署：Wrangler + GitHub Actions
+## Self-host In 5 Minutes
 
-## 运行结构
+Prerequisites:
 
-- `src/main.tsx`：浏览器入口
-- `src/app/App.tsx`：SPA 根应用
-- `src/styles/globals.css`：主样式入口
-- `worker/index.ts`：Cloudflare Worker 入口和路由
-- `components/`：共享 UI 和业务组件
-- `lib/actions/`：Worker 侧业务逻辑
-- `lib/api/*-client.ts`：浏览器访问 Worker API 的封装
-- `lib/i18n.ts`、`lib/router.ts`、`lib/link.tsx`：浏览器运行时使用的本地能力封装
-- `wrangler.jsonc`：Worker、静态资源、KV、路由和 observability 配置
-- `worker-configuration.d.ts`：由 `wrangler types` 生成的 Worker bindings 类型
-
-当前仓库运行时：`Vite SPA + Cloudflare Worker`。
-
-## 本地开发
+- Node.js 22+
+- npm 11.11+
+- A Cloudflare account with Wrangler authenticated
 
 ```bash
 npm install
 cp .env.example .env.local
-npm run dev
 ```
 
-默认地址：`http://localhost:3001`
-
-本地至少需要：
-
-```env
-BETTER_AUTH_URL=http://localhost:3001
-BETTER_AUTH_SECRET=
-```
-
-本地 secret 可这样生成：
+Generate a local auth secret:
 
 ```bash
 openssl rand -hex 32
 ```
 
-## 常用命令
+Set the minimum local variables:
 
-- `npm run dev`：启动本地开发服务
-- `npm run check`：执行 lint、type-check、单元测试和生产构建
-- `npm run test:e2e:smoke`：执行 Chromium smoke 测试
-- `npm run lint:unused`：检查未使用文件、导出、依赖和重复项
-- `npm run types:worker`：重新生成 Worker 类型
-- `npm run deploy`：构建并通过 Wrangler 部署
-- `npm run clean`：清理本地构建和测试产物
+```env
+BETTER_AUTH_URL=http://localhost:3001
+BETTER_AUTH_SECRET=<your-generated-secret>
+```
 
-## Cloudflare 部署
+Create KV namespaces for production and preview:
 
-远程部署前建议先执行：
+```bash
+npx wrangler kv namespace create APP_SETTINGS_KV
+npx wrangler kv namespace create APP_SETTINGS_KV --preview
+```
+
+Copy the generated `id` and `preview_id` into `wrangler.jsonc`, then refresh Worker
+types:
+
+```bash
+npm run types:worker
+```
+
+Run locally:
+
+```bash
+npm run dev
+```
+
+Deploy:
 
 ```bash
 npx wrangler whoami
@@ -106,32 +109,35 @@ npm run check
 npm run deploy
 ```
 
-当前 Worker 路由策略：
+For OAuth providers, add the relevant IDs to `.env.local` and store private values with
+`wrangler secret put` before deploying.
 
-- `assets.directory = ./dist/client`
-- `assets.not_found_handling = single-page-application`
-- `assets.run_worker_first = ["/api/*", "/ads.txt"]`
-- `observability.enabled = true`
-- `APP_SETTINGS_KV` 用于存储设置、统计、认证辅助数据和 RSS 状态
+## Project Layout
 
-修改 `wrangler.jsonc` 或 `.env.example` 后，记得重新生成 Worker 类型：
+- `src/main.tsx`: browser entry
+- `src/app/App.tsx`: SPA root
+- `src/styles/globals.css`: shared styles
+- `worker/index.ts`: Cloudflare Worker routes
+- `components/`: shared UI and feature components
+- `lib/actions/`: Worker-side business logic
+- `lib/api/*-client.ts`: browser fetch wrappers for Worker APIs
+- `lib/i18n.ts`, `lib/router.ts`, `lib/link.tsx`: local browser runtime helpers
+- `wrangler.jsonc`: Worker, assets, KV, routing, and observability config
+- `worker-configuration.d.ts`: generated Worker binding types
 
-```bash
-npm run types:worker
-```
+Runtime: `Vite SPA + Cloudflare Worker`.
 
-## 项目健康状态
+## Common Commands
 
-当前仓库应长期保持通过：
+- `npm run dev`: start local development
+- `npm run check`: lint, type-check, unit tests, and production build
+- `npm run test:e2e:smoke`: run Chromium smoke tests
+- `npm run lint:unused`: scan unused files, dependencies, unresolved imports, and duplicates
+- `npm run types:worker`: regenerate Worker binding types
+- `npm run deploy`: build and deploy with Wrangler
+- `npm run clean`: remove local build and test output
 
-```bash
-npm run lint:unused
-npm run check
-```
-
-已知权衡记录在 [Known Issues](docs/KNOWN_ISSUES.md)。
-
-## 文档
+## Docs
 
 - [Setup](docs/SETUP.md)
 - [Architecture](docs/ARCHITECTURE.md)
@@ -141,25 +147,22 @@ npm run check
 - [Monitoring Quick Start](docs/MONITORING_QUICK_START.md)
 - [Known Issues](docs/KNOWN_ISSUES.md)
 
-## 贡献
+## Good First Issues
 
-欢迎提 issue 和小规模 PR。比较值得继续投入的方向：
+Useful contribution areas:
 
-- 强化首页首屏卖点表达和使用前后对比
-- 增加真实动效截图和短 GIF
-- 提升 RSS 解析的边界处理和稳定性
-- 改善与 motion preference 相关的无障碍体验
-- 补充更多 Cloudflare 部署示例
+- Add more RSS parser edge-case fixtures
+- Improve OPML import validation and error messages
+- Add an accessibility pass for reduced motion and keyboard navigation
+- Document more Cloudflare deployment variants
+- Add screenshots for RSS management, settings, and stats pages
+- Expand Playwright coverage for language switching and RSS flows
 
-提交前建议先跑：
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md).
 
-```bash
-npm run check
-```
+## Credits
 
-## 致谢
-
-- 新闻接口来源：[vikiboss/60s](https://github.com/vikiboss/60s)
+- News API source: [vikiboss/60s](https://github.com/vikiboss/60s)
 
 ## License
 
