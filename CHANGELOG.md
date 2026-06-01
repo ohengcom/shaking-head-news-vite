@@ -2,12 +2,12 @@
 
 All notable changes to Shaking Head News will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+Release versions use the date-based `YYYY.M.D` format.
 
 ## [Unreleased]
 
-## [2.3.3] - 2026-06-01
+## [2026.6.1] - 2026-06-01
 
 ### Changed
 

@@ -9,9 +9,9 @@ afterEach(() => {
 
 describe('runtime env helpers', () => {
   it('reads canonical VITE-prefixed keys', () => {
-    process.env.VITE_GA_ID = 'vite-ga'
+    process.env.VITE_LOG_LEVEL = 'info'
 
-    expect(getEnvValue('VITE_GA_ID')).toBe('vite-ga')
+    expect(getEnvValue('VITE_LOG_LEVEL')).toBe('info')
   })
 
   it('maps plain keys to their VITE-prefixed counterpart', () => {

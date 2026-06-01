@@ -33,7 +33,6 @@ Wrangler secrets:
 - `BETTER_AUTH_SECRET`
 - `GOOGLE_CLIENT_SECRET`
 - `AUTH_MICROSOFT_ENTRA_ID_SECRET`
-- `SENTRY_AUTH_TOKEN`
 
 Build variables or plain env:
 
@@ -44,8 +43,6 @@ Build variables or plain env:
 - `VITE_ADSENSE_SLOT_HEADER`
 - `VITE_ADSENSE_SLOT_FOOTER`
 - `VITE_ADSENSE_SLOT_INLINE`
-- `VITE_GA_ID`
-- `VITE_SENTRY_DSN`
 - `VITE_LOG_LEVEL`
 
 ## Create KV Namespaces

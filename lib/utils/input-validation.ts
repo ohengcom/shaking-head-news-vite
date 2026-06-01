@@ -310,26 +310,6 @@ export function sanitizeFilename(filename: string): string {
 }
 
 /**
- * Check if string contains SQL injection patterns
- *
- * @deprecated This function is not used — the project uses KV-backed storage (not SQL).
- * Retained for reference; remove if not needed.
- * @param input - Input to check
- * @returns True if suspicious patterns detected
- */
-export function containsSqlInjection(input: string): boolean {
-  const sqlPatterns = [
-    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/i,
-    /(--|#|\/\*|\*\/)/,
-    /(\bOR\b.*=.*)/i,
-    /(\bAND\b.*=.*)/i,
-    /('|")\s*(OR|AND)\s*('|")/i,
-  ]
-
-  return sqlPatterns.some((pattern) => pattern.test(input))
-}
-
-/**
  * Check if string contains XSS patterns
  *
  * @param input - Input to check

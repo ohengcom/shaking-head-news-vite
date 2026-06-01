@@ -8,13 +8,7 @@
  * strongly-consistent counter implementation.
  */
 
-import {
-  storage,
-  getStorageItem,
-  setStorageItemWithOptions,
-  deleteStorageItem,
-  getTTL,
-} from './storage'
+import { getStorageItem, setStorageItemWithOptions, deleteStorageItem, getTTL } from './storage'
 
 export interface RateLimitResult {
   success: boolean
@@ -66,32 +60,7 @@ export async function rateLimit(
   const key = `${prefix}:${identifier}`
 
   try {
-    // Use atomic INCR when a native counter backend is available.
-    if (storage) {
-      const count = await storage.incr(key)
-
-      // Set expiry only on first request (count === 1)
-      if (count === 1) {
-        await storage.expire(key, window)
-      }
-
-      if (count > limit) {
-        const ttl = await storage.ttl(key)
-        return {
-          success: false,
-          remaining: 0,
-          reset: Date.now() + (ttl > 0 ? ttl * 1000 : window * 1000),
-        }
-      }
-
-      return {
-        success: true,
-        remaining: limit - count,
-        reset: Date.now() + window * 1000,
-      }
-    }
-
-    // KV-backed fallback: non-atomic read-modify-write, acceptable for current low-volume usage.
+    // KV-backed read-modify-write, acceptable for current low-volume usage.
     const current = await getStorageItem<number>(key)
     const count = current || 0
 
