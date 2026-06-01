@@ -1,9 +1,9 @@
 import { betterAuth } from 'better-auth'
-import { getCurrentRequest } from '@/lib/server/request-context'
-import { getGlobalWorkerEnv, type KVNamespaceLike } from '@/lib/server/env'
+import { getCurrentEnv, getCurrentRequest } from '@/lib/server/request-context'
+import type { KVNamespaceLike } from '@/lib/server/env'
 
 function getRuntimeEnvValue(key: keyof CloudflareEnv | 'AUTH_MICROSOFT_REDIRECT_PATH') {
-  const workerValue = getGlobalWorkerEnv()?.[key as keyof CloudflareEnv]
+  const workerValue = getCurrentEnv()?.[key as keyof CloudflareEnv]
   if (typeof workerValue === 'string' && workerValue.trim().length > 0) {
     return workerValue.trim()
   }
@@ -32,7 +32,7 @@ function toAbsoluteURL(baseURL: string | undefined, pathOrURL: string): string |
 }
 
 function getSecondaryKV(): KVNamespaceLike | null {
-  return globalThis.APP_SETTINGS_KV ?? null
+  return getCurrentEnv()?.APP_SETTINGS_KV ?? null
 }
 
 function createSecondaryStorage(kv: KVNamespaceLike) {

@@ -17,7 +17,7 @@ export default defineConfig({
     // Test file patterns
     include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     // Exclude patterns
-    exclude: ['node_modules', 'tests/e2e/**'],
+    exclude: ['node_modules', 'tests/e2e/**', 'tests/worker/**'],
     // Coverage configuration using V8 provider (recommended for Vitest 4.x)
     coverage: {
       provider: 'v8',

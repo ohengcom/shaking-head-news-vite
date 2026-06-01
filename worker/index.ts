@@ -22,7 +22,7 @@ import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
 import { getAdSenseClientId } from '@/lib/config/adsense'
 import type { UserSettings } from '@/types/settings'
 import { APIError, ValidationError } from '@/lib/utils/error-handler'
-import { setGlobalWorkerEnv, type AppWorkerEnv } from '@/lib/server/env'
+import type { AppWorkerEnv } from '@/lib/server/env'
 import { runWithRequestContext } from '@/lib/server/request-context'
 
 type Bindings = AppWorkerEnv
@@ -102,7 +102,6 @@ async function parseJsonBody<T>(request: Request): Promise<T> {
 }
 
 app.use('*', async (c, continueMiddleware) => {
-  setGlobalWorkerEnv(c.env)
   await runWithRequestContext(
     {
       request: c.req.raw,
@@ -423,6 +422,16 @@ app.get('/ads.txt', (c) => {
 })
 
 app.notFound(async (c) => {
+  if (new URL(c.req.url).pathname.startsWith('/api/')) {
+    return c.json(
+      {
+        success: false,
+        error: 'Not Found',
+      },
+      404
+    )
+  }
+
   if (c.env.ASSETS) {
     const response = await c.env.ASSETS.fetch(c.req.raw)
     if (response.status !== 404) {

@@ -49,6 +49,17 @@ import { getRSSSources } from '@/lib/actions/rss'
 const mockFetch = vi.fn()
 global.fetch = mockFetch as unknown as typeof fetch
 
+function createXmlResponse(xml: string, init?: ResponseInit) {
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      'content-type': 'application/xml; charset=utf-8',
+      ...init?.headers,
+    },
+    ...init,
+  })
+}
+
 describe('News Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -169,10 +180,7 @@ describe('News Actions', () => {
 </rss>`
 
     it('should parse RSS feed successfully', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: async () => mockRSSXML,
-      })
+      mockFetch.mockResolvedValue(createXmlResponse(mockRSSXML))
 
       const result = await getRSSNews('https://example.com/rss.xml')
 
@@ -190,10 +198,9 @@ describe('News Actions', () => {
     })
 
     it('should retry on fetch failure', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
-        ok: true,
-        text: async () => mockRSSXML,
-      })
+      mockFetch
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce(createXmlResponse(mockRSSXML))
 
       const result = await getRSSNews('https://example.com/rss.xml')
 
@@ -219,19 +226,27 @@ describe('News Actions', () => {
   </channel>
 </rss>`
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: async () => emptyRSS,
-      })
+      mockFetch.mockResolvedValue(createXmlResponse(emptyRSS))
 
       await expect(getRSSNews('https://example.com/rss.xml')).rejects.toThrow()
     })
 
+    it('should reject RSS responses above the configured size limit', async () => {
+      mockFetch.mockResolvedValue(
+        createXmlResponse('', {
+          headers: {
+            'content-length': String(1024 * 1024 + 1),
+          },
+        })
+      )
+
+      await expect(getRSSNews('https://example.com/rss.xml')).rejects.toThrow(
+        'RSS feed is too large'
+      )
+    })
+
     it('should clean HTML from descriptions', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: async () => mockRSSXML,
-      })
+      mockFetch.mockResolvedValue(createXmlResponse(mockRSSXML))
 
       const result = await getRSSNews('https://example.com/rss.xml')
 
@@ -257,10 +272,7 @@ describe('News Actions', () => {
   </entry>
 </feed>`
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: async () => v2exXML,
-      })
+      mockFetch.mockResolvedValue(createXmlResponse(v2exXML))
 
       const result = await getRSSNews('https://v2ex.com/index.xml')
 
@@ -343,10 +355,7 @@ describe('News Actions', () => {
         </channel>
       </rss>`
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: async () => rssXML,
-      })
+      mockFetch.mockResolvedValue(createXmlResponse(rssXML))
 
       const result = await getUserCustomNews()
 
@@ -401,8 +410,8 @@ describe('News Actions', () => {
       </rss>`
 
       mockFetch
-        .mockResolvedValueOnce({ ok: true, text: async () => rssXML1 })
-        .mockResolvedValueOnce({ ok: true, text: async () => rssXML2 })
+        .mockResolvedValueOnce(createXmlResponse(rssXML1))
+        .mockResolvedValueOnce(createXmlResponse(rssXML2))
 
       const result = await getUserCustomNews()
 

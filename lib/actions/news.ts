@@ -17,6 +17,8 @@ import { getEnvValue, getRuntimeMode, isNonProductionRuntime } from '@/lib/confi
 
 const DEFAULT_NEWS_API_BASE_URL = 'https://news.ravelloh.top'
 const NEWS_CACHE_TTL_MS = 5 * 60 * 1000
+const RSS_FETCH_TIMEOUT_MS = 10 * 1000
+const MAX_RSS_FEED_BYTES = 1024 * 1024
 const suppressedNewsFetchWarnings = new Set<string>()
 const newsCache = new Map<string, { expiresAt: number; value: NewsResponse }>()
 
@@ -82,6 +84,54 @@ function logNewsFetchFailure(
   console.warn(
     `[news] Suppressed expected upstream ${error.statusCode} from ${hostname} during ${getRuntimeMode()}; using empty feed fallback.`
   )
+}
+
+function getContentLength(response: Response): number | null {
+  const raw = response.headers.get('content-length')
+  if (!raw) {
+    return null
+  }
+
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+async function readBoundedText(response: Response, maxBytes: number, sourceUrl: string) {
+  const contentLength = getContentLength(response)
+  if (contentLength !== null && contentLength > maxBytes) {
+    throw new NewsAPIError('RSS feed is too large', 413, sourceUrl)
+  }
+
+  if (!response.body) {
+    return ''
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let receivedBytes = 0
+  let text = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        break
+      }
+
+      receivedBytes += value.byteLength
+      if (receivedBytes > maxBytes) {
+        await reader.cancel()
+        throw new NewsAPIError('RSS feed is too large', 413, sourceUrl)
+      }
+
+      text += decoder.decode(value, { stream: true })
+    }
+
+    text += decoder.decode()
+    return text
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 async function fetchNews(language: 'zh' | 'en' = 'zh', source?: string): Promise<NewsResponse> {
@@ -355,6 +405,7 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
         headers: {
           'User-Agent': 'ShakingHeadNews/1.0',
         },
+        signal: AbortSignal.timeout(RSS_FETCH_TIMEOUT_MS),
       })
 
       if (!res.ok) {
@@ -364,7 +415,7 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
       return res
     })
 
-    const xml = await response.text()
+    const xml = await readBoundedText(response, MAX_RSS_FEED_BYTES, rssUrl)
 
     // Parse RSS XML
     const items = parseRSSFeed(xml, rssUrl)

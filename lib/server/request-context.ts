@@ -19,6 +19,10 @@ export function getRequestContext(): RequestContextValue | null {
   return requestContextStorage.getStore() ?? null
 }
 
+export function getCurrentEnv(): AppWorkerEnv | null {
+  return getRequestContext()?.env ?? null
+}
+
 export function getCurrentRequest(): Request | null {
   return getRequestContext()?.request ?? null
 }

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.3] - 2026-06-01
+
+### Changed
+
+- **Cloudflare Runtime**: Removed global Worker environment bridging in favor of request-scoped context access for bindings and auth configuration
+- **Tooling**: Added Cloudflare Workers Vitest coverage to the standard validation flow and fixed Knip unused-dependency checks for Worker test modules
+- **Build Output**: Split React, UI, and vendor chunks with Rolldown to keep the initial client entry below the default Vite warning threshold
+- **Compatibility**: Updated the Worker compatibility date to `2026-06-01` and regenerated Worker binding types
+
+### Fixed
+
+- **RSS Safety**: Added timeout and bounded streaming reads for custom RSS feeds to avoid buffering unbounded upstream responses
+
 ## [2.3.2] - 2026-05-09
 
 ### Changed

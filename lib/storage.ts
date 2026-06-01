@@ -1,19 +1,10 @@
-interface KVNamespaceLike {
-  get(key: string, type?: 'text'): Promise<string | null>
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
-  delete(key: string): Promise<void>
-}
+import type { KVNamespaceLike } from '@/lib/server/env'
+import { getCurrentEnv } from '@/lib/server/request-context'
 
 interface CloudflareWorkersModule {
   env?: {
     APP_SETTINGS_KV?: KVNamespaceLike
   }
-}
-
-interface LegacyRateLimitStorageLike {
-  incr(key: string): Promise<number>
-  expire(key: string, seconds: number): Promise<void>
-  ttl(key: string): Promise<number>
 }
 
 interface StoredEnvelope<T> {
@@ -28,13 +19,8 @@ interface RecentWriteCacheEntry {
 
 const RECENT_WRITE_CACHE_WINDOW_MS = 2 * 60 * 1000
 
-let kvNamespaceCache: KVNamespaceLike | undefined
 let workersEnvLookupAttempted = false
 const recentWriteCache = new Map<string, RecentWriteCacheEntry>()
-
-function getGlobalKVNamespace(): KVNamespaceLike | null {
-  return (globalThis as { APP_SETTINGS_KV?: KVNamespaceLike }).APP_SETTINGS_KV ?? null
-}
 
 function cacheRecentWrite<T>(key: string, envelope: StoredEnvelope<T>): void {
   recentWriteCache.set(key, {
@@ -68,14 +54,9 @@ function getRecentWrite<T>(key: string): StoredEnvelope<T> | null {
 }
 
 async function getKVNamespace(): Promise<KVNamespaceLike | null> {
-  const globalKV = getGlobalKVNamespace()
-  if (globalKV) {
-    kvNamespaceCache = globalKV
-    return kvNamespaceCache
-  }
-
-  if (kvNamespaceCache) {
-    return kvNamespaceCache
+  const requestKV = getCurrentEnv()?.APP_SETTINGS_KV
+  if (requestKV) {
+    return requestKV
   }
 
   if (!workersEnvLookupAttempted) {
@@ -87,18 +68,11 @@ async function getKVNamespace(): Promise<KVNamespaceLike | null> {
       )) as CloudflareWorkersModule
 
       if (cloudflareModule?.env?.APP_SETTINGS_KV) {
-        kvNamespaceCache = cloudflareModule.env.APP_SETTINGS_KV
-        return kvNamespaceCache
+        return cloudflareModule.env.APP_SETTINGS_KV
       }
     } catch {
       // Ignore import failures in non-Cloudflare environments.
     }
-  }
-
-  const lateGlobalKV = getGlobalKVNamespace()
-  if (lateGlobalKV) {
-    kvNamespaceCache = lateGlobalKV
-    return kvNamespaceCache
   }
 
   return null
@@ -165,9 +139,6 @@ async function writeKVValue<T>(
   await kv.put(key, JSON.stringify(payload))
   return payload
 }
-
-// Kept for backward compatibility with existing rate-limit branch logic.
-export const storage: LegacyRateLimitStorageLike | null = null
 
 export async function getStorageItem<T>(key: string): Promise<T | null> {
   try {

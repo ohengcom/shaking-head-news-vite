@@ -7,6 +7,32 @@ import { defineConfig } from 'vite'
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 3,
+            },
+            {
+              name: 'ui-vendor',
+              test: /node_modules[\\/](@radix-ui|framer-motion|lucide-react)[\\/]/,
+              priority: 2,
+            },
+            {
+              name: 'vendor',
+              test: /node_modules[\\/]/,
+              priority: 1,
+              maxSize: 250_000,
+            },
+          ],
+        },
+      },
+    },
+  },
   server: {
     port: 3001,
   },

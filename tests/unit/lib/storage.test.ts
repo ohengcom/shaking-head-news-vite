@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AppWorkerEnv } from '@/lib/server/env'
 
 interface MockKVNamespaceLike {
   get(key: string, type?: 'text'): Promise<string | null>
@@ -22,27 +23,41 @@ function createMockKV(initialData?: Record<string, string>): MockKVNamespaceLike
   }
 }
 
+async function runWithKV<T>(kv: MockKVNamespaceLike, callback: () => Promise<T>): Promise<T> {
+  const { runWithRequestContext } = await import('@/lib/server/request-context')
+
+  return runWithRequestContext(
+    {
+      request: new Request('https://example.test/'),
+      env: {
+        APP_SETTINGS_KV: kv as AppWorkerEnv['APP_SETTINGS_KV'],
+      },
+    },
+    callback
+  )
+}
+
 describe('storage', () => {
   beforeEach(() => {
     vi.resetModules()
-    delete (globalThis as { APP_SETTINGS_KV?: MockKVNamespaceLike }).APP_SETTINGS_KV
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    delete (globalThis as { APP_SETTINGS_KV?: MockKVNamespaceLike }).APP_SETTINGS_KV
     vi.restoreAllMocks()
   })
 
-  it('should recover when KV binding appears after initial miss', async () => {
+  it('should recover when a request context with KV appears after initial miss', async () => {
     const storage = await import('@/lib/storage')
 
     const firstRead = await storage.getStorageItem('user:test:settings')
     expect(firstRead).toBeNull()
-    ;(globalThis as { APP_SETTINGS_KV?: MockKVNamespaceLike }).APP_SETTINGS_KV = createMockKV()
 
-    await storage.setStorageItem('user:test:settings', { theme: 'dark' })
-    const value = await storage.getStorageItem<{ theme: string }>('user:test:settings')
+    const kv = createMockKV()
+    const value = await runWithKV(kv, async () => {
+      await storage.setStorageItem('user:test:settings', { theme: 'dark' })
+      return storage.getStorageItem<{ theme: string }>('user:test:settings')
+    })
 
     expect(value?.theme).toBe('dark')
   })
@@ -55,12 +70,13 @@ describe('storage', () => {
     staleKV.put = vi.fn(async () => {
       // Simulate eventual consistency: keep serving stale data for a while.
     })
-    ;(globalThis as { APP_SETTINGS_KV?: MockKVNamespaceLike }).APP_SETTINGS_KV = staleKV
 
     const storage = await import('@/lib/storage')
 
-    await storage.setStorageItem('user:test:settings', { theme: 'dark' })
-    const value = await storage.getStorageItem<{ theme: string }>('user:test:settings')
+    const value = await runWithKV(staleKV, async () => {
+      await storage.setStorageItem('user:test:settings', { theme: 'dark' })
+      return storage.getStorageItem<{ theme: string }>('user:test:settings')
+    })
 
     expect(value?.theme).toBe('dark')
   })

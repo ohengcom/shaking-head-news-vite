@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreDependencies": ["tailwindcss", "tailwindcss-animate"],
+  "ignoreDependencies": ["cloudflare", "tailwindcss", "tailwindcss-animate"],
   "project": [
     "src/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
@@ -8,7 +8,6 @@
     "lib/**/*.{ts,tsx}",
     "worker/**/*.ts",
     "tests/**/*.{ts,tsx}",
-    "types/**/*.ts",
-    "messages/**/*.json"
+    "types/**/*.ts"
   ]
 }
