@@ -371,12 +371,13 @@ app.post('/api/settings', async (c) => {
 
 app.get('/api/stats/summary', async (c) => {
   try {
+    const date = c.req.query('date')
     const settings = await getUserSettings()
 
     return c.json({
       success: true,
       payload: {
-        ...(await getSummaryStats()),
+        ...(await getSummaryStats(date)),
         dailyGoal: settings.dailyGoal || 30,
         isPro: Boolean(settings.isPro),
       },
@@ -389,7 +390,7 @@ app.get('/api/stats/summary', async (c) => {
 
 app.get('/api/stats/health-reminder', async (c) => {
   try {
-    return c.json(await checkHealthReminder())
+    return c.json(await checkHealthReminder(c.req.query('date')))
   } catch {
     return c.json({ shouldRemind: false, lastRotationTime: null })
   }
@@ -397,15 +398,22 @@ app.get('/api/stats/health-reminder', async (c) => {
 
 app.post('/api/stats/rotation', async (c) => {
   try {
-    const payload = await parseJsonBody<{ angle?: unknown; duration?: unknown }>(c.req.raw)
+    const payload = await parseJsonBody<{
+      angle?: unknown
+      duration?: unknown
+      count?: unknown
+      date?: unknown
+    }>(c.req.raw)
     const angle = Number(payload.angle)
     const duration = Number(payload.duration)
+    const count = payload.count === undefined ? 1 : Number(payload.count)
+    const date = typeof payload.date === 'string' ? payload.date : undefined
 
-    if (!Number.isFinite(angle) || !Number.isFinite(duration)) {
-      throw new ValidationError('Rotation payload must contain numeric angle and duration')
+    if (!Number.isFinite(angle) || !Number.isFinite(duration) || !Number.isFinite(count)) {
+      throw new ValidationError('Rotation payload must contain numeric angle, duration, and count')
     }
 
-    const result = await recordRotation(angle, duration)
+    const result = await recordRotation(angle, duration, count, date)
     if (result && typeof result === 'object' && 'error' in result) {
       if (result.error === 'UNAUTHORIZED' || result.error === 'RATE_LIMIT') {
         return c.body(null, 204)

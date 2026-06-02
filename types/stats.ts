@@ -4,6 +4,7 @@ export const RotationRecordSchema = z.object({
   timestamp: z.number(),
   angle: z.number(),
   duration: z.number(), // 持续时间（秒）
+  count: z.number().int().positive().optional(),
 })
 
 export type RotationRecord = z.infer<typeof RotationRecordSchema>

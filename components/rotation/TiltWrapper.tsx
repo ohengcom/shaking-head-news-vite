@@ -2,7 +2,7 @@
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { usePathname } from '@/lib/router'
-import { recordRotationViaApi } from '@/lib/api/stats-client'
+import { getLocalStatsDate, recordRotationViaApi } from '@/lib/api/stats-client'
 import { cn } from '@/lib/utils'
 
 interface TiltWrapperProps {
@@ -102,7 +102,7 @@ export function TiltWrapper({
     // Send the latest rotation as a summary (total count preserved in duration sum)
     const lastEntry = batch[batch.length - 1]
     const totalDuration = batch.reduce((sum, r) => sum + r.duration, 0)
-    recordRotationViaApi(lastEntry.angle, totalDuration).catch(() => {
+    recordRotationViaApi(lastEntry.angle, totalDuration, batch.length).catch(() => {
       // Silent failure — stats are non-critical
     })
   }, [])
@@ -115,7 +115,12 @@ export function TiltWrapper({
         const lastEntry = batch[batch.length - 1]
         const totalDuration = batch.reduce((sum, r) => sum + r.duration, 0)
         // Use sendBeacon for reliable page-unload reporting
-        const data = JSON.stringify({ angle: lastEntry.angle, duration: totalDuration })
+        const data = JSON.stringify({
+          angle: lastEntry.angle,
+          duration: totalDuration,
+          count: batch.length,
+          date: getLocalStatsDate(),
+        })
         navigator.sendBeacon?.('/api/stats/rotation', data)
       }
     }

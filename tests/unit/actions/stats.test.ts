@@ -123,6 +123,47 @@ describe('Stats Actions', () => {
       expect('totalDuration' in result && result.totalDuration).toBe(330)
     })
 
+    it('should preserve batched rotation count', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem).mockResolvedValue(null)
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+
+      const result = await recordRotation(8, 120, 4, '2026-06-02')
+
+      expect(result).not.toHaveProperty('error')
+      expect('rotationCount' in result && result.rotationCount).toBe(4)
+      expect('totalDuration' in result && result.totalDuration).toBe(120)
+      expect('date' in result && result.date).toBe('2026-06-02')
+      expect('records' in result && result.records[0]).toMatchObject({
+        angle: 8,
+        duration: 120,
+        count: 4,
+      })
+      expect(setStorageItem).toHaveBeenCalledWith(
+        'user:test-user-id:stats:2026-06-02',
+        expect.objectContaining({ rotationCount: 4 }),
+        expect.any(Number)
+      )
+    })
+
+    it('should reject invalid batched rotation count', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+
+      const result = await recordRotation(8, 120, 0)
+
+      expect(result).toEqual({
+        error: 'INTERNAL_ERROR',
+        details: 'Count must be an integer between 1 and 300',
+      })
+      expect(setStorageItem).not.toHaveBeenCalled()
+    })
+
     it('should record rotation even when rate limit would normally block (rate limit disabled)', async () => {
       // Rate limiting is currently disabled in the implementation for debugging
       vi.mocked(auth).mockResolvedValue({
