@@ -21,6 +21,27 @@ const subscribeToHydration = () => () => {}
 const getHydratedSnapshot = () => true
 const getServerHydratedSnapshot = () => false
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+const MIN_RANDOM_ANGLE_DEGREES = 8
+const MAX_RANDOM_ANGLE_DEGREES = 20
+const MIN_RANDOM_ANGLE_DELTA_DEGREES = 8
+
+function getNextRandomAngle(previousAngle: number): number {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const angleMagnitude =
+      Math.random() * (MAX_RANDOM_ANGLE_DEGREES - MIN_RANDOM_ANGLE_DEGREES) +
+      MIN_RANDOM_ANGLE_DEGREES
+    const sign = Math.random() < 0.5 ? 1 : -1
+    const nextAngle = angleMagnitude * sign
+
+    if (Math.abs(nextAngle - previousAngle) >= MIN_RANDOM_ANGLE_DELTA_DEGREES) {
+      return nextAngle
+    }
+  }
+
+  const fallbackMagnitude = Math.max(Math.abs(previousAngle), MIN_RANDOM_ANGLE_DEGREES)
+  const fallbackSign = previousAngle >= 0 ? -1 : 1
+  return fallbackMagnitude * fallbackSign
+}
 
 function subscribeToReducedMotion(callback: () => void) {
   if (typeof window === 'undefined' || !window.matchMedia) {
@@ -137,10 +158,7 @@ export function TiltWrapper({
 
     // Continuous mode: change angle at intervals
     const timer = setInterval(() => {
-      // Generate random angle with absolute value between 5 and 20 degrees
-      const angleMagnitude = Math.random() * 15 + 5 // 5 to 20
-      const sign = Math.random() < 0.5 ? 1 : -1
-      const newAngle = angleMagnitude * sign
+      const newAngle = getNextRandomAngle(previousAngle.current)
       setAngle(newAngle)
 
       // Buffer rotation for batch reporting

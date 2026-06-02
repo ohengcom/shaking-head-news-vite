@@ -9,7 +9,7 @@ rotation.
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
 [![Frontend](https://img.shields.io/badge/frontend-Vite%20%2B%20React-646cff)](https://vite.dev/)
-[![Version](https://img.shields.io/badge/version-2026.6.1-2563eb)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2026.6.2-2563eb)](CHANGELOG.md)
 
 [Live Demo](https://sn.oheng.com) · [Self-host](#self-host-in-5-minutes) ·
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
@@ -33,13 +33,15 @@ reading.
 ## Feature Highlights
 
 - Daily brief and IT news aggregation
+- Cached home feed data can be inlined into the initial Cloudflare HTML response for faster first paint
 - Custom RSS sources for signed-in users
 - OPML import/export in the self-hosted Pro preview mode
-- Configurable rotation mode, interval, angle, font size, and layout density
+- Configurable rotation mode, interval, visible minimum angle, font size, and layout density
 - Reading activity stats and reminder prompts
 - Chinese and English UI
 - Light/dark/system themes
-- Cloudflare-native API runtime with Hono and KV
+- Browser favicon and touch icon metadata using the existing app icon
+- Cloudflare-native API runtime with Hono, KV, Cache API, and Worker-first home HTML handling
 - Vitest unit tests, Playwright E2E tests, Knip unused-code scanning, and CI
 
 The Pro mode in this repository is a self-hosted feature preview. It does not include
@@ -119,7 +121,7 @@ For OAuth providers, add the relevant IDs to `.env.local` and store private valu
 - `src/main.tsx`: browser entry
 - `src/app/App.tsx`: SPA root
 - `src/styles/globals.css`: shared styles
-- `worker/index.ts`: Cloudflare Worker routes
+- `worker/index.ts`: Cloudflare Worker routes, home HTML feed snapshot injection, and API cache handling
 - `components/`: shared UI and feature components
 - `lib/actions/`: Worker-side business logic
 - `lib/api/*-client.ts`: browser fetch wrappers for Worker APIs

@@ -7,6 +7,25 @@ Release versions use the date-based `YYYY.M.D` format.
 
 ## [Unreleased]
 
+## [2026.6.2] - 2026-06-02
+
+### Added
+
+- **Home First Paint**: Added Cloudflare Worker-first home HTML handling that can inline cached home feed data into the initial document.
+- **Metadata**: Added favicon, shortcut icon, and Apple touch icon metadata using the existing app icon.
+
+### Changed
+
+- **Footer Compliance**: Updated the ICP display text to `沪ICP备2022000575号` while keeping the MIIT link unchanged.
+- **Rotation Visibility**: Continuous random rotation now enforces an 8-degree minimum target angle and an 8-degree minimum delta between consecutive angles.
+- **Cloudflare Caching**: Cached the public home feed endpoint with Cloudflare Cache API and reused valid snapshots before falling back to browser API loading.
+- **Build Output**: Scoped custom Vite vendor chunking to the client build so Worker server dependencies stay in a deployable bundle.
+
+### Fixed
+
+- **Cloudflare Deploy**: Fixed Worker deployment validation failures caused by Worker-side vendor chunk splitting.
+- **Home Load Latency**: Reduced first-load home feed delay by avoiding the initial browser `/api/feed/home` request when the HTML already contains a matching inline snapshot.
+
 ## [2026.6.1] - 2026-06-01
 
 ### Changed

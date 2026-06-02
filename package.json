@@ -1,7 +1,7 @@
 {
   "name": "shaking-head-news-vite",
   "description": "Cloudflare-native Vite news reader with gentle posture-break rotation prompts",
-  "version": "2026.6.1",
+  "version": "2026.6.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ohengcom/shaking-head-news-vite.git"

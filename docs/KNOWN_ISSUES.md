@@ -23,3 +23,7 @@ their own entitlement system, or remove the toggle route.
 RSS parsing uses `fast-xml-parser`, but OPML import still uses simple outline extraction. This is
 acceptable for personal feeds, but a public multi-user deployment should add stricter file limits,
 streaming safeguards, and a more complete OPML parser.
+
+## 5. Home Feed Cache Is Edge-Local
+
+The public home feed snapshot uses Cloudflare Cache API. Cache entries are local to the edge region, so the first request in a new region may receive static HTML and then fall back to `/api/feed/home` while the Worker warms the cache in the background.

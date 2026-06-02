@@ -36,3 +36,11 @@ npm run test:e2e
 - Chromium smoke tests should pass locally with the Vite dev server.
 - The full Playwright browser matrix is intended for broader compatibility verification and
   is slower than the smoke suite.
+
+## Release Smoke Checks
+
+- Home HTML can include `window.__HOME_FEED__` after the Cloudflare edge cache has warmed.
+- The browser falls back to `/api/feed/home?locale=...` when no matching inline snapshot exists.
+- Footer displays `沪ICP备2022000575号` and still links to `https://beian.miit.gov.cn/`.
+- `/icons/ytkxw.png` is referenced as the favicon and Apple touch icon.
+- Continuous rotation visibly changes angle instead of producing tiny random movements.

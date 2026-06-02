@@ -22,7 +22,7 @@ Current `wrangler.jsonc` should keep these values:
 - `main = ./worker/index.ts`
 - `assets.directory = ./dist/client`
 - `assets.not_found_handling = single-page-application`
-- `assets.run_worker_first = ["/api/*", "/ads.txt"]`
+- `assets.run_worker_first = ["/", "/api/*", "/ads.txt"]`
 - `observability.enabled = true`
 - `observability.head_sampling_rate = 1`
 
@@ -96,6 +96,12 @@ npm run deploy
 
 ## Route Behavior
 
+- `/` runs through the Worker first so cached home feed data can be injected into the HTML response.
 - Browser navigation such as `/settings` falls back to the SPA entry.
 - API requests under `/api/*` are handled by the Worker.
+- `/api/feed/home` uses Cloudflare Cache API for public home feed snapshots.
 - `/ads.txt` is generated dynamically by the Worker.
+
+## Home Feed Cache Behavior
+
+The first request in a cold Cloudflare edge region can return static HTML while the Worker warms the home feed cache with `executionCtx.waitUntil`. Later requests in that region can receive the same SPA HTML with `window.__HOME_FEED__` already injected, avoiding an initial browser API round trip for the public home feed.

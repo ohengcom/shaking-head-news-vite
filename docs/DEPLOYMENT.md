@@ -21,9 +21,12 @@ npm run types:worker
 - Worker entry: `worker/index.ts`
 - Static assets: `dist/client`
 - SPA fallback: enabled in `wrangler.jsonc`
-- Worker-first routes: `/api/*` and `/ads.txt`
+- Worker-first routes: `/`, `/api/*`, and `/ads.txt`
 
 ## Notes
+
+- The home route is Worker-first so the deployed Worker can inject cached public feed snapshots into the initial HTML response.
+- Cloudflare Cache API is edge-local; expect a cold region to warm before inline home feed data appears consistently.
 
 - Verify Wrangler access with `npx wrangler whoami`.
 - Store private values with `wrangler secret put`.
