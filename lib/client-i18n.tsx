@@ -37,6 +37,15 @@ function readCookieLocale(): AppLocale | null {
   return isLocale(match?.[1]) ? match[1] : null
 }
 
+function readInitialHomeFeedLocale(): AppLocale | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const locale = (window as { __HOME_FEED__?: { locale?: unknown } }).__HOME_FEED__?.locale
+  return typeof locale === 'string' && isLocale(locale) ? locale : null
+}
+
 function detectInitialLocale(): AppLocale {
   if (typeof window === 'undefined') {
     return DEFAULT_LOCALE
@@ -50,6 +59,11 @@ function detectInitialLocale(): AppLocale {
   const fromCookie = readCookieLocale()
   if (fromCookie) {
     return fromCookie
+  }
+
+  const fromInitialFeed = readInitialHomeFeedLocale()
+  if (fromInitialFeed) {
+    return fromInitialFeed
   }
 
   return navigator.language.toLowerCase().startsWith('en') ? 'en' : 'zh'

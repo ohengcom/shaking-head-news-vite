@@ -1,20 +1,36 @@
-import type { NewsItem } from '@/types/news'
+import type { HomeFeedResponse } from '@/types/news'
 
-export interface HomeFeedResponse {
-  success: boolean
-  error?: string
-  payload?: {
-    dailyNews: NewsItem[]
-    aiNews: NewsItem[]
+export type HomeFeedLocale = 'zh' | 'en'
+
+interface InitialHomeFeedSnapshot {
+  locale: HomeFeedLocale
+  data: HomeFeedResponse
+}
+
+declare global {
+  interface Window {
+    __HOME_FEED__?: InitialHomeFeedSnapshot
   }
 }
 
-export async function getHomeFeedViaApi(): Promise<HomeFeedResponse> {
+export function getInitialHomeFeed(locale: HomeFeedLocale): HomeFeedResponse | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const snapshot = window.__HOME_FEED__
+  if (!snapshot || snapshot.locale !== locale || !snapshot.data.success || !snapshot.data.payload) {
+    return null
+  }
+
+  return snapshot.data
+}
+
+export async function getHomeFeedViaApi(locale: HomeFeedLocale): Promise<HomeFeedResponse> {
   try {
-    const response = await fetch('/api/feed/home', {
+    const response = await fetch(`/api/feed/home?locale=${locale}`, {
       method: 'GET',
       credentials: 'same-origin',
-      cache: 'no-store',
     })
 
     const result = (await response.json()) as HomeFeedResponse

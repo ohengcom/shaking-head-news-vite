@@ -24,11 +24,15 @@ import type { UserSettings } from '@/types/settings'
 import { APIError, ValidationError } from '@/lib/utils/error-handler'
 import type { AppWorkerEnv } from '@/lib/server/env'
 import { runWithRequestContext } from '@/lib/server/request-context'
+import type { HomeFeedResponse } from '@/types/news'
 
 type Bindings = AppWorkerEnv
+type CloudflareCacheStorage = CacheStorage & { default: Cache }
 
 const app = new Hono<{ Bindings: Bindings }>()
 const GOOGLE_SELLER_ID = 'f08c47fec0942fa0'
+const HOME_FEED_CACHE_TTL_SECONDS = 60 * 60
+const HOME_FEED_STALE_WHILE_REVALIDATE_SECONDS = 6 * 60 * 60
 const LEGACY_MICROSOFT_CALLBACK_PATH = '/api/auth/callback/microsoft-entra-id'
 const LEGACY_MICROSOFT_OAUTH2_CALLBACK_PATH = '/api/auth/oauth2/callback/microsoft-entra-id'
 
@@ -88,13 +92,110 @@ function normalizeLegacyMicrosoftCallbackRequest(request: Request): Request {
 }
 
 function getRequestLocale(request: Request): 'zh' | 'en' {
+  const urlLocale = new URL(request.url).searchParams.get('locale')
+  if (urlLocale === 'en') {
+    return 'en'
+  }
+
+  if (urlLocale === 'zh') {
+    return 'zh'
+  }
+
   const cookieHeader = request.headers.get('cookie') || ''
   const localeCookie = cookieHeader.match(/(?:^|;\s*)locale=(zh|en)(?:;|$)/)?.[1]
   if (localeCookie === 'en') {
     return 'en'
   }
 
+  if (localeCookie === 'zh') {
+    return 'zh'
+  }
+
+  const acceptLanguage = request.headers.get('accept-language') || ''
+  if (acceptLanguage.toLowerCase().startsWith('en')) {
+    return 'en'
+  }
+
   return 'zh'
+}
+
+function getHomeFeedCacheRequest(request: Request, locale: 'zh' | 'en'): Request {
+  const url = new URL(request.url)
+  url.pathname = '/api/feed/home'
+  url.search = ''
+  url.searchParams.set('locale', locale)
+  return new Request(url.toString(), { method: 'GET' })
+}
+
+function withHomeFeedCacheHeaders(response: Response): Response {
+  const headers = new Headers(response.headers)
+  headers.set(
+    'cache-control',
+    `public, max-age=${HOME_FEED_CACHE_TTL_SECONDS}, s-maxage=${HOME_FEED_CACHE_TTL_SECONDS}, stale-while-revalidate=${HOME_FEED_STALE_WHILE_REVALIDATE_SECONDS}`
+  )
+  headers.set('vary', 'Accept-Encoding')
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+function withHtmlCacheHeaders(response: Response): Response {
+  const headers = new Headers(response.headers)
+  headers.set('cache-control', 'public, max-age=0, must-revalidate')
+  headers.set('content-type', 'text/html; charset=utf-8')
+  headers.set('vary', 'Accept-Encoding')
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+function getDefaultCache(): Cache {
+  return (caches as CloudflareCacheStorage).default
+}
+
+async function buildHomeFeedResponse(locale: 'zh' | 'en'): Promise<HomeFeedResponse> {
+  const [dailyNewsResult, aiNewsResult] = await Promise.allSettled([
+    getNews(locale),
+    getAiNewsItems(),
+  ])
+
+  return {
+    success: true,
+    payload: {
+      dailyNews: dailyNewsResult.status === 'fulfilled' ? dailyNewsResult.value.items : [],
+      aiNews: aiNewsResult.status === 'fulfilled' ? aiNewsResult.value : [],
+    },
+  }
+}
+
+async function putHomeFeedCache(
+  cache: Cache,
+  cacheRequest: Request,
+  locale: 'zh' | 'en'
+): Promise<Response> {
+  const response = withHomeFeedCacheHeaders(Response.json(await buildHomeFeedResponse(locale)))
+  await cache.put(cacheRequest, response.clone())
+  return response
+}
+
+function getHomeFeedScript(locale: 'zh' | 'en', data: HomeFeedResponse): string {
+  const json = JSON.stringify({ locale, data }).replace(/</g, '\\u003c')
+  return `<script>window.__HOME_FEED__=${json};</script>`
+}
+
+async function injectHomeFeedSnapshot(html: string, locale: 'zh' | 'en', data: HomeFeedResponse) {
+  const script = getHomeFeedScript(locale, data)
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${script}</body>`)
+  }
+
+  return `${html}${script}`
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T> {
@@ -113,22 +214,59 @@ app.use('*', async (c, continueMiddleware) => {
   )
 })
 
+app.get('/', async (c) => {
+  if (!c.env.ASSETS) {
+    return c.text('Not Found', 404)
+  }
+
+  const assetResponse = await c.env.ASSETS.fetch(c.req.raw)
+  if (!assetResponse.ok) {
+    return assetResponse
+  }
+
+  const locale = getRequestLocale(c.req.raw)
+  const homeFeedCache = getDefaultCache()
+  const cacheRequest = getHomeFeedCacheRequest(c.req.raw, locale)
+  const cachedFeedResponse = await homeFeedCache.match(cacheRequest)
+
+  if (!cachedFeedResponse) {
+    c.executionCtx.waitUntil(putHomeFeedCache(homeFeedCache, cacheRequest, locale).then(() => {}))
+    return withHtmlCacheHeaders(assetResponse)
+  }
+
+  try {
+    const feed = (await cachedFeedResponse.clone().json()) as HomeFeedResponse
+    if (!feed.success || !feed.payload) {
+      return withHtmlCacheHeaders(assetResponse)
+    }
+
+    const html = await assetResponse.text()
+    return withHtmlCacheHeaders(
+      new Response(await injectHomeFeedSnapshot(html, locale, feed), {
+        status: assetResponse.status,
+        statusText: assetResponse.statusText,
+        headers: assetResponse.headers,
+      })
+    )
+  } catch {
+    return withHtmlCacheHeaders(assetResponse)
+  }
+})
+
 app.get('/api/feed/home', async (c) => {
   try {
-    const settings = await getUserSettings()
-    const locale = settings.userId ? settings.language : getRequestLocale(c.req.raw)
-    const [dailyNewsResult, aiNewsResult] = await Promise.allSettled([
-      getNews(locale),
-      getAiNewsItems(),
-    ])
+    const locale = getRequestLocale(c.req.raw)
+    const cacheRequest = getHomeFeedCacheRequest(c.req.raw, locale)
+    const homeFeedCache = getDefaultCache()
+    const cachedResponse = await homeFeedCache.match(cacheRequest)
+    if (cachedResponse) {
+      return cachedResponse
+    }
 
-    return c.json({
-      success: true,
-      payload: {
-        dailyNews: dailyNewsResult.status === 'fulfilled' ? dailyNewsResult.value.items : [],
-        aiNews: aiNewsResult.status === 'fulfilled' ? aiNewsResult.value : [],
-      },
-    })
+    const response = withHomeFeedCacheHeaders(Response.json(await buildHomeFeedResponse(locale)))
+
+    c.executionCtx.waitUntil(homeFeedCache.put(cacheRequest, response.clone()))
+    return response
   } catch (error) {
     const { status, body } = toErrorPayload(error, 'Failed to load home feed')
     return Response.json(body, { status })

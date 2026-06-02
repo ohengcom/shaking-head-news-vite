@@ -29,3 +29,12 @@ export const NewsResponseSchema = z.object({
 })
 
 export type NewsResponse = z.infer<typeof NewsResponseSchema>
+
+export interface HomeFeedResponse {
+  success: boolean
+  error?: string
+  payload?: {
+    dailyNews: NewsItem[]
+    aiNews: NewsItem[]
+  }
+}

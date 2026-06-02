@@ -2,16 +2,20 @@ import { useEffect, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { HomePageContent } from '@/components/home/HomePageContent'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { getHomeFeedViaApi } from '@/lib/api/content-client'
+import { getHomeFeedViaApi, getInitialHomeFeed } from '@/lib/api/content-client'
 import type { NewsItem } from '@/types/news'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
-import { useTranslations } from '@/lib/i18n'
+import { useAppLocale, useTranslations } from '@/lib/i18n'
 
 export function HomePage() {
-  const [dailyNews, setDailyNews] = useState<NewsItem[]>([])
-  const [aiNews, setAiNews] = useState<NewsItem[]>([])
+  const locale = useAppLocale()
+  const initialFeed = getInitialHomeFeed(locale)
+  const [dailyNews, setDailyNews] = useState<NewsItem[]>(
+    () => initialFeed?.payload?.dailyNews ?? []
+  )
+  const [aiNews, setAiNews] = useState<NewsItem[]>(() => initialFeed?.payload?.aiNews ?? [])
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => !initialFeed?.payload)
   const t = useTranslations('home')
   const tCommon = useTranslations('common')
 
@@ -19,10 +23,21 @@ export function HomePage() {
 
   useEffect(() => {
     let cancelled = false
+    const initialFeed = getInitialHomeFeed(locale)
+
+    if (initialFeed?.payload) {
+      setDailyNews(initialFeed.payload.dailyNews)
+      setAiNews(initialFeed.payload.aiNews)
+      setError(null)
+      setIsLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
 
     void (async () => {
       setIsLoading(true)
-      const result = await getHomeFeedViaApi()
+      const result = await getHomeFeedViaApi(locale)
 
       if (cancelled) {
         return
@@ -43,7 +58,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [t])
+  }, [locale, t])
 
   if (isLoading) {
     return (
