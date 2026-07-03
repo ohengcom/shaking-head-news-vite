@@ -138,8 +138,7 @@ export function LoginPage() {
 
     try {
       const result = (await signIn(provider, { redirectTo: callbackUrl })) as
-        | SignInResult
-        | undefined
+        SignInResult | undefined
 
       const errorMessage = parseAuthError(result?.error, tAuth('genericError'))
       if (errorMessage) {
