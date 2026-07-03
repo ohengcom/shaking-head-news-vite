@@ -7,6 +7,20 @@ Release versions use the date-based `YYYY.M.D` format.
 
 ## [Unreleased]
 
+## [2026.7.3] - 2026-07-03
+
+### Changed
+
+- **Dependencies**: Updated the active React, Vite, Cloudflare, Hono, Radix, Vitest, Wrangler, and supporting packages to current compatible releases.
+- **Routing**: Migrated the SPA entry from `BrowserRouter` route rendering to React Router 7 Data Router with lazy route modules and a route-level error boundary.
+- **Testing**: Stabilized the Vitest jsdom environment with explicit storage mocks and moved the Vitest cache under `C:/temp/shaking-head-news-vite/vitest-cache`.
+
+### Fixed
+
+- **Security**: Resolved npm audit findings by upgrading vulnerable Hono and Vite ranges.
+- **OPML Import**: Replaced regex-based OPML outline parsing with `fast-xml-parser`, added nested-outline support, and skipped duplicate URLs within the same import.
+- **Unit Tests**: Fixed storage-related jsdom failures in settings and stats component tests.
+
 ## [2026.6.2] - 2026-06-02
 
 ### Added

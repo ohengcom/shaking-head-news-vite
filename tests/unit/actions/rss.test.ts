@@ -6,6 +6,7 @@ import {
   deleteRSSSource,
   reorderRSSSources,
   exportOPML,
+  importOPML,
 } from '@/lib/actions/rss'
 import { mockRSSSources } from '@/tests/utils/test-utils'
 
@@ -53,9 +54,14 @@ vi.mock('@/lib/utils/input-validation', () => ({
   sanitizeObject: vi.fn((obj) => obj),
 }))
 
+vi.mock('@/lib/tier-server', () => ({
+  getUserTier: vi.fn(),
+}))
+
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem } from '@/lib/storage'
 import { rateLimitByUser, rateLimitByAction } from '@/lib/rate-limit'
+import { getUserTier } from '@/lib/tier-server'
 
 // Mock global fetch
 const mockFetch = vi.fn()
@@ -80,6 +86,30 @@ describe('RSS Actions', () => {
       success: true,
       remaining: 10,
       reset: Date.now() + 60000,
+    })
+    vi.mocked(getUserTier).mockResolvedValue({
+      tier: 'pro',
+      features: {
+        rotationModeSelectable: true,
+        rotationIntervalAdjustable: true,
+        rotationAngleAdjustable: true,
+        fontSizeAdjustable: true,
+        layoutModeSelectable: true,
+        customRssEnabled: true,
+        opmlImportExportEnabled: true,
+        adsDisableable: true,
+        statsPreviewEnabled: true,
+        statsFullEnabled: true,
+        healthRemindersEnabled: true,
+        exerciseGoalsEnabled: true,
+        keyboardShortcutsEnabled: true,
+        cloudSyncEnabled: true,
+      },
+      isGuest: false,
+      isMember: false,
+      isPro: true,
+      user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+      hasFeature: vi.fn(() => true),
     })
   })
 
@@ -407,6 +437,57 @@ describe('RSS Actions', () => {
         expect(result).toContain(source.name)
         expect(result).toContain(source.url)
       })
+    })
+  })
+
+  describe('importOPML', () => {
+    it('should import nested OPML outlines with XML attributes', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+
+      const result = await importOPML(`<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Tech">
+      <outline text="Example Feed" type="rss" xmlUrl="https://example.com/rss.xml" />
+    </outline>
+  </body>
+</opml>`)
+
+      expect(result).toEqual({ imported: 1, skipped: 0 })
+      expect(setStorageItem).toHaveBeenCalledWith(
+        'user:test-user-id:rss-sources',
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Example Feed',
+            url: 'https://example.com/rss.xml',
+          }),
+        ])
+      )
+    })
+
+    it('should skip duplicate URLs within a single OPML import', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(setStorageItem).mockResolvedValue(undefined)
+
+      const result = await importOPML(`<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Example One" type="rss" xmlUrl="https://example.com/rss.xml" />
+    <outline text="Example Two" type="rss" xmlUrl="https://example.com/rss.xml" />
+  </body>
+</opml>`)
+
+      expect(result).toEqual({ imported: 1, skipped: 1 })
+      expect(vi.mocked(setStorageItem).mock.calls[0]?.[1]).toHaveLength(1)
     })
   })
 })

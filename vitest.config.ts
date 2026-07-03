@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  cacheDir: 'C:/temp/shaking-head-news-vite/vitest-cache',
   plugins: [react()],
   test: {
     // Use jsdom for DOM testing
@@ -14,6 +15,12 @@ export default defineConfig({
     globals: true,
     // Setup file for test configuration
     setupFiles: './tests/setup.ts',
+    // Give jsdom an origin so browser storage APIs are always available.
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost:3000',
+      },
+    },
     // Test file patterns
     include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     // Exclude patterns

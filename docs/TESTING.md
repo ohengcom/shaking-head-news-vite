@@ -32,6 +32,8 @@ npm run test:e2e
 ## Expectations
 
 - Unit tests run under Vitest against the active Vite + Worker runtime.
+- DOM unit tests run in jsdom with explicit in-memory `localStorage` and `sessionStorage` mocks.
+- Vitest cache is stored under `C:/temp/shaking-head-news-vite/vitest-cache` for local runs.
 - Build emits both Worker and browser artifacts successfully.
 - Chromium smoke tests should pass locally with the Vite dev server.
 - The full Playwright browser matrix is intended for broader compatibility verification and
@@ -44,3 +46,4 @@ npm run test:e2e
 - Footer displays `沪ICP备2022000575号` and still links to `https://beian.miit.gov.cn/`.
 - `/icons/ytkxw.png` is referenced as the favicon and Apple touch icon.
 - Continuous rotation visibly changes angle instead of producing tiny random movements.
+- OPML import accepts nested `outline` entries and skips duplicate feed URLs in the same file.

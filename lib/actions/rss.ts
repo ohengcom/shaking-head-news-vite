@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth'
+import { XMLParser } from 'fast-xml-parser'
 import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
 import { RSSSourceSchema, RSSSource } from '@/types/rss'
 import {
@@ -380,7 +381,7 @@ export async function importOPML(
 
     // 获取现有源
     const existingSources = await getRSSSources()
-    const existingUrls = new Set(existingSources.map((s) => s.url.toLowerCase()))
+    const importedUrls = new Set(existingSources.map((s) => s.url.toLowerCase()))
 
     // 限制总数
     const maxSources = 50
@@ -400,11 +401,12 @@ export async function importOPML(
         continue
       }
 
-      if (existingUrls.has(source.url.toLowerCase())) {
+      if (importedUrls.has(source.url.toLowerCase())) {
         skipped++
         continue
       }
 
+      importedUrls.add(source.url.toLowerCase())
       newSources.push({
         ...source,
         id: globalThis.crypto.randomUUID(),
@@ -430,19 +432,91 @@ export async function importOPML(
   }
 }
 
+type XmlRecord = Record<string, unknown>
+
+function asRecord(value: unknown): XmlRecord | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as XmlRecord)
+    : null
+}
+
+function toArray(value: unknown): unknown[] {
+  if (value === undefined || value === null) {
+    return []
+  }
+
+  return Array.isArray(value) ? value : [value]
+}
+
+function collectOutlineNodes(value: unknown, nodes: XmlRecord[] = []): XmlRecord[] {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectOutlineNodes(item, nodes))
+    return nodes
+  }
+
+  const record = asRecord(value)
+  if (!record) {
+    return nodes
+  }
+
+  for (const [key, child] of Object.entries(record)) {
+    if (key.toLowerCase() === 'outline') {
+      for (const outline of toArray(child)) {
+        const outlineRecord = asRecord(outline)
+        if (outlineRecord) {
+          nodes.push(outlineRecord)
+          collectOutlineNodes(outlineRecord, nodes)
+        }
+      }
+      continue
+    }
+
+    collectOutlineNodes(child, nodes)
+  }
+
+  return nodes
+}
+
+function getXmlAttribute(node: XmlRecord, names: string[]): string | null {
+  for (const name of names) {
+    const exactValue = node[name]
+    if (typeof exactValue === 'string' && exactValue.trim()) {
+      return exactValue
+    }
+
+    const caseInsensitiveKey = Object.keys(node).find(
+      (key) => key.toLowerCase() === name.toLowerCase()
+    )
+    const caseInsensitiveValue = caseInsensitiveKey ? node[caseInsensitiveKey] : undefined
+    if (typeof caseInsensitiveValue === 'string' && caseInsensitiveValue.trim()) {
+      return caseInsensitiveValue
+    }
+  }
+
+  return null
+}
+
 // 解析 OPML 内容
 function parseOPML(content: string): Omit<RSSSource, 'id' | 'order' | 'failureCount'>[] {
   const sources: Omit<RSSSource, 'id' | 'order' | 'failureCount'>[] = []
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '',
+    parseAttributeValue: false,
+    trimValues: true,
+  })
 
-  // 简单的正则解析 outline 元素
-  const outlineRegex = /<outline[^>]*>/gi
-  const matches = content.match(outlineRegex) || []
+  let parsed: unknown
+  try {
+    parsed = parser.parse(content)
+  } catch {
+    throw new ValidationError('Invalid OPML XML')
+  }
 
-  for (const match of matches) {
-    // 提取属性
-    const xmlUrl = extractAttribute(match, 'xmlUrl') || extractAttribute(match, 'xmlurl')
-    const text = extractAttribute(match, 'text') || extractAttribute(match, 'title')
-    const type = extractAttribute(match, 'type')
+  for (const outline of collectOutlineNodes(parsed)) {
+    const xmlUrl = getXmlAttribute(outline, ['xmlUrl', 'xmlurl'])
+    const text = getXmlAttribute(outline, ['text', 'title'])
+    const type = getXmlAttribute(outline, ['type'])
 
     // 只处理 RSS 类型的 outline
     if (!xmlUrl || (type && type.toLowerCase() !== 'rss')) {
@@ -459,18 +533,11 @@ function parseOPML(content: string): Omit<RSSSource, 'id' | 'order' | 'failureCo
       name: sanitizeString(text || new URL(sanitizedUrl).hostname, { maxLength: 200 }),
       url: sanitizedUrl,
       description: '',
-      language: 'zh', // 默认中文
+      language: 'zh',
       enabled: true,
       tags: [],
     })
   }
 
   return sources
-}
-
-// 提取 XML 属性值
-function extractAttribute(element: string, attrName: string): string | null {
-  const regex = new RegExp(`${attrName}\\s*=\\s*["']([^"']*)["']`, 'i')
-  const match = element.match(regex)
-  return match ? match[1] : null
 }
