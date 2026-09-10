@@ -1,8 +1,8 @@
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem, getMultipleStorageItems, StorageKeys } from '@/lib/storage'
 import { UserStatsSchema, RotationRecord, UserStats } from '@/types/stats'
-import { AuthError, logError, validateOrThrow } from '@/lib/utils/error-handler'
-import { rateLimitByUser, RateLimitTiers } from '@/lib/rate-limit'
+import { AuthError, RateLimitError, logError, validateOrThrow } from '@/lib/utils/error-handler'
+import { memoryRateLimit, RateLimitTiers } from '@/lib/rate-limit'
 
 const MAX_ROTATION_BATCH_COUNT = 300
 
@@ -56,9 +56,9 @@ export async function recordRotation(angle: number, duration: number, count = 1,
       return { error: 'UNAUTHORIZED' }
     }
 
-    const rateLimitResult = await rateLimitByUser(session.user.id, {
-      ...RateLimitTiers.RELAXED,
-    })
+    // In-memory limit: rotation reporting is high-frequency and low-risk, and a
+    // KV-backed counter here would double the daily KV write consumption.
+    const rateLimitResult = memoryRateLimit(`rotation:${session.user.id}`, RateLimitTiers.RELAXED)
 
     if (!rateLimitResult.success) {
       console.warn('Rate limit exceeded for recordRotation')
@@ -134,12 +134,12 @@ export async function getStats(startDate: string, endDate: string) {
       throw new AuthError('Please sign in to view statistics')
     }
 
-    const rateLimitResult = await rateLimitByUser(session.user.id, {
-      ...RateLimitTiers.STANDARD,
-    })
+    // In-memory limit: stats reads are high-frequency, and the KV-backed
+    // counter would burn one KV write per read on the free tier.
+    const rateLimitResult = memoryRateLimit(`stats:${session.user.id}`, RateLimitTiers.STANDARD)
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many requests. Please try again later.')
+      throw new RateLimitError('Too many requests. Please try again later.')
     }
 
     const start = parseLocalDate(startDate)
@@ -217,11 +217,23 @@ export async function getSummaryStats(referenceDate = formatLocalDate()) {
     }
 
     const normalizedDate = normalizeStatsDate(referenceDate)
-    const [todayStats, weekStats, monthStats] = await Promise.all([
-      getTodayStats(normalizedDate).catch(() => null),
-      getStatsForDateRange(normalizedDate, 6).catch(() => []),
-      getStatsForDateRange(normalizedDate, 29).catch(() => []),
-    ])
+
+    // A single 30-day read covers the today, week, and month windows. This
+    // keeps the request well below the Workers free-tier subrequest limit
+    // (three separate range reads plus per-read rate limiting used to push
+    // the totals close to the cap).
+    const monthStats = await getStatsForDateRange(normalizedDate, 29).catch(() => [])
+
+    const weekStartDate = parseLocalDate(normalizedDate)
+    if (weekStartDate) {
+      weekStartDate.setDate(weekStartDate.getDate() - 6)
+    }
+    const weekStart = weekStartDate ? formatLocalDate(weekStartDate) : normalizedDate
+
+    const todayStats = monthStats.find((stat) => stat.date === normalizedDate) || null
+    const weekStats = monthStats.filter(
+      (stat) => stat.date >= weekStart && stat.date <= normalizedDate
+    )
 
     const weekTotal = weekStats.reduce(
       (acc, stat) => ({
@@ -286,27 +298,4 @@ export async function checkHealthReminder(referenceDate = formatLocalDate()) {
   const shouldRemind = now - lastRotationTime > twoHoursInMs
 
   return { shouldRemind, lastRotationTime }
-}
-
-export async function checkDailyGoal(dailyGoal: number) {
-  const todayStats = await getTodayStats()
-
-  if (!todayStats) {
-    return {
-      achieved: false,
-      current: 0,
-      goal: dailyGoal,
-      progress: 0,
-    }
-  }
-
-  const achieved = todayStats.rotationCount >= dailyGoal
-  const progress = Math.min((todayStats.rotationCount / dailyGoal) * 100, 100)
-
-  return {
-    achieved,
-    current: todayStats.rotationCount,
-    goal: dailyGoal,
-    progress,
-  }
 }

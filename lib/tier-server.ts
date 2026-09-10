@@ -64,21 +64,3 @@ export async function getUserTier(): Promise<ServerUserTier> {
     hasFeature,
   }
 }
-
-/**
- * 检查当前用户是否有指定功能权限
- */
-export async function checkFeatureAccess(feature: keyof FeatureConfig): Promise<boolean> {
-  const { hasFeature } = await getUserTier()
-  return hasFeature(feature)
-}
-
-/**
- * 要求指定功能权限，否则抛出错误
- */
-export async function requireFeature(feature: keyof FeatureConfig): Promise<void> {
-  const hasAccess = await checkFeatureAccess(feature)
-  if (!hasAccess) {
-    throw new Error(`Feature "${feature}" requires higher tier`)
-  }
-}

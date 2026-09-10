@@ -8,7 +8,7 @@
  * strongly-consistent counter implementation.
  */
 
-import { getStorageItem, setStorageItemWithOptions, deleteStorageItem, getTTL } from './storage'
+import { getStorageItem, setStorageItemWithOptions, getTTL } from './storage'
 
 export interface RateLimitResult {
   success: boolean
@@ -125,19 +125,62 @@ export const RateLimitTiers = {
   PUBLIC: { limit: 3000, window: 300 },
 } as const
 
+const MEMORY_BUCKET_MAX_KEYS = 10_000
+const memoryBuckets = new Map<string, number[]>()
+
 /**
- * Rate limit by IP address
- * Useful for protecting public endpoints
+ * Reset in-memory rate limit state (test helper).
  */
-export async function rateLimitByIP(
-  ip: string,
-  options: RateLimitOptions = {}
-): Promise<RateLimitResult> {
-  return rateLimit(`ip:${ip}`, {
-    ...RateLimitTiers.PUBLIC,
-    ...options,
-    prefix: 'rate-limit-ip',
-  })
+export function resetMemoryRateLimits(): void {
+  memoryBuckets.clear()
+}
+
+/**
+ * In-memory sliding-window rate limiter.
+ *
+ * Approximate and per-isolate by design: it protects high-frequency,
+ * low-risk paths (rotation reporting, stats reads) from spam without
+ * consuming the tiny free-tier KV write quota. Every KV-backed rate limit
+ * check costs one KV write, so the rotation beacon alone could exhaust the
+ * 1,000 writes/day free quota. For strict cross-request limits, keep using
+ * the KV-backed helpers above.
+ */
+export function memoryRateLimit(
+  identifier: string,
+  options: { limit: number; window: number }
+): RateLimitResult {
+  const { limit, window } = options
+  const windowMs = window * 1000
+  const now = Date.now()
+  const cutoff = now - windowMs
+
+  const timestamps = (memoryBuckets.get(identifier) || []).filter((ts) => ts > cutoff)
+
+  if (timestamps.length >= limit) {
+    memoryBuckets.set(identifier, timestamps)
+    return {
+      success: false,
+      remaining: 0,
+      reset: timestamps[0] + windowMs,
+    }
+  }
+
+  timestamps.push(now)
+  memoryBuckets.set(identifier, timestamps)
+
+  if (memoryBuckets.size > MEMORY_BUCKET_MAX_KEYS) {
+    for (const [key, bucket] of memoryBuckets) {
+      if (bucket.length === 0 || bucket[bucket.length - 1] <= cutoff) {
+        memoryBuckets.delete(key)
+      }
+    }
+  }
+
+  return {
+    success: true,
+    remaining: limit - timestamps.length,
+    reset: now + windowMs,
+  }
 }
 
 /**
@@ -169,47 +212,4 @@ export async function rateLimitByAction(
     ...options,
     prefix: 'rate-limit-action',
   })
-}
-
-/**
- * Reset rate limit for a specific identifier
- * Useful for testing or manual intervention
- */
-export async function resetRateLimit(
-  identifier: string,
-  prefix: string = 'rate-limit'
-): Promise<void> {
-  const key = `${prefix}:${identifier}`
-  await deleteStorageItem(key)
-}
-
-/**
- * Get current rate limit status without incrementing
- */
-export async function getRateLimitStatus(
-  identifier: string,
-  options: RateLimitOptions = {}
-): Promise<RateLimitResult> {
-  const { limit = 10, window = 60, prefix = 'rate-limit' } = options
-
-  const key = `${prefix}:${identifier}`
-
-  try {
-    const current = await getStorageItem<number>(key)
-    const count = current || 0
-    const ttl = await getTTL(key)
-
-    return {
-      success: count < limit,
-      remaining: Math.max(0, limit - count),
-      reset: Date.now() + (ttl > 0 ? ttl * 1000 : window * 1000),
-    }
-  } catch (error) {
-    console.error('Get rate limit status error:', error)
-    return {
-      success: true,
-      remaining: limit,
-      reset: Date.now() + window * 1000,
-    }
-  }
 }

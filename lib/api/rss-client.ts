@@ -18,13 +18,6 @@ export function getRSSSourcesViaApi() {
   }).then(parseJsonResponse<RSSSource[]>)
 }
 
-export function getDefaultRSSSourcesViaApi() {
-  return fetch('/api/rss/defaults', {
-    method: 'GET',
-    cache: 'force-cache',
-  }).then(parseJsonResponse<RSSSource[]>)
-}
-
 export async function addRSSSourceViaApi(
   payload: Omit<RSSSource, 'id' | 'order' | 'failureCount'>
 ): Promise<RSSSource> {

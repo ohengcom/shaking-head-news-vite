@@ -159,6 +159,27 @@ export async function getStorageItem<T>(key: string): Promise<T | null> {
   }
 }
 
+/**
+ * Like getStorageItem, but propagates read failures instead of swallowing them.
+ *
+ * Use this in read-modify-write flows (e.g. RSS list updates): returning null on
+ * a transient KV error and then overwriting the key would silently destroy the
+ * stored data, so callers must abort when the read itself fails.
+ */
+export async function getStorageItemStrict<T>(key: string): Promise<T | null> {
+  const recent = getRecentWrite<T>(key)
+  if (recent) {
+    return recent.value
+  }
+
+  const kv = await getKVNamespace()
+  if (!kv) {
+    throw new Error('APP_SETTINGS_KV is not available')
+  }
+  const envelope = await readKVEnvelope<T>(kv, key)
+  return envelope ? envelope.value : null
+}
+
 export async function setStorageItem<T>(
   key: string,
   value: T,

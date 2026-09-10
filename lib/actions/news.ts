@@ -11,14 +11,18 @@ import { XMLParser } from 'fast-xml-parser'
 import { auth } from '@/lib/auth'
 import { getRSSSources } from '@/lib/actions/rss'
 import { fetchAiNews } from '@/lib/api/daily-news'
-import { fetchTrending, type TrendingItem } from '@/lib/api/trending'
 import { getHotList } from '@/lib/api/hot-list'
 import { getEnvValue, getRuntimeMode, isNonProductionRuntime } from '@/lib/config/runtime-env'
 
 const DEFAULT_NEWS_API_BASE_URL = 'https://news.ravelloh.top'
 const NEWS_CACHE_TTL_MS = 5 * 60 * 1000
+const NEWS_FETCH_TIMEOUT_MS = 10 * 1000
 const RSS_FETCH_TIMEOUT_MS = 10 * 1000
 const MAX_RSS_FEED_BYTES = 1024 * 1024
+// Workers free tier allows 50 subrequests per request; cap custom RSS fetches
+// so a fully-loaded Pro account stays inside the budget alongside auth,
+// settings, and hot list reads.
+const MAX_RSS_SOURCES_PER_REQUEST = 30
 const suppressedNewsFetchWarnings = new Set<string>()
 const newsCache = new Map<string, { expiresAt: number; value: NewsResponse }>()
 
@@ -142,7 +146,9 @@ async function fetchNews(language: 'zh' | 'en' = 'zh', source?: string): Promise
 
   try {
     const response = await retryWithBackoff(async () => {
-      const res = await fetch(url)
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(NEWS_FETCH_TIMEOUT_MS),
+      })
 
       if (!res.ok) {
         throw new NewsAPIError(`Failed to fetch news: ${res.statusText}`, res.status, source)
@@ -215,30 +221,6 @@ export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
 }
 
 /**
- * Manually refresh news cache
- *
- * @param language - Optional language to refresh
- * @param source - Optional specific source to refresh
- */
-export async function refreshNews(language?: 'zh' | 'en', source?: string) {
-  try {
-    if (language || source) {
-      newsCache.delete(`${language || 'zh'}:${source || 'latest'}`)
-    } else {
-      newsCache.clear()
-    }
-    return { success: true }
-  } catch (error) {
-    logError(error, {
-      action: 'refreshNews',
-      language,
-      source,
-    })
-    throw new NewsAPIError('Failed to refresh news cache')
-  }
-}
-
-/**
  * Get user's custom news from RSS feeds
  */
 export async function getUserCustomNews(): Promise<NewsItem[]> {
@@ -249,8 +231,11 @@ export async function getUserCustomNews(): Promise<NewsItem[]> {
     const rssSources = await getRSSSources()
     if (rssSources.length === 0) return []
 
-    // Fetch all enabled RSS feeds in parallel
-    const enabledSources = rssSources.filter((s) => s.enabled !== false)
+    // Fetch enabled RSS feeds in parallel, capped per request to stay within
+    // the Workers free-tier subrequest budget.
+    const enabledSources = rssSources
+      .filter((s) => s.enabled !== false)
+      .slice(0, MAX_RSS_SOURCES_PER_REQUEST)
     if (enabledSources.length === 0) return []
 
     const results = await Promise.allSettled(enabledSources.map((s) => getRSSNews(s.url)))
@@ -400,22 +385,20 @@ function parseRSSFeed(xml: string, sourceUrl: string): NewsItem[] {
  */
 export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
   try {
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(rssUrl, {
-        headers: {
-          'User-Agent': 'ShakingHeadNews/1.0',
-        },
-        signal: AbortSignal.timeout(RSS_FETCH_TIMEOUT_MS),
-      })
-
-      if (!res.ok) {
-        throw new NewsAPIError(`Failed to fetch RSS feed: ${res.statusText}`, res.status, rssUrl)
-      }
-
-      return res
+    // Single attempt per source: retried fetches multiply subrequest usage on
+    // the Workers free tier and the caller can simply retry the page request.
+    const res = await fetch(rssUrl, {
+      headers: {
+        'User-Agent': 'ShakingHeadNews/1.0',
+      },
+      signal: AbortSignal.timeout(RSS_FETCH_TIMEOUT_MS),
     })
 
-    const xml = await readBoundedText(response, MAX_RSS_FEED_BYTES, rssUrl)
+    if (!res.ok) {
+      throw new NewsAPIError(`Failed to fetch RSS feed: ${res.statusText}`, res.status, rssUrl)
+    }
+
+    const xml = await readBoundedText(res, MAX_RSS_FEED_BYTES, rssUrl)
 
     // Parse RSS XML
     const items = parseRSSFeed(xml, rssUrl)
@@ -444,24 +427,6 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
 }
 
 /**
- * Refresh RSS feed cache
- *
- * @param rssUrl - URL of the RSS feed to refresh
- */
-export async function refreshRSSFeed(rssUrl: string) {
-  try {
-    void rssUrl
-    return { success: true }
-  } catch (error) {
-    logError(error, {
-      action: 'refreshRSSFeed',
-      rssUrl,
-    })
-    throw new NewsAPIError('Failed to refresh RSS feed cache')
-  }
-}
-
-/**
  * Get AI News as standard NewsItem[]
  */
 export async function getAiNewsItems(): Promise<NewsItem[]> {
@@ -480,28 +445,6 @@ export async function getAiNewsItems(): Promise<NewsItem[]> {
     }))
   } catch (error) {
     console.error('Error adapting AI news:', error)
-    return []
-  }
-}
-
-/**
- * Get Trending News as standard NewsItem[]
- */
-export async function getTrendingNewsItems(source: string = 'douyin'): Promise<NewsItem[]> {
-  try {
-    const trending = await fetchTrending(source)
-    if (!trending) return []
-
-    return trending.map((item: TrendingItem, index: number) => ({
-      id: `trending-${source}-${index}`,
-      title: item.title,
-      description: item.hot ? `Heat: ${item.hot}` : undefined,
-      url: item.url,
-      source: `Trending (${source})`,
-      publishedAt: new Date().toISOString(),
-    }))
-  } catch (error) {
-    console.error('Error adapting Trending news:', error)
     return []
   }
 }

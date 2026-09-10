@@ -1,13 +1,15 @@
 import { auth } from '@/lib/auth'
 import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
 import { UserSettingsSchema, defaultSettings, UserSettings } from '@/types/settings'
-import { AuthError, logError, validateOrThrow } from '@/lib/utils/error-handler'
+import {
+  APIError,
+  AuthError,
+  RateLimitError,
+  logError,
+  validateOrThrow,
+} from '@/lib/utils/error-handler'
 import { rateLimitByUser, RateLimitTiers } from '@/lib/rate-limit'
 import { sanitizeObject } from '@/lib/utils/input-validation'
-
-function revalidateSettingsPaths() {
-  return
-}
 
 function getLegacySettingsKeys(sessionUser: {
   id: string
@@ -124,7 +126,7 @@ export async function updateSettings(
     })
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many requests. Please try again later.')
+      throw new RateLimitError('Too many requests. Please try again later.')
     }
 
     // 清理输入数据
@@ -149,14 +151,17 @@ export async function updateSettings(
     // 存储到 Cloudflare KV
     await setStorageItem(StorageKeys.userSettings(session.user.id), validatedSettings)
 
-    // 重新验证依赖用户设置的页面（失败不影响保存结果）
-    revalidateSettingsPaths()
-
     return {
       success: true,
       settings: validatedSettings,
     }
   } catch (error) {
+    // Typed API errors (auth, rate limit, validation) keep their status code
+    // so the Worker route can respond with 401/429/400 instead of a flat 400.
+    if (error instanceof APIError) {
+      throw error
+    }
+
     logError(error, {
       action: 'updateSettings',
       settings,
@@ -191,7 +196,7 @@ export async function resetSettings(): Promise<{
     })
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many reset attempts. Please try again later.')
+      throw new RateLimitError('Too many reset attempts. Please try again later.')
     }
 
     const currentSettings = await getUserSettings()
@@ -204,14 +209,15 @@ export async function resetSettings(): Promise<{
 
     await setStorageItem(StorageKeys.userSettings(session.user.id), resetSettings)
 
-    // 重新验证依赖用户设置的页面（失败不影响保存结果）
-    revalidateSettingsPaths()
-
     return {
       success: true,
       settings: resetSettings,
     }
   } catch (error) {
+    if (error instanceof APIError) {
+      throw error
+    }
+
     logError(error, {
       action: 'resetSettings',
     })
@@ -256,14 +262,15 @@ export async function toggleProStatus(): Promise<{
     // 存储到云端
     await setStorageItem(StorageKeys.userSettings(session.user.id), newSettings)
 
-    // 重新验证相关页面（失败不影响保存结果）
-    revalidateSettingsPaths()
-
     return {
       success: true,
       isPro: newIsPro,
     }
   } catch (error) {
+    if (error instanceof APIError) {
+      throw error
+    }
+
     logError(error, {
       action: 'toggleProStatus',
     })

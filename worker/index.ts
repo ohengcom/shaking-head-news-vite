@@ -35,6 +35,9 @@ const HOME_FEED_CACHE_TTL_SECONDS = 60 * 60
 const HOME_FEED_STALE_WHILE_REVALIDATE_SECONDS = 6 * 60 * 60
 const LEGACY_MICROSOFT_CALLBACK_PATH = '/api/auth/callback/microsoft-entra-id'
 const LEGACY_MICROSOFT_OAUTH2_CALLBACK_PATH = '/api/auth/oauth2/callback/microsoft-entra-id'
+// Guard against oversized OPML uploads burning the 10 ms CPU budget of the
+// Workers free tier while parsing.
+const MAX_OPML_IMPORT_BYTES = 512 * 1024
 
 function toErrorPayload(error: unknown, fallback: string) {
   if (error instanceof APIError) {
@@ -230,7 +233,7 @@ app.get('/', async (c) => {
   const cachedFeedResponse = await homeFeedCache.match(cacheRequest)
 
   if (!cachedFeedResponse) {
-    c.executionCtx.waitUntil(putHomeFeedCache(homeFeedCache, cacheRequest, locale).then(() => {}))
+    c.executionCtx.waitUntil(putHomeFeedCache(homeFeedCache, cacheRequest, locale))
     return withHtmlCacheHeaders(assetResponse)
   }
 
@@ -537,9 +540,32 @@ app.get('/api/rss/export', async (c) => {
 
 app.post('/api/rss/import', async (c) => {
   try {
+    const contentLengthHeader = c.req.header('content-length')
+    const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : NaN
+    if (Number.isFinite(contentLength) && contentLength > MAX_OPML_IMPORT_BYTES) {
+      return c.json(
+        {
+          success: false,
+          error: 'OPML file is too large',
+        },
+        413
+      )
+    }
+
+    const opmlContent = await c.req.text()
+    if (opmlContent.length > MAX_OPML_IMPORT_BYTES) {
+      return c.json(
+        {
+          success: false,
+          error: 'OPML file is too large',
+        },
+        413
+      )
+    }
+
     return c.json({
       success: true,
-      payload: await importOPML(await c.req.text()),
+      payload: await importOPML(opmlContent),
     })
   } catch (error) {
     const { status, body } = toErrorPayload(error, 'Failed to import OPML')

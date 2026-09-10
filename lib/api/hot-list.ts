@@ -54,10 +54,35 @@ function mapHotItem(item: unknown): HotItem | null {
   }
 }
 
+const HOT_LIST_CACHE_TTL_MS = 5 * 60 * 1000
+const HOT_LIST_FETCH_TIMEOUT_MS = 8 * 1000
+const hotListCache = new Map<string, { expiresAt: number; items: HotItem[] }>()
+
+function getCachedHotList(sourceId: string): HotItem[] | null {
+  const cached = hotListCache.get(sourceId)
+  if (!cached) {
+    return null
+  }
+
+  if (Date.now() >= cached.expiresAt) {
+    hotListCache.delete(sourceId)
+    return null
+  }
+
+  return cached.items
+}
+
 export async function getHotList(sourceId: string): Promise<HotItem[]> {
+  const cached = getCachedHotList(sourceId)
+  if (cached) {
+    return cached
+  }
+
   try {
     const apiPath = API_PATH_MAP[sourceId] || sourceId
-    const res = await fetch(`https://60s.viki.moe/v2/${apiPath}`)
+    const res = await fetch(`https://60s.viki.moe/v2/${apiPath}`, {
+      signal: AbortSignal.timeout(HOT_LIST_FETCH_TIMEOUT_MS),
+    })
 
     if (!res.ok) {
       throw new Error(`Failed to fetch ${sourceId} hot list`)
@@ -68,22 +93,32 @@ export async function getHotList(sourceId: string): Promise<HotItem[]> {
       return []
     }
 
+    let items: HotItem[]
+
     // Handle "today-in-history" special structure
     if (sourceId === 'today-in-history') {
       const payload = data.data
       if (isRecord(payload) && Array.isArray(payload.items)) {
-        return payload.items.map(mapHotItem).filter((item): item is HotItem => Boolean(item))
+        items = payload.items.map(mapHotItem).filter((item): item is HotItem => Boolean(item))
+      } else {
+        items = []
       }
-      return []
+    } else if (Array.isArray(data.data)) {
+      // Generic handling: map 'link' to 'url' if url is missing
+      // Detailed verification showed Douyin, Weibo, Bilibili use 'link'
+      items = data.data.map(mapHotItem).filter((item): item is HotItem => Boolean(item))
+    } else {
+      items = []
     }
 
-    // Generic handling: map 'link' to 'url' if url is missing
-    // Detailed verification showed Douyin, Weibo, Bilibili use 'link'
-    if (Array.isArray(data.data)) {
-      return data.data.map(mapHotItem).filter((item): item is HotItem => Boolean(item))
-    }
+    // Hot lists change slowly; a short per-isolate cache keeps /api/home well
+    // below the Workers free-tier subrequest limit and shields the upstream.
+    hotListCache.set(sourceId, {
+      expiresAt: Date.now() + HOT_LIST_CACHE_TTL_MS,
+      items,
+    })
 
-    return []
+    return items
   } catch (error) {
     console.error(`Error fetching hot list for ${sourceId}:`, error)
     return []

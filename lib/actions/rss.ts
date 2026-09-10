@@ -1,10 +1,11 @@
 import { auth } from '@/lib/auth'
 import { XMLParser } from 'fast-xml-parser'
-import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
+import { getStorageItemStrict, setStorageItem, StorageKeys } from '@/lib/storage'
 import { RSSSourceSchema, RSSSource } from '@/types/rss'
 import {
   AuthError,
   NotFoundError,
+  RateLimitError,
   ValidationError,
   logError,
   validateOrThrow,
@@ -57,22 +58,32 @@ export async function getDefaultRSSSources(): Promise<RSSSource[]> {
 
 // 获取用户的 RSS 源列表
 export async function getRSSSources(): Promise<RSSSource[]> {
-  try {
-    const session = await auth()
+  const session = await auth()
 
-    if (!session?.user?.id) {
-      return []
-    }
-
-    const key = StorageKeys.userRSSSources(session.user.id)
-    const sources = (await getStorageItem<unknown[]>(key)) || []
-    return sources.map((s: unknown) => validateOrThrow(RSSSourceSchema, s))
-  } catch (error) {
-    logError(error, {
-      action: 'getRSSSources',
-    })
+  if (!session?.user?.id) {
     return []
   }
+
+  const key = StorageKeys.userRSSSources(session.user.id)
+  // Strict read: a transient KV failure must abort the caller instead of
+  // returning an empty list that a later write would persist over the data.
+  const sources = (await getStorageItemStrict<unknown[]>(key)) || []
+
+  // Skip individually invalid entries instead of dropping the whole list, so
+  // one corrupted source can never wipe the stored list on the next write.
+  const validSources: RSSSource[] = []
+  sources.forEach((source, index) => {
+    try {
+      validSources.push(validateOrThrow(RSSSourceSchema, source))
+    } catch (error) {
+      logError(error, {
+        action: 'getRSSSources:skipInvalidSource',
+        index,
+      })
+    }
+  })
+
+  return validSources
 }
 
 // 添加 RSS 源
@@ -84,13 +95,13 @@ export async function addRSSSource(source: Omit<RSSSource, 'id' | 'order' | 'fai
       throw new AuthError('Please sign in to add RSS sources')
     }
 
-    // 速率限制：每15分钟最多添加5个RSS源
+    // 速率限制：敏感操作限流（STRICT 档）
     const rateLimitResult = await rateLimitByAction(session.user.id, 'add-rss', {
       ...RateLimitTiers.STRICT,
     })
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many RSS sources added. Please try again later.')
+      throw new RateLimitError('Too many RSS sources added. Please try again later.')
     }
 
     // 清理和验证输入
@@ -178,7 +189,7 @@ export async function updateRSSSource(id: string, updates: Partial<RSSSource>) {
     })
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many requests. Please try again later.')
+      throw new RateLimitError('Too many requests. Please try again later.')
     }
 
     // 清理输入数据
@@ -203,11 +214,7 @@ export async function updateRSSSource(id: string, updates: Partial<RSSSource>) {
       throw new NotFoundError('RSS source not found')
     }
 
-    // 验证用户拥有此RSS源
     const source = sources[index]
-    if (!source) {
-      throw new AuthError('Unauthorized to update this RSS source')
-    }
 
     const updatedSource = { ...source, ...sanitizedUpdates }
 
@@ -251,9 +258,6 @@ export async function deleteRSSSource(id: string) {
 
     const key = StorageKeys.userRSSSources(session.user.id)
     await setStorageItem(key, filtered)
-
-    // Clear cache for the deleted source
-    void sourceToDelete
   } catch (error) {
     logError(error, {
       action: 'deleteRSSSource',
@@ -369,7 +373,7 @@ export async function importOPML(
     })
 
     if (!rateLimitResult.success) {
-      throw new Error('Too many import attempts. Please try again later.')
+      throw new RateLimitError('Too many import attempts. Please try again later.')
     }
 
     // 解析 OPML

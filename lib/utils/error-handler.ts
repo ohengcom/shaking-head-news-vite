@@ -63,98 +63,6 @@ export class RateLimitError extends APIError {
 }
 
 /**
- * Handle API errors and convert them to APIError instances
- */
-export async function handleAPIError(error: unknown): Promise<never> {
-  // If already an APIError, re-throw it
-  if (error instanceof APIError) {
-    throw error
-  }
-
-  // Handle Zod validation errors
-  if (error instanceof z.ZodError) {
-    const errors: Record<string, string> = {}
-    error.issues.forEach((issue) => {
-      const path = issue.path.join('.')
-      errors[path] = issue.message
-    })
-    throw new ValidationError('Validation failed', errors)
-  }
-
-  // Handle standard errors
-  if (error instanceof Error) {
-    throw new APIError(error.message, 500)
-  }
-
-  // Handle unknown errors
-  throw new APIError('An unknown error occurred', 500)
-}
-
-/**
- * Safe wrapper for Server Actions
- * Returns a result object with data or error instead of throwing
- */
-export async function safeServerAction<T>(
-  action: () => Promise<T>
-): Promise<{ data?: T; error?: string; statusCode?: number }> {
-  try {
-    const data = await action()
-    return { data }
-  } catch (error) {
-    console.error('Server action error:', error)
-
-    if (error instanceof APIError) {
-      return {
-        error: error.message,
-        statusCode: error.statusCode,
-      }
-    }
-
-    if (error instanceof z.ZodError) {
-      return {
-        error: 'Validation failed: ' + error.issues.map((i) => i.message).join(', '),
-        statusCode: 400,
-      }
-    }
-
-    if (error instanceof Error) {
-      return {
-        error: error.message,
-        statusCode: 500,
-      }
-    }
-
-    return {
-      error: 'An unexpected error occurred',
-      statusCode: 500,
-    }
-  }
-}
-
-/**
- * Get form validation errors from Zod schema
- */
-export function getFormErrors<T extends z.ZodType>(
-  schema: T,
-  data: unknown
-): Record<string, string> | null {
-  const result = schema.safeParse(data)
-
-  if (result.success) {
-    return null
-  }
-
-  const errors: Record<string, string> = {}
-
-  result.error.issues.forEach((issue) => {
-    const path = issue.path.join('.')
-    errors[path] = issue.message
-  })
-
-  return errors
-}
-
-/**
  * Validate data with Zod schema and throw ValidationError if invalid
  */
 export function validateOrThrow<T extends z.ZodType>(schema: T, data: unknown): z.infer<T> {
@@ -196,32 +104,6 @@ export function logError(error: unknown, context?: Record<string, any>) {
   // if (process.env.SENTRY_DSN) {
   //   Sentry.captureException(error, { extra: context })
   // }
-}
-
-/**
- * Format error message for user display
- */
-export function formatErrorMessage(error: unknown): string {
-  if (error instanceof APIError) {
-    return error.message
-  }
-
-  if (error instanceof z.ZodError) {
-    return 'Please check your input and try again'
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'An unexpected error occurred. Please try again later.'
-}
-
-/**
- * Check if error is a specific type
- */
-export function isErrorType(error: unknown, type: string): boolean {
-  return error instanceof Error && error.name === type
 }
 
 /**

@@ -29,6 +29,7 @@ interface VikiResponse<T> {
 }
 
 const BASE_URL = 'https://60s.viki.moe/v2'
+const UPSTREAM_FETCH_TIMEOUT_MS = 8 * 1000
 const suppressedDailyNewsWarnings = new Set<string>()
 
 class DailyNewsUpstreamError extends Error {
@@ -113,7 +114,9 @@ export async function fetchDailyNews(): Promise<DailyNewsItem | null> {
   const url = `${BASE_URL}/60s?encoding=json`
 
   try {
-    const res = await fetch(url)
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) {
       throw new DailyNewsUpstreamError('Failed to fetch daily news', res.status)
     }
@@ -134,7 +137,9 @@ export async function fetchAiNews(): Promise<AiNewsItem[] | null> {
   const url = `${BASE_URL}/ai-news`
 
   try {
-    const res = await fetch(url)
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) {
       throw new DailyNewsUpstreamError('Failed to fetch AI news', res.status)
     }
