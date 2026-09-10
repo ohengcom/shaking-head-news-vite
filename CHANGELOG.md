@@ -7,6 +7,41 @@ Release versions use the date-based `YYYY.M.D` format.
 
 ## [Unreleased]
 
+### Fixed
+
+- **RSS Data Safety**: Invalid stored RSS sources are now skipped individually instead of
+  collapsing the whole list, and read-modify-write flows use a strict storage read so a
+  transient KV failure can no longer persist an empty list over stored sources.
+- **Rate Limiting**: Rate-limited API calls now return `429` via `RateLimitError` instead of
+  a generic `500`/`400`, and settings API errors keep their real status codes.
+
+### Changed
+
+- **Dependencies**: Refreshed all dependencies to current releases, including
+  React 19.3, Vite 8.3, Wrangler 4.131, Better Auth 1.7 (whose secondary storage
+  contract now includes `getAndDelete`/`increment`), Zod 4.6, Hono 4.13,
+  Framer Motion 13, and `@cloudflare/workers-types` 5. TypeScript 7 and Vitest 5
+  are intentionally deferred: `typescript-eslint` currently supports TypeScript
+  `<6.1.0`, and `@cloudflare/vitest-pool-workers` peers Vitest `^4.1.0`.
+- **Free Tier Sustainability**: Rotation reporting and stats reads use an in-memory rate
+  limiter instead of KV-backed counters, halving KV writes for the hottest paths.
+- **Subrequest Budget**: `getSummaryStats` reads a single 30-day window instead of three
+  ranges; custom RSS fetches are capped at 30 enabled sources with one attempt each; hot
+  list upstreams are cached for 5 minutes and all upstream fetches carry timeouts.
+- **OPML Import**: Uploads above 512 KB are rejected with `413` before parsing.
+- **Frontend**: `LazyMotion` now wraps the app root with strict mode, settings drag-reorder
+  uses native HTML5 drag-and-drop, and an inline pre-paint script applies the persisted
+  theme to remove the dark-mode flash.
+- **Tooling**: Vitest cache directories are Windows-conditional (CI keeps its default),
+  Worker tests run as a dedicated CI job on pull requests, and the unused `IMAGES` binding
+  was removed from `wrangler.jsonc`.
+
+### Removed
+
+- **Dead Code**: Removed the unused trending pipeline, `refreshNews`, `refreshRSSFeed`,
+  `checkDailyGoal`, several unused error/validation helpers, duplicate default settings,
+  and the conflicting `.commitlintrc` config.
+
 ## [2026.7.3] - 2026-07-03
 
 ### Changed

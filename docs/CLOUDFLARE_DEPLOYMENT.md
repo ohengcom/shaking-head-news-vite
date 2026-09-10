@@ -70,6 +70,53 @@ Then regenerate Worker binding types:
 npm run types:worker
 ```
 
+> The `id`/`preview_id` committed in this repository belong to the project author's account.
+> Replace both with the namespaces you created above before your first deploy, or every
+> request will fail KV binding resolution.
+
+## Custom Domain
+
+The committed `wrangler.jsonc` routes the Worker to the author's zone:
+
+```jsonc
+"routes": [
+  {
+    "pattern": "sn.oheng.com/*",
+    "zone_name": "oheng.com",
+  },
+],
+```
+
+Self-hosters must adapt this before deploying:
+
+- **Use your own domain**: replace `pattern` and `zone_name` with a domain whose zone exists
+  in your Cloudflare account. Add a DNS record for the hostname (an `A`/`AAAA` record proxied
+  by Cloudflare, or a `CNAME` to any target — Workers routes take precedence once the route
+  matches). If you keep `workers_dev: true`, the `<worker-name>.<account>.workers.dev`
+  hostname stays available as well.
+- **No custom domain**: remove the `routes` block entirely and rely on the default
+  `workers.dev` hostname.
+
+After changing `wrangler.jsonc`, set `BETTER_AUTH_URL` (and any OAuth redirect URIs) to the
+final origin so Better Auth issues cookies for the right host.
+
+## Free Plan Limits
+
+This app is designed to run on the Workers free plan, but the quota ceilings matter:
+
+| Resource                          | Free plan limit | How this app stays inside it                                                                                                                      |
+| --------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Worker requests                   | 100,000 / day   | Static assets are served free and unlimited; `run_worker_first` only invokes the Worker for `/`, `/api/*`, and `/ads.txt`                         |
+| CPU time                          | 10 ms / request | Home feed snapshot is edge-cached; OPML imports are capped at 512 KB                                                                              |
+| Subrequests                       | 50 / request    | Hot lists use a 5-minute cache; custom RSS fetches are capped at 30 sources with a single attempt each; `getSummaryStats` reads one 30-day window |
+| Simultaneous outbound connections | 6 / request     | Parallel upstream fetches queue automatically                                                                                                     |
+| KV reads                          | 100,000 / day   | Sessions, settings, stats, and RSS lists are per-key reads                                                                                        |
+| KV writes                         | 1,000 / day     | Rotation beacons and stats reads use an in-memory rate limiter; only the stats write itself touches KV                                            |
+| KV storage                        | 1 GB            | Stats keys carry a 90-day TTL                                                                                                                     |
+
+KV quotas reset daily at 00:00 UTC. If a quota is exceeded, operations of that type fail
+until the reset — watch Worker logs (observability is enabled) for KV error spikes.
+
 ## Configure Secrets
 
 At minimum, set the auth secret before production deploys:

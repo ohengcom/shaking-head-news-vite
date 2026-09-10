@@ -7,6 +7,7 @@
 - `npm run types:worker`
 - `npm run type-check`
 - `npm test`
+- `npm run test:workers`
 - `npm run build`
 - `npm run test:e2e:smoke`
 - `npm run test:e2e`
@@ -32,8 +33,11 @@ npm run test:e2e
 ## Expectations
 
 - Unit tests run under Vitest against the active Vite + Worker runtime.
+- Worker tests run under `@cloudflare/vitest-pool-workers` with the real Wrangler config
+  (`npm run test:workers`, also included in `npm run check` and CI).
 - DOM unit tests run in jsdom with explicit in-memory `localStorage` and `sessionStorage` mocks.
-- Vitest cache is stored under `C:/temp/shaking-head-news-vite/vitest-cache` for local runs.
+- Vitest cache is stored under `C:/temp/shaking-head-news-vite/` for local Windows runs; other
+  platforms use the default cache location.
 - Build emits both Worker and browser artifacts successfully.
 - Chromium smoke tests should pass locally with the Vite dev server.
 - The full Playwright browser matrix is intended for broader compatibility verification and

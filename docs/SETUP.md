@@ -51,7 +51,8 @@ the UI degrades to an empty feed.
 ```bash
 npm run dev
 npm run types:worker
-npm run check
+npm run check          # lint + type-check + unit tests + worker tests + build
+npm run test:workers   # Cloudflare Vitest pool tests (also part of check)
 npm run test:e2e:smoke
 ```
 

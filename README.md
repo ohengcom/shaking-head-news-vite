@@ -55,7 +55,8 @@ or remove the gated features.
 - Edge API: Cloudflare Workers + Hono
 - Auth: Better Auth
 - Storage: Cloudflare KV
-- UI: Tailwind CSS 4, Radix UI, Framer Motion, lucide-react
+- State: Zustand
+- UI: Tailwind CSS 4, Radix UI, Framer Motion (LazyMotion), lucide-react
 - Validation: Zod
 - Tests: Vitest + Playwright
 - Deployment: Wrangler + GitHub Actions
@@ -135,7 +136,8 @@ Runtime: `Vite SPA + Cloudflare Worker`.
 ## Common Commands
 
 - `npm run dev`: start local development
-- `npm run check`: lint, type-check, unit tests, and production build
+- `npm run check`: lint, type-check, unit tests, Worker tests, and production build
+- `npm run test:workers`: run Cloudflare Vitest pool tests for the Worker
 - `npm run test:e2e:smoke`: run Chromium smoke tests
 - `npm run lint:unused`: scan unused files, dependencies, unresolved imports, and duplicates
 - `npm run types:worker`: regenerate Worker binding types
@@ -147,6 +149,8 @@ Runtime: `Vite SPA + Cloudflare Worker`.
 - [Setup](docs/SETUP.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Testing](docs/TESTING.md)
+- [Quick Test Checklist](docs/QUICK_TEST_CHECKLIST.md)
+- [Current Test Plan](docs/CURRENT_TEST_PLAN.md)
 - [Deployment](docs/DEPLOYMENT.md)
 - [Cloudflare Deployment](docs/CLOUDFLARE_DEPLOYMENT.md)
 - [Monitoring Quick Start](docs/MONITORING_QUICK_START.md)
