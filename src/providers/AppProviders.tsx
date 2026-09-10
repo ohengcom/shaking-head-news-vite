@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { LazyMotion, domAnimation } from 'framer-motion'
 import { useSession } from '@/lib/auth-client'
 import { getSettingsViaApi } from '@/lib/api/settings-client'
 import { SessionProvider } from '@/components/auth/SessionProvider'
@@ -45,18 +46,22 @@ function AppLocaleSync() {
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SessionProvider>
-        <I18nProvider>
-          <AppLocaleSync />
-          <RuntimeRecovery />
-          <UIWrapper>
-            {children}
-            <Toaster />
-            <AdsenseScript />
-          </UIWrapper>
-        </I18nProvider>
-      </SessionProvider>
-    </ThemeProvider>
+    // LazyMotion at the app root keeps framer-motion features in a shared
+    // chunk; strict mode forbids full `motion` imports anywhere in the tree.
+    <LazyMotion features={domAnimation} strict>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <SessionProvider>
+          <I18nProvider>
+            <AppLocaleSync />
+            <RuntimeRecovery />
+            <UIWrapper>
+              {children}
+              <Toaster />
+              <AdsenseScript />
+            </UIWrapper>
+          </I18nProvider>
+        </SessionProvider>
+      </ThemeProvider>
+    </LazyMotion>
   )
 }

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
-import { AnimatePresence, Reorder, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Check, GripVertical, Loader2, Lock, Plus, RotateCcw, X } from 'lucide-react'
 import { useSetAppLocale, useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
@@ -18,10 +18,10 @@ import { UpgradePrompt } from '@/components/tier/UpgradePrompt'
 import { useToast } from '@/hooks/use-toast'
 import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
 import { resetSettingsViaApi, updateSettingsViaApi } from '@/lib/api/settings-client'
-import { DEFAULT_SETTINGS } from '@/lib/config/defaults'
+import { cn } from '@/lib/utils'
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useUIStore } from '@/lib/stores/ui-store'
-import { UserSettings } from '@/types/settings'
+import { UserSettings, defaultSettings } from '@/types/settings'
 import { useUserTier } from '@/hooks/use-user-tier'
 import { useTheme } from '@/components/theme-provider'
 import { LanguageSelector } from './LanguageSelector'
@@ -64,6 +64,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   const [settings, setSettings] = useState<UserSettings>(initialSettings)
   const [isPending, setIsPending] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [draggedSourceId, setDraggedSourceId] = useState<string | null>(null)
   const { toast } = useToast()
   const t = useTranslations('settings')
   const tCommon = useTranslations('common')
@@ -267,6 +268,30 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   ).length
   const enabledSourceCount = settings.newsSources?.length || 0
 
+  // Native HTML5 drag-and-drop reorder, mirroring the RSS source list. Keeps
+  // framer-motion imports on the lazy `m` components only.
+  const handleSourceDragOver = (event: React.DragEvent, targetId: string) => {
+    event.preventDefault()
+
+    if (!draggedSourceId || draggedSourceId === targetId) {
+      return
+    }
+
+    const currentSources = settings.newsSources || []
+    const draggedIndex = currentSources.indexOf(draggedSourceId)
+    const targetIndex = currentSources.indexOf(targetId)
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      return
+    }
+
+    const newSources = [...currentSources]
+    const [removed] = newSources.splice(draggedIndex, 1)
+    newSources.splice(targetIndex, 0, removed)
+
+    updateSetting('newsSources', newSources)
+  }
+
   return (
     <div
       className="space-y-6"
@@ -415,7 +440,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
             <LockedSettingItem
               label={t('interval')}
               description={t('intervalDescription')}
-              value={`${DEFAULT_SETTINGS.rotationInterval}s`}
+              value={`${defaultSettings.rotationInterval}s`}
               requiredTier="member"
             />
           )}
@@ -457,34 +482,35 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                 </div>
                 <div className="bg-muted/30 min-h-[300px] rounded-lg border p-2">
                   <div className="space-y-2">
-                    {HOT_LIST_SOURCES.filter(
-                      (source) => !settings.newsSources?.includes(source.id)
-                    ).map((source) => (
-                      <motion.div
-                        layout
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        key={source.id}
-                        className="bg-card hover:border-primary/50 group flex cursor-pointer items-center justify-between rounded-md border p-2 text-sm transition-colors"
-                        onClick={() => {
-                          const currentSources = settings.newsSources || []
-                          updateSetting('newsSources', [...currentSources, source.id])
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{source.icon}</span>
-                          <span>{source.name}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                    <AnimatePresence initial={false}>
+                      {HOT_LIST_SOURCES.filter(
+                        (source) => !settings.newsSources?.includes(source.id)
+                      ).map((source) => (
+                        <m.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          key={source.id}
+                          className="bg-card hover:border-primary/50 group flex cursor-pointer items-center justify-between rounded-md border p-2 text-sm transition-colors"
+                          onClick={() => {
+                            const currentSources = settings.newsSources || []
+                            updateSetting('newsSources', [...currentSources, source.id])
+                          }}
                         >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                    ))}
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{source.icon}</span>
+                            <span>{source.name}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </m.div>
+                      ))}
+                    </AnimatePresence>
                     {availableSourceCount === 0 ? (
                       <div className="text-muted-foreground flex h-full flex-col items-center justify-center py-8 text-xs">
                         <Check className="mb-2 h-8 w-8 opacity-20" />
@@ -503,12 +529,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                   <span className="text-muted-foreground text-xs">{t('dragToReorder')}</span>
                 </div>
                 <div className="bg-card min-h-[300px] rounded-lg border p-2">
-                  <Reorder.Group
-                    axis="y"
-                    values={settings.newsSources || []}
-                    onReorder={(newOrder) => updateSetting('newsSources', newOrder)}
-                    className="space-y-2"
-                  >
+                  <div className="space-y-2">
                     <AnimatePresence initial={false}>
                       {(settings.newsSources || []).map((sourceId) => {
                         const source = HOT_LIST_SOURCES.find((item) => item.id === sourceId)
@@ -517,15 +538,19 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                         }
 
                         return (
-                          <Reorder.Item
+                          <m.div
                             key={source.id}
-                            value={source.id}
-                            className="bg-background flex cursor-grab items-center justify-between rounded-md border p-2 text-sm shadow-sm active:cursor-grabbing"
-                            whileDrag={{
-                              scale: 1.02,
-                              zIndex: 10,
-                              boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
-                            }}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            draggable
+                            onDragStart={() => setDraggedSourceId(source.id)}
+                            onDragEnd={() => setDraggedSourceId(null)}
+                            onDragOver={(event) => handleSourceDragOver(event, source.id)}
+                            className={cn(
+                              'bg-background flex cursor-grab items-center justify-between rounded-md border p-2 text-sm shadow-sm active:cursor-grabbing',
+                              draggedSourceId === source.id && 'ring-primary/50 opacity-60 ring-2'
+                            )}
                           >
                             <div className="flex items-center gap-2">
                               <GripVertical className="text-muted-foreground/50 h-4 w-4" />
@@ -547,7 +572,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                             >
                               <X className="h-4 w-4" />
                             </Button>
-                          </Reorder.Item>
+                          </m.div>
                         )
                       })}
                     </AnimatePresence>
@@ -556,7 +581,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                         {t('addSourcesHint')}
                       </div>
                     ) : null}
-                  </Reorder.Group>
+                  </div>
                 </div>
               </div>
             </div>

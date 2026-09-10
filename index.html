@@ -29,6 +29,28 @@
       rel="stylesheet"
     />
     <title>Shaking Head News</title>
+    <script>
+      // Apply the persisted theme before first paint to avoid a light-mode
+      // flash for dark-mode users. Mirrors ThemeProvider semantics:
+      // localStorage 'theme' ('light' | 'dark' | 'system'), system follows
+      // prefers-color-scheme, and only the 'dark' class is required.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('theme')
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark')
+          }
+        } catch (error) {
+          /* localStorage can be unavailable; fall back to light theme */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

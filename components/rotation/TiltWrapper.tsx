@@ -1,4 +1,4 @@
-﻿import { LazyMotion, domAnimation, m } from 'framer-motion'
+﻿import { m } from 'framer-motion'
 import { useRotationStore } from '@/lib/stores/rotation-store'
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { usePathname } from '@/lib/router'
@@ -223,18 +223,16 @@ export function TiltWrapper({
   }
 
   return (
-    <LazyMotion features={domAnimation}>
-      <m.div
-        animate={{ rotate: safeAngle }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
-        className={cn(
-          'h-screen overflow-x-hidden overflow-y-auto',
-          !isSettingsPage && 'scrollbar-hide'
-        )}
-        data-testid="tilt-wrapper"
-      >
-        {children}
-      </m.div>
-    </LazyMotion>
+    <m.div
+      animate={{ rotate: safeAngle }}
+      transition={{ duration: 0.6, ease: 'easeInOut' }}
+      className={cn(
+        'h-screen overflow-x-hidden overflow-y-auto',
+        !isSettingsPage && 'scrollbar-hide'
+      )}
+      data-testid="tilt-wrapper"
+    >
+      {children}
+    </m.div>
   )
 }
