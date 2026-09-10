@@ -17,6 +17,7 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/storage', () => ({
   getStorageItem: vi.fn(),
+  getStorageItemStrict: vi.fn(),
   setStorageItem: vi.fn(),
   StorageKeys: {
     userRSSSources: (userId: string) => `user:${userId}:rss-sources`,
@@ -46,6 +47,7 @@ vi.mock('@/lib/utils/error-handler', () => ({
   AuthError: class AuthError extends Error {},
   NotFoundError: class NotFoundError extends Error {},
   ValidationError: class ValidationError extends Error {},
+  RateLimitError: class RateLimitError extends Error {},
 }))
 
 vi.mock('@/lib/utils/input-validation', () => ({
@@ -59,9 +61,10 @@ vi.mock('@/lib/tier-server', () => ({
 }))
 
 import { auth } from '@/lib/auth'
-import { getStorageItem, setStorageItem } from '@/lib/storage'
+import { getStorageItemStrict, setStorageItem } from '@/lib/storage'
 import { rateLimitByUser, rateLimitByAction } from '@/lib/rate-limit'
 import { getUserTier } from '@/lib/tier-server'
+import { validateOrThrow } from '@/lib/utils/error-handler'
 
 // Mock global fetch
 const mockFetch = vi.fn()
@@ -131,12 +134,12 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       const result = await getRSSSources()
 
       expect(result).toHaveLength(mockRSSSources.length)
-      expect(getStorageItem).toHaveBeenCalledWith('user:test-user-id:rss-sources')
+      expect(getStorageItemStrict).toHaveBeenCalledWith('user:test-user-id:rss-sources')
     })
 
     it('should return empty array when no sources exist', async () => {
@@ -144,23 +147,45 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(null)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(null)
 
       const result = await getRSSSources()
 
       expect(result).toEqual([])
     })
 
-    it('should handle storage errors gracefully', async () => {
+    it('should skip invalid sources instead of dropping the whole list', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockRejectedValue(new Error('Storage error'))
+      // One corrupted entry must not wipe the other stored sources.
+      vi.mocked(getStorageItemStrict).mockResolvedValue([
+        { invalid: 'source-shape' },
+        ...mockRSSSources,
+      ] as unknown as typeof mockRSSSources)
+      vi.mocked(validateOrThrow).mockImplementation(((_schema: unknown, data: unknown) => {
+        if (data && typeof data === 'object' && 'invalid' in data) {
+          throw new Error('Invalid RSS source')
+        }
+        return data
+      }) as unknown as typeof validateOrThrow)
 
       const result = await getRSSSources()
 
-      expect(result).toEqual([])
+      expect(result).toHaveLength(mockRSSSources.length)
+    })
+
+    it('should propagate storage errors instead of returning an empty list', async () => {
+      // A transient KV failure must abort write callers, otherwise a
+      // subsequent write would persist an empty list over stored data.
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItemStrict).mockRejectedValue(new Error('Storage error'))
+
+      await expect(getRSSSources()).rejects.toThrow('Storage error')
     })
   })
 
@@ -185,7 +210,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
       mockFetch.mockResolvedValue({ ok: true })
 
@@ -217,7 +242,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
       mockFetch.mockResolvedValue({ ok: false })
 
       await expect(addRSSSource(newSource)).rejects.toThrow()
@@ -230,7 +255,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(maxSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(maxSources)
 
       await expect(addRSSSource(newSource)).rejects.toThrow('Maximum number')
     })
@@ -240,7 +265,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
       mockFetch.mockResolvedValue({ ok: true })
 
@@ -254,7 +279,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
       mockFetch.mockRejectedValue(new Error('Timeout'))
 
       await expect(addRSSSource(newSource)).rejects.toThrow()
@@ -273,7 +298,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       const result = await updateRSSSource('1', { name: 'Updated Name' })
@@ -287,7 +312,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       await expect(updateRSSSource('non-existent', { name: 'Updated' })).rejects.toThrow(
         'not found'
@@ -313,7 +338,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       const result = await updateRSSSource('1', { url: 'https://example.com/updated.xml' })
@@ -334,7 +359,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       await deleteRSSSource('1')
@@ -350,7 +375,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       await expect(deleteRSSSource('non-existent')).rejects.toThrow('not found')
     })
@@ -368,7 +393,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       const result = await reorderRSSSources(['2', '1'])
@@ -385,7 +410,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       await expect(reorderRSSSources(['1', 'non-existent'])).rejects.toThrow('not found')
     })
@@ -403,7 +428,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       const result = await exportOPML()
 
@@ -419,7 +444,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
 
       await expect(exportOPML()).rejects.toThrow('No RSS sources')
     })
@@ -429,7 +454,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue(mockRSSSources)
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
       const result = await exportOPML()
 
@@ -446,7 +471,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       const result = await importOPML(`<?xml version="1.0" encoding="UTF-8"?>
@@ -475,7 +500,7 @@ describe('RSS Actions', () => {
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(getStorageItem).mockResolvedValue([])
+      vi.mocked(getStorageItemStrict).mockResolvedValue([])
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
       const result = await importOPML(`<?xml version="1.0" encoding="UTF-8"?>

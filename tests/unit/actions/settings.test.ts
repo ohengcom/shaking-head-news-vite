@@ -38,7 +38,6 @@ import { rateLimitByUser } from '@/lib/rate-limit'
 describe('Settings Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.ENABLE_SETTINGS_REVALIDATE = 'false'
     // Reset rateLimitByUser mock to return success by default
     vi.mocked(rateLimitByUser).mockResolvedValue({
       success: true,
@@ -189,13 +188,10 @@ describe('Settings Actions', () => {
   })
 
   describe('updateSettings', () => {
-    it('should return error for unauthenticated users', async () => {
+    it('should reject with an auth error for unauthenticated users', async () => {
       vi.mocked(auth).mockResolvedValue(null)
 
-      const result = await updateSettings({ language: 'en' })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('sign in')
+      await expect(updateSettings({ language: 'en' })).rejects.toThrow('sign in')
     })
 
     it('should update settings for authenticated users', async () => {
@@ -213,7 +209,7 @@ describe('Settings Actions', () => {
       expect(setStorageItem).toHaveBeenCalled()
     })
 
-    it('should respect rate limits', async () => {
+    it('should reject with a rate limit error when the limit is exceeded', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
@@ -224,10 +220,7 @@ describe('Settings Actions', () => {
         reset: Date.now() + 60000,
       })
 
-      const result = await updateSettings({ language: 'en' })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Too many requests')
+      await expect(updateSettings({ language: 'en' })).rejects.toThrow('Too many requests')
     })
 
     it('should preserve userId when updating settings', async () => {
@@ -257,30 +250,13 @@ describe('Settings Actions', () => {
       expect(result.success).toBe(false)
       expect(result.error).toBeTruthy()
     })
-
-    it('should still return success without runtime revalidation hooks', async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(getStorageItem).mockResolvedValue(mockUserSettings)
-      vi.mocked(setStorageItem).mockResolvedValue(undefined)
-
-      const result = await updateSettings({ language: 'en' })
-
-      expect(result.success).toBe(true)
-      expect(result.settings?.language).toBe('en')
-    })
   })
 
   describe('resetSettings', () => {
-    it('should return error for unauthenticated users', async () => {
+    it('should reject with an auth error for unauthenticated users', async () => {
       vi.mocked(auth).mockResolvedValue(null)
 
-      const result = await resetSettings()
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('sign in')
+      await expect(resetSettings()).rejects.toThrow('sign in')
     })
 
     it('should reset settings to defaults for authenticated users', async () => {
@@ -298,7 +274,7 @@ describe('Settings Actions', () => {
       expect(setStorageItem).toHaveBeenCalled()
     })
 
-    it('should respect rate limits', async () => {
+    it('should reject with a rate limit error when the limit is exceeded', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
@@ -309,23 +285,7 @@ describe('Settings Actions', () => {
         reset: Date.now() + 60000,
       })
 
-      const result = await resetSettings()
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Too many')
-    })
-
-    it('should still return success without runtime revalidation hooks', async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(setStorageItem).mockResolvedValue(undefined)
-
-      const result = await resetSettings()
-
-      expect(result.success).toBe(true)
-      expect(result.settings?.language).toBe('zh')
+      await expect(resetSettings()).rejects.toThrow('Too many')
     })
   })
 })

@@ -5,3 +5,5 @@ playwright-report
 test-results
 tsconfig.tsbuildinfo
 worker-configuration.d.ts
+vitest-cache
+vitest-worker-cache

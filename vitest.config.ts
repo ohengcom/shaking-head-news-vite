@@ -5,8 +5,12 @@ import { fileURLToPath } from 'node:url'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
+// Keep the Vitest cache out of the OneDrive-synced workspace on Windows.
+// Non-Windows environments (CI) use the default cache location.
+const isWindows = process.platform === 'win32'
+
 export default defineConfig({
-  cacheDir: 'C:/temp/shaking-head-news-vite/vitest-cache',
+  ...(isWindows ? { cacheDir: 'C:/temp/shaking-head-news-vite/vitest-cache' } : {}),
   plugins: [react()],
   test: {
     // Use jsdom for DOM testing

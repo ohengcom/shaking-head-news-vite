@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  getNews,
-  refreshNews,
-  getRSSNews,
-  refreshRSSFeed,
-  getUserCustomNews,
-} from '@/lib/actions/news'
+import { getNews, getRSSNews, getUserCustomNews } from '@/lib/actions/news'
 import { mockNewsItems } from '@/tests/utils/test-utils'
 
 vi.mock('@/lib/utils/error-handler', () => ({
@@ -141,22 +135,6 @@ describe('News Actions', () => {
     })
   })
 
-  describe('refreshNews', () => {
-    it('should refresh all news when no parameters provided', async () => {
-      const result = await refreshNews()
-
-      expect(result.success).toBe(true)
-    })
-
-    it('should refresh specific language news', async () => {
-      await expect(refreshNews('zh')).resolves.toEqual({ success: true })
-    })
-
-    it('should refresh specific source news', async () => {
-      await expect(refreshNews(undefined, 'everydaynews')).resolves.toEqual({ success: true })
-    })
-  })
-
   describe('getRSSNews', () => {
     const mockRSSXML = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -197,15 +175,13 @@ describe('News Actions', () => {
       expect(result[1].title).toBe('Test News 2')
     })
 
-    it('should retry on fetch failure', async () => {
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce(createXmlResponse(mockRSSXML))
+    it('should fail on the first fetch error without retrying', async () => {
+      // RSS sources are fetched with a single attempt to keep /api/home
+      // inside the Workers free-tier subrequest budget.
+      mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-      const result = await getRSSNews('https://example.com/rss.xml')
-
-      expect(mockFetch).toHaveBeenCalledTimes(2)
-      expect(result).toHaveLength(2)
+      await expect(getRSSNews('https://example.com/rss.xml')).rejects.toThrow()
+      expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it.skip('should throw error on non-ok response', async () => {
@@ -280,14 +256,6 @@ describe('News Actions', () => {
       expect(result[0].title).toBe('Test V2EX Topic')
       expect(result[0].url).toBe('https://www.v2ex.com/t/123456')
       expect(result[0].description).toBe('Test content')
-    })
-  })
-
-  describe('refreshRSSFeed', () => {
-    it('should refresh specific RSS feed', async () => {
-      const result = await refreshRSSFeed('https://example.com/rss.xml')
-
-      expect(result.success).toBe(true)
     })
   })
 
@@ -418,6 +386,39 @@ describe('News Actions', () => {
       expect(result).toHaveLength(2)
       expect(result[0].title).toBe('New Item')
       expect(result[1].title).toBe('Old Item')
+    })
+
+    it('should cap the number of RSS sources fetched per request', async () => {
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } })
+      vi.mocked(getRSSSources).mockResolvedValue(
+        Array.from({ length: 40 }, (_, index) => ({
+          id: String(index),
+          name: `RSS ${index}`,
+          url: `https://rss${index}.com/feed`,
+          language: 'zh' as const,
+          enabled: true,
+          order: index,
+          failureCount: 0,
+          tags: [],
+        }))
+      )
+
+      const rssXML = `<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <item>
+            <title>Item</title>
+            <pubDate>Wed, 19 Nov 2025 10:00:00 GMT</pubDate>
+          </item>
+        </channel>
+      </rss>`
+
+      mockFetch.mockImplementation(async () => createXmlResponse(rssXML))
+
+      await getUserCustomNews()
+
+      // Capped at 30 fetches to stay within the free-tier subrequest budget.
+      expect(mockFetch).toHaveBeenCalledTimes(30)
     })
   })
 })

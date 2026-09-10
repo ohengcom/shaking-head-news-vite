@@ -7,7 +7,6 @@ import {
   getMonthStats,
   getSummaryStats,
   checkHealthReminder,
-  checkDailyGoal,
 } from '@/lib/actions/stats'
 import { mockUserStats } from '@/tests/utils/test-utils'
 
@@ -26,12 +25,10 @@ vi.mock('@/lib/storage', () => ({
 }))
 
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimitByUser: vi
+  memoryRateLimit: vi
     .fn()
-    .mockResolvedValue({ success: true, remaining: 99, reset: Date.now() + 60000 }),
-  rateLimitByAction: vi
-    .fn()
-    .mockResolvedValue({ success: true, remaining: 99, reset: Date.now() + 60000 }),
+    .mockReturnValue({ success: true, remaining: 99, reset: Date.now() + 60000 }),
+  resetMemoryRateLimits: vi.fn(),
   RateLimitTiers: {
     STANDARD: { limit: 30, window: 60 },
     RELAXED: { limit: 100, window: 60 },
@@ -42,17 +39,18 @@ vi.mock('@/lib/utils/error-handler', () => ({
   logError: vi.fn(),
   validateOrThrow: vi.fn((_schema, data) => data),
   AuthError: class AuthError extends Error {},
+  RateLimitError: class RateLimitError extends Error {},
 }))
 
 import { auth } from '@/lib/auth'
 import { getStorageItem, getMultipleStorageItems, setStorageItem } from '@/lib/storage'
-import { rateLimitByUser } from '@/lib/rate-limit'
+import { memoryRateLimit } from '@/lib/rate-limit'
 
 describe('Stats Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset the rate limit mock to return success by default
-    vi.mocked(rateLimitByUser).mockResolvedValue({
+    vi.mocked(memoryRateLimit).mockReturnValue({
       success: true,
       remaining: 99,
       reset: Date.now() + 60000,
@@ -164,13 +162,12 @@ describe('Stats Actions', () => {
       expect(setStorageItem).not.toHaveBeenCalled()
     })
 
-    it('should record rotation even when rate limit would normally block (rate limit disabled)', async () => {
-      // Rate limiting is currently disabled in the implementation for debugging
+    it('should return RATE_LIMIT when the in-memory limit is exceeded', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(rateLimitByUser).mockResolvedValue({
+      vi.mocked(memoryRateLimit).mockReturnValue({
         success: false,
         remaining: 0,
         reset: Date.now() + 60000,
@@ -180,9 +177,8 @@ describe('Stats Actions', () => {
 
       const result = await recordRotation(5, 30)
 
-      // Since rate limiting returns false, it should return RATE_LIMIT error
-      // Note: Implementation returns { error: 'RATE_LIMIT' } on failure, not null
       expect(result).toHaveProperty('error', 'RATE_LIMIT')
+      expect(setStorageItem).not.toHaveBeenCalled()
     })
 
     it('should validate angle range', async () => {
@@ -261,19 +257,17 @@ describe('Stats Actions', () => {
       expect(getMultipleStorageItems).toHaveBeenCalledTimes(1)
     })
 
-    it('should return empty array when rate limit would normally block (rate limit disabled)', async () => {
-      // Rate limiting is enabled in the implementation
+    it('should throw a rate limit error when the in-memory limit is exceeded', async () => {
       vi.mocked(auth).mockResolvedValue({
         user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
         expires: new Date().toISOString(),
       })
-      vi.mocked(rateLimitByUser).mockResolvedValue({
+      vi.mocked(memoryRateLimit).mockReturnValue({
         success: false,
         remaining: 0,
         reset: Date.now() + 60000,
       })
 
-      // Since rate limiting returns false, it should throw an error
       await expect(getStats('2024-01-01', '2024-01-07')).rejects.toThrow('Too many requests')
     })
 
@@ -489,78 +483,6 @@ describe('Stats Actions', () => {
       const result = await checkHealthReminder()
 
       expect(result.shouldRemind).toBe(false)
-    })
-  })
-
-  describe('checkDailyGoal', () => {
-    it('should return not achieved when no stats exist', async () => {
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(getMultipleStorageItems).mockResolvedValue([null])
-
-      const result = await checkDailyGoal(30)
-
-      expect(result.achieved).toBe(false)
-      expect(result.current).toBe(0)
-      expect(result.progress).toBe(0)
-    })
-
-    it('should return achieved when goal is met', async () => {
-      const statsWithGoal = {
-        ...mockUserStats,
-        rotationCount: 30,
-      }
-
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsWithGoal])
-
-      const result = await checkDailyGoal(30)
-
-      expect(result.achieved).toBe(true)
-      expect(result.current).toBe(30)
-      expect(result.progress).toBe(100)
-    })
-
-    it('should calculate progress correctly', async () => {
-      const statsWithProgress = {
-        ...mockUserStats,
-        rotationCount: 15,
-      }
-
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsWithProgress])
-
-      const result = await checkDailyGoal(30)
-
-      expect(result.achieved).toBe(false)
-      expect(result.current).toBe(15)
-      expect(result.progress).toBe(50)
-    })
-
-    it('should cap progress at 100%', async () => {
-      const statsExceedingGoal = {
-        ...mockUserStats,
-        rotationCount: 50,
-      }
-
-      vi.mocked(auth).mockResolvedValue({
-        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-        expires: new Date().toISOString(),
-      })
-      vi.mocked(getMultipleStorageItems).mockResolvedValue([statsExceedingGoal])
-
-      const result = await checkDailyGoal(30)
-
-      expect(result.achieved).toBe(true)
-      expect(result.progress).toBe(100)
     })
   })
 })
