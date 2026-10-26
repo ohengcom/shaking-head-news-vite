@@ -18,7 +18,7 @@ import {
   updateSettings,
 } from '@/lib/actions/settings'
 import { checkHealthReminder, getSummaryStats, recordRotation } from '@/lib/actions/stats'
-import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
+import { HOT_LIST_SOURCES } from '@/lib/constants/hot-list-sources'
 import { getAdSenseClientId } from '@/lib/config/adsense'
 import type { UserSettings } from '@/types/settings'
 import { APIError, ValidationError } from '@/lib/utils/error-handler'

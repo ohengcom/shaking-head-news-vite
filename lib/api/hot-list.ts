@@ -1,33 +1,11 @@
-import { getCurrentCtx } from '@/lib/server/request-context'
+import {
+  HOT_LIST_SOURCES,
+  type HotItem,
+  type HotListResponse,
+  type HotListSourceId,
+} from '@/lib/constants/hot-list-sources'
 
-export interface HotItem {
-  title: string
-  url: string
-  hot?: string
-}
-
-export interface HotListResponse {
-  code: number
-  msg: string
-  data: HotItem[]
-  time: string
-}
-
-export const HOT_LIST_SOURCES = [
-  { id: 'douyin', name: '抖音热搜', icon: '🎵' },
-  { id: 'weibo', name: '微博热搜', icon: '🔴' },
-  { id: 'bilibili', name: 'B站热搜', icon: '📺' },
-  { id: 'zhihu', name: '知乎热榜', icon: '❓' },
-  { id: 'baidu', name: '百度热搜', icon: '🔍' },
-  { id: 'toutiao', name: '头条热榜', icon: '📰' },
-  { id: 'today-in-history', name: '历史上的今天', icon: '📅' },
-  { id: 'quark', name: '夸克热点', icon: '🌪️' },
-  { id: 'rednote', name: '小红书', icon: '📕' },
-  // { id: 'juejin', name: '掘金热榜', icon: '💎' },
-  // { id: 'netease', name: '网易新闻', icon: '📰' },
-] as const
-
-export type HotListSourceId = (typeof HOT_LIST_SOURCES)[number]['id']
+export { HOT_LIST_SOURCES, type HotItem, type HotListResponse, type HotListSourceId }
 
 const API_PATH_MAP: Record<string, string> = {
   baidu: 'baidu/hot',
@@ -195,14 +173,7 @@ export async function getHotList(sourceId: string): Promise<HotItem[]> {
     const items = parseHotListPayload(data, sourceId)
 
     setCachedHotList(sourceId, items)
-
-    const ctx = getCurrentCtx()
-    const edgeCachePromise = writeEdgeCachedHotList(sourceId, data)
-    if (ctx) {
-      ctx.waitUntil(edgeCachePromise)
-    } else {
-      await edgeCachePromise
-    }
+    await writeEdgeCachedHotList(sourceId, data)
 
     return items
   } catch (error) {

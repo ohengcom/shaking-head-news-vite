@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSession } from '@/lib/auth-client'
 import { getHomePersonalizationViaApi } from '@/lib/api/home-client'
-import { HOT_LIST_SOURCES } from '@/lib/api/hot-list'
+import { HOT_LIST_SOURCES } from '@/lib/constants/hot-list-sources'
 import type { HomePersonalizationPayload } from '@/types/home'
 import type { NewsItem } from '@/types/news'
 
