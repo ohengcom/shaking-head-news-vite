@@ -1,13 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "shaking-head-news-vite",
-  "compatibility_date": "2026-06-01",
+  "compatibility_date": "2026-08-15",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "main": "./worker/index.ts",
   "workers_dev": true,
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+    },
   },
   "routes": [
     {

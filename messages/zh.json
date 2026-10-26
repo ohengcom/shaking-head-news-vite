@@ -161,7 +161,9 @@
     "resume": "继续",
     "speed": "速度",
     "angle": "角度",
-    "controls": "旋转控制"
+    "controls": "旋转控制",
+    "resetAngle": "回正页面",
+    "shortcutHint": "空格：暂停/继续"
   },
   "stats": {
     "title": "统计数据",

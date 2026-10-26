@@ -161,7 +161,9 @@
     "resume": "Resume",
     "speed": "Speed",
     "angle": "Angle",
-    "controls": "Rotation Controls"
+    "controls": "Rotation Controls",
+    "resetAngle": "Level page",
+    "shortcutHint": "Space: pause/resume"
   },
   "stats": {
     "title": "Statistics",

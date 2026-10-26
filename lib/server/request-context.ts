@@ -1,9 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { AppWorkerEnv } from '@/lib/server/env'
 
+export interface ExecutionContextLike {
+  waitUntil(promise: Promise<unknown>): void
+  passThroughOnException?(): void
+}
+
 interface RequestContextValue {
   request: Request
   env: AppWorkerEnv
+  ctx?: ExecutionContextLike
 }
 
 const requestContextStorage = new AsyncLocalStorage<RequestContextValue>()
@@ -25,4 +31,8 @@ export function getCurrentEnv(): AppWorkerEnv | null {
 
 export function getCurrentRequest(): Request | null {
   return getRequestContext()?.request ?? null
+}
+
+export function getCurrentCtx(): ExecutionContextLike | null {
+  return getRequestContext()?.ctx ?? null
 }

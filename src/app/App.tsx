@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { createBrowserRouter, Outlet, useRouteError } from 'react-router-dom'
 import { Footer } from '@/components/layout/footer'
 import { Header } from '@/components/layout/header'
+import { RotationQuickBar } from '@/components/rotation/RotationQuickBar'
 import { TiltWrapper } from '@/components/rotation/TiltWrapper'
 import { HomePage } from '@/src/routes/HomePage'
 import { RequireAuth } from '@/src/routes/RequireAuth'
@@ -34,6 +35,7 @@ function AppShell() {
           <Outlet />
         </main>
         <Footer />
+        <RotationQuickBar />
       </div>
     </TiltWrapper>
   )

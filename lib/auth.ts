@@ -125,6 +125,16 @@ function createAuthServer(baseURL: string) {
   return betterAuth({
     baseURL,
     secret: getRuntimeEnvValue('BETTER_AUTH_SECRET')!,
+    // Cache a short-lived session snapshot in a cookie. This cuts one KV read
+    // per authenticated request and, more importantly, hides KV's eventual
+    // consistency (up to ~60s propagation) so a fresh login does not appear
+    // logged-out when the next request lands on another colo.
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60,
+      },
+    },
     socialProviders: getSocialProviders(baseURL),
     ...(kv ? { secondaryStorage: createSecondaryStorage(kv) } : {}),
   })

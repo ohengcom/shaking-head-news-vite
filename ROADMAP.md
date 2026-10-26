@@ -21,6 +21,7 @@ to.
 
 ## Later
 
+- Evaluate Cloudflare D1 migration for user stats and settings when authenticated daily active users scale.
 - Optional entitlement-provider examples for the self-hosted Pro preview.
 - More deployment examples for custom domains and multiple environments.
 - Better observability examples for production Workers.

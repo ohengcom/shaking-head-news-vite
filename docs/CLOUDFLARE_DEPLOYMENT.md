@@ -25,6 +25,8 @@ Current `wrangler.jsonc` should keep these values:
 - `assets.run_worker_first = ["/", "/api/*", "/ads.txt"]`
 - `observability.enabled = true`
 - `observability.head_sampling_rate = 1`
+- `observability.traces.enabled = true`
+- `observability.traces.head_sampling_rate = 0.1`
 
 ## Recommended Variables
 

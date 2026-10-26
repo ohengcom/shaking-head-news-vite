@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { HomePageContent } from '@/components/home/HomePageContent'
+import { NewsListSkeleton } from '@/components/news/NewsListSkeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getHomeFeedViaApi, getInitialHomeFeed } from '@/lib/api/content-client'
 import type { NewsItem } from '@/types/news'
@@ -62,12 +63,13 @@ export function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-4xl py-16">
+      <div className="container mx-auto max-w-4xl py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
         </div>
-        <div className="text-muted-foreground text-center text-sm">{t('loadingFeed')}</div>
+        <NewsListSkeleton />
+        <span className="sr-only">{t('loadingFeed')}</span>
       </div>
     )
   }

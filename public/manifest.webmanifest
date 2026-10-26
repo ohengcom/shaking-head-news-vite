@@ -1,0 +1,23 @@
+{
+  "name": "Shaking Head News",
+  "short_name": "ShakeNews",
+  "description": "Read daily news with gentle posture-break rotation prompts.",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
+  "icons": [
+    {
+      "src": "/icons/ytkxw.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/ytkxw.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

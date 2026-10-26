@@ -7,8 +7,38 @@ Release versions use the date-based `YYYY.M.D` format.
 
 ## [Unreleased]
 
+## [2026.10.27] - 2026-10-27
+
+### Added
+
+- **Workers Observability & Distributed Tracing**: Enabled `observability.traces` in `wrangler.jsonc`
+  with sample rate tuning and structured JSON logging in Worker runtime error handlers.
+- **Background Execution via `ctx.waitUntil`**: Injected `ExecutionContext` into `RequestContext` so
+  edge cache writes and background tasks execute via `ctx.waitUntil` without delaying HTTP responses.
+- **Defense-in-Depth Security Headers on Worker Routes**: Attached `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, `X-Frame-Options: SAMEORIGIN`, and `Permissions-Policy` to Worker-rendered HTML
+  and API responses (`run_worker_first`), complementing the static asset headers in `_headers`.
+- **SSRF Protection**: Added `safeFetch` in `lib/utils/safe-fetch.ts` to strictly validate and
+  follow user-supplied RSS feed URLs, blocking private/reserved IPv4/IPv6 networks, cloud
+  metadata addresses, non-standard ports, and embedded credentials before opening outbound connections.
+- **Self-Hosted Typography**: Bundled `@fontsource/manrope` locally and eliminated remote Google Fonts
+  connections, providing offline-capable typography and fast first paint in restricted networks with
+  graceful Chinese system font fallbacks.
+- **Rotation Quick Bar**: Added a floating quick-control capsule (`RotationQuickBar`) with pause/resume,
+  level-angle reset, and a global keyboard shortcut (`Space`) that ignores form inputs and modal dialogs.
+- **Skeleton Loading**: Added Radix-styled `Skeleton` and `NewsListSkeleton` components to render
+  high-fidelity placeholder animations before home feed data is hydrated.
+- **Edge Caching for Hot Lists**: Connected upstream hot lists (`60s.viki.moe`) to the Cloudflare Cache API
+  (10-minute TTL) alongside isolate-level caching to protect external APIs from redundant requests.
+- **Web App Manifest & Crawlers**: Added `manifest.webmanifest` for mobile PWA home-screen installations,
+  `robots.txt`, and `sitemap.xml`.
+- **Security Headers for Static Assets**: Added `public/_headers` specifying `nosniff`, `Referrer-Policy`,
+  and `Permissions-Policy`, plus immutable long-term caching for hashed `/assets/*`.
+
 ### Fixed
 
+- **Auth Session Reliability**: Configured `cookieCache` (`maxAge: 300`) in Better Auth to mitigate
+  Cloudflare KV eventual consistency propagation delays across edge colos and reduce KV session read spikes.
 - **RSS Data Safety**: Invalid stored RSS sources are now skipped individually instead of
   collapsing the whole list, and read-modify-write flows use a strict storage read so a
   transient KV failure can no longer persist an empty list over stored sources.

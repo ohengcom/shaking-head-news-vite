@@ -9,7 +9,7 @@ rotation.
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
 [![Frontend](https://img.shields.io/badge/frontend-Vite%20%2B%20React-646cff)](https://vite.dev/)
-[![Version](https://img.shields.io/badge/version-2026.7.3-2563eb)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2026.10.27-2563eb)](CHANGELOG.md)
 
 [Live Demo](https://sn.oheng.com) · [Self-host](#self-host-in-5-minutes) ·
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
@@ -34,13 +34,15 @@ reading.
 
 - Daily brief and IT news aggregation
 - Cached home feed data can be inlined into the initial Cloudflare HTML response for faster first paint
-- Custom RSS sources for signed-in users
+- High-fidelity skeleton placeholder loading before feed data is hydrated
+- Custom RSS sources for signed-in users with SSRF protection against internal/reserved networks
 - OPML import/export in the self-hosted Pro preview mode
+- Floating rotation quick bar with one-click pause, angle leveling, and `Space` keyboard shortcut
 - Configurable rotation mode, interval, visible minimum angle, font size, and layout density
 - Reading activity stats and reminder prompts
-- Chinese and English UI
+- Chinese and English UI with self-hosted typography (`@fontsource/manrope`)
 - Light/dark/system themes
-- Browser favicon and touch icon metadata using the existing app icon
+- PWA web app manifest, robots.txt, sitemap.xml, and static asset security headers (`_headers`)
 - Cloudflare-native API runtime with Hono, KV, Cache API, and Worker-first home HTML handling
 - React Router 7 Data Router route modules with lazy page loading and route-level error handling
 - Vitest unit tests, Playwright E2E tests, Knip unused-code scanning, and CI

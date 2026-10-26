@@ -3,8 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Manrope', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+  --font-sans: 'Manrope', 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));

@@ -7,6 +7,7 @@ import {
 import { z } from 'zod'
 import { logError, validateOrThrow, retryWithBackoff } from '@/lib/utils/error-handler'
 import { NewsAPIError } from '@/lib/errors/news-error'
+import { safeFetch, UnsafeUrlError } from '@/lib/utils/safe-fetch'
 import { XMLParser } from 'fast-xml-parser'
 import { auth } from '@/lib/auth'
 import { getRSSSources } from '@/lib/actions/rss'
@@ -387,7 +388,9 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
   try {
     // Single attempt per source: retried fetches multiply subrequest usage on
     // the Workers free tier and the caller can simply retry the page request.
-    const res = await fetch(rssUrl, {
+    // safeFetch validates every URL (and redirect hop) against private and
+    // reserved networks before opening a connection (SSRF guard).
+    const res = await safeFetch(rssUrl, {
       headers: {
         'User-Agent': 'ShakingHeadNews/1.0',
       },
@@ -416,6 +419,10 @@ export async function getRSSNews(rssUrl: string): Promise<NewsItem[]> {
 
     if (error instanceof NewsAPIError) {
       throw error
+    }
+
+    if (error instanceof UnsafeUrlError) {
+      throw new NewsAPIError('RSS URL was blocked for security reasons', 403, rssUrl)
     }
 
     throw new NewsAPIError(

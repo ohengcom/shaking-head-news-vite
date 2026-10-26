@@ -150,6 +150,10 @@ function withHtmlCacheHeaders(response: Response): Response {
   headers.set('cache-control', 'public, max-age=0, must-revalidate')
   headers.set('content-type', 'text/html; charset=utf-8')
   headers.set('vary', 'Accept-Encoding')
+  headers.set('x-content-type-options', 'nosniff')
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+  headers.set('x-frame-options', 'SAMEORIGIN')
+  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()')
 
   return new Response(response.body, {
     status: response.status,
@@ -210,11 +214,18 @@ app.use('*', async (c, continueMiddleware) => {
     {
       request: c.req.raw,
       env: c.env,
+      ctx: c.executionCtx,
     },
     async () => {
       await continueMiddleware()
     }
   )
+})
+
+app.use('/api/*', async (c, next) => {
+  await next()
+  c.res.headers.set('x-content-type-options', 'nosniff')
+  c.res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
 })
 
 app.get('/', async (c) => {
@@ -614,8 +625,19 @@ app.notFound(async (c) => {
   return c.text('Not Found', 404)
 })
 
-app.onError((error) => {
+app.onError((error, c) => {
   const { status, body } = toErrorPayload(error, 'Worker runtime error')
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message: 'Worker runtime error',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      url: c.req.url,
+      method: c.req.method,
+      status,
+    })
+  )
   return Response.json(body, { status })
 })
 
