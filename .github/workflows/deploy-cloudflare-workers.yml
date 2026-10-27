@@ -142,7 +142,12 @@ jobs:
             fs.writeFileSync(process.argv[1], JSON.stringify(out), { mode: 0o600 });
           ' "$secrets_file"
 
-          upload_output="$(npx wrangler versions upload --secrets-file "$secrets_file" 2>&1)"
+          if ! upload_output="$(npx wrangler versions upload --secrets-file "$secrets_file" 2>&1)"; then
+            echo "$upload_output"
+            rm -f "$secrets_file"
+            echo "::error title=Wrangler versions upload failed::Command failed"
+            exit 1
+          fi
           echo "$upload_output"
           rm -f "$secrets_file"
 
