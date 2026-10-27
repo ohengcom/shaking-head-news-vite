@@ -105,59 +105,22 @@ jobs:
 
           echo "$build_output"
 
-      - name: Upload version with secrets (no traffic change)
-        id: upload
+      - name: Deploy to Cloudflare Workers
         run: |
           set -euo pipefail
 
-          # `wrangler secret put` creates AND immediately deploys a new version,
-          # so the previous ordering pushed unvalidated code live one secret at a
-          # time. Instead, upload one version that carries the secrets and
-          # promote it only after it exists.
-          secrets_file="$RUNNER_TEMP/worker-secrets.json"
-          umask 077
-          node -e '
-            const fs = require("node:fs");
-            const keys = [
-              "BETTER_AUTH_URL",
-              "BETTER_AUTH_SECRET",
-              "GOOGLE_CLIENT_ID",
-              "GOOGLE_CLIENT_SECRET",
-              "AUTH_MICROSOFT_ENTRA_ID_ID",
-              "AUTH_MICROSOFT_ENTRA_ID_SECRET",
-              "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID",
-              "NEWS_API_BASE_URL",
-              "VITE_LOG_LEVEL",
-              "VITE_ADSENSE_CLIENT_ID",
-              "VITE_ADSENSE_SLOT_SIDEBAR",
-              "VITE_ADSENSE_SLOT_HEADER",
-              "VITE_ADSENSE_SLOT_FOOTER",
-              "VITE_ADSENSE_SLOT_INLINE",
-            ];
-            const out = {};
-            for (const key of keys) {
-              const value = process.env[key];
-              if (value && value.trim()) out[key] = value;
-            }
-            fs.writeFileSync(process.argv[1], JSON.stringify(out), { mode: 0o600 });
-          ' "$secrets_file"
+          # First apply any pending Durable Object migrations via `wrangler deploy`.
+          # Cloudflare requires migrations to be deployed directly rather than via
+          # `wrangler versions upload`.
+          npx wrangler deploy
 
-          if ! upload_output="$(npx wrangler versions upload --secrets-file "$secrets_file" 2>&1)"; then
-            echo "$upload_output"
-            rm -f "$secrets_file"
-            echo "::error title=Wrangler versions upload failed::Command failed"
-            exit 1
+          # Then sync runtime secrets if configured
+          if [ -n "$BETTER_AUTH_SECRET" ]; then
+            echo "$BETTER_AUTH_SECRET" | npx wrangler secret put BETTER_AUTH_SECRET
           fi
-          echo "$upload_output"
-          rm -f "$secrets_file"
-
-          version_id="$(printf '%s\n' "$upload_output" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -n 1)"
-          if [ -z "$version_id" ]; then
-            echo "::error title=Version upload failed::Could not find a version id in the upload output"
-            exit 1
+          if [ -n "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET
           fi
-
-          echo "version_id=$version_id" >> "$GITHUB_OUTPUT"
-
-      - name: Promote version to production
-        run: npx wrangler versions deploy "${{ steps.upload.outputs.version_id }}@100%" --yes
+          if [ -n "$AUTH_MICROSOFT_ENTRA_ID_SECRET" ]; then
+            echo "$AUTH_MICROSOFT_ENTRA_ID_SECRET" | npx wrangler secret put AUTH_MICROSOFT_ENTRA_ID_SECRET
+          fi
