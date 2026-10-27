@@ -45,15 +45,31 @@ export async function getSummaryStatsViaApi(): Promise<SummaryStatsResponse> {
   }
 }
 
-export async function recordRotationViaApi(angle: number, duration: number, count = 1) {
-  await fetch('/api/stats/rotation', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({ angle, duration, count, date: getLocalStatsDate() }),
-  })
+/**
+ * Upload a rotation batch.
+ *
+ * Returns true only when the server confirmed the write, so the caller can keep
+ * the batch and retry instead of dropping statistics on a transient failure.
+ */
+export async function recordRotationViaApi(
+  angle: number,
+  duration: number,
+  count = 1
+): Promise<boolean> {
+  try {
+    const response = await fetch('/api/stats/rotation', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ angle, duration, count, date: getLocalStatsDate() }),
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
 }
 
 export async function checkHealthReminderViaApi(): Promise<HealthReminderResponse> {

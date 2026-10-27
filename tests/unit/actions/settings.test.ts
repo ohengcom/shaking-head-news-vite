@@ -9,6 +9,7 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/storage', () => ({
   getStorageItem: vi.fn(),
+  getStorageItemStrict: vi.fn(),
   setStorageItem: vi.fn(),
   StorageKeys: {
     userSettings: (userId: string) => `user:${userId}:settings`,

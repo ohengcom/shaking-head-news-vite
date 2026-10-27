@@ -1,6 +1,13 @@
 import { auth } from '@/lib/auth'
-import { getStorageItem, setStorageItem, StorageKeys } from '@/lib/storage'
-import { UserSettingsSchema, defaultSettings, UserSettings } from '@/types/settings'
+import { StorageKeys } from '@/lib/storage'
+import { readUserDoc, updateUserDoc } from '@/lib/server/user-doc'
+import {
+  UserSettingsSchema,
+  UserSettingsInputSchema,
+  defaultSettings,
+  UserSettings,
+} from '@/types/settings'
+import { getEnvValue, isNonProductionRuntime } from '@/lib/config/runtime-env'
 import {
   APIError,
   AuthError,
@@ -9,7 +16,6 @@ import {
   validateOrThrow,
 } from '@/lib/utils/error-handler'
 import { rateLimitByUser, RateLimitTiers } from '@/lib/rate-limit'
-import { sanitizeObject } from '@/lib/utils/input-validation'
 
 function getLegacySettingsKeys(sessionUser: {
   id: string
@@ -47,13 +53,13 @@ export async function getUserSettings(): Promise<UserSettings> {
 
   try {
     const primaryKey = StorageKeys.userSettings(session.user.id)
-    let settings = await getStorageItem<Partial<UserSettings>>(primaryKey)
+    let settings = await readUserDoc<Partial<UserSettings>>(primaryKey)
 
     if (!settings) {
       const legacyKeys = getLegacySettingsKeys(session.user)
 
       for (const legacyKey of legacyKeys) {
-        const legacySettings = await getStorageItem<Partial<UserSettings>>(legacyKey)
+        const legacySettings = await readUserDoc<Partial<UserSettings>>(legacyKey)
 
         if (!legacySettings) {
           continue
@@ -62,11 +68,17 @@ export async function getUserSettings(): Promise<UserSettings> {
         settings = legacySettings
 
         try {
-          await setStorageItem(primaryKey, {
-            ...defaultSettings,
-            ...legacySettings,
-            userId: session.user.id,
-          })
+          // Only migrate when the primary key is still empty, so a concurrent
+          // write is never overwritten by a stale legacy record.
+          await updateUserDoc<Partial<UserSettings>>(primaryKey, (current) =>
+            current
+              ? null
+              : {
+                  ...defaultSettings,
+                  ...legacySettings,
+                  userId: session.user.id,
+                }
+          )
         } catch (migrationError) {
           logError(migrationError, {
             action: 'getUserSettings:migrateLegacyKey',
@@ -129,32 +141,26 @@ export async function updateSettings(
       throw new RateLimitError('Too many requests. Please try again later.')
     }
 
-    // 清理输入数据
-    const sanitizedSettings = sanitizeObject(settings, {
-      maxLength: 1000,
-      allowHtml: false,
-    })
+    // 只接受用户偏好字段；userId 与 isPro 属于服务端保留字段。
+    const input = validateOrThrow(UserSettingsInputSchema, settings)
 
-    // 获取当前设置
-    const currentSettings = await getUserSettings()
+    const key = StorageKeys.userSettings(session.user.id)
+    const result = await updateUserDoc<UserSettings>(key, (current) =>
+      validateOrThrow(UserSettingsSchema, {
+        ...defaultSettings,
+        ...current,
+        ...input,
+        userId: session.user.id,
+        // Entitlement is server-owned: never take isPro from the request body.
+        isPro: current?.isPro ?? false,
+      })
+    )
 
-    // 合并新设置
-    const newSettings = {
-      ...currentSettings,
-      ...sanitizedSettings,
-      userId: session.user.id, // 确保userId不被覆盖
+    if (!result.value) {
+      throw new APIError('Failed to save settings', 500, 'SETTINGS_WRITE_FAILED')
     }
 
-    // 验证数据
-    const validatedSettings = validateOrThrow(UserSettingsSchema, newSettings)
-
-    // 存储到 Cloudflare KV
-    await setStorageItem(StorageKeys.userSettings(session.user.id), validatedSettings)
-
-    return {
-      success: true,
-      settings: validatedSettings,
-    }
+    return { success: true, settings: result.value }
   } catch (error) {
     // Typed API errors (auth, rate limit, validation) keep their status code
     // so the Worker route can respond with 401/429/400 instead of a flat 400.
@@ -199,20 +205,20 @@ export async function resetSettings(): Promise<{
       throw new RateLimitError('Too many reset attempts. Please try again later.')
     }
 
-    const currentSettings = await getUserSettings()
+    const key = StorageKeys.userSettings(session.user.id)
+    const result = await updateUserDoc<UserSettings>(key, (current) =>
+      validateOrThrow(UserSettingsSchema, {
+        ...defaultSettings,
+        userId: session.user.id,
+        isPro: current?.isPro ?? false,
+      })
+    )
 
-    const resetSettings = {
-      ...defaultSettings,
-      userId: session.user.id,
-      isPro: currentSettings.isPro ?? false,
+    if (!result.value) {
+      throw new APIError('Failed to reset settings', 500, 'SETTINGS_WRITE_FAILED')
     }
 
-    await setStorageItem(StorageKeys.userSettings(session.user.id), resetSettings)
-
-    return {
-      success: true,
-      settings: resetSettings,
-    }
+    return { success: true, settings: result.value }
   } catch (error) {
     if (error instanceof APIError) {
       throw error
@@ -235,6 +241,16 @@ export async function resetSettings(): Promise<{
  * This repository does not include billing. Deployers can keep this preview enabled,
  * replace it with their own entitlement logic, or remove the route entirely.
  */
+export function isProPreviewEnabled(): boolean {
+  return isNonProductionRuntime() || getEnvValue('PRO_PREVIEW_ENABLED') === 'true'
+}
+
+/**
+ * Toggle the self-hosted Pro preview flag.
+ *
+ * Disabled in production unless PRO_PREVIEW_ENABLED is explicitly set to
+ * `true`; production entitlements must come from a trusted billing provider.
+ */
 export async function toggleProStatus(): Promise<{
   success: boolean
   error?: string
@@ -247,25 +263,25 @@ export async function toggleProStatus(): Promise<{
       throw new AuthError('Please sign in to toggle Pro status')
     }
 
-    // 获取当前设置
-    const currentSettings = await getUserSettings()
-
-    // 切换 Pro 状态
-    const newIsPro = !currentSettings.isPro
-
-    // 更新设置
-    const newSettings = {
-      ...currentSettings,
-      isPro: newIsPro,
+    if (!isProPreviewEnabled()) {
+      throw new APIError('Pro preview toggling is disabled in production', 403, 'FORBIDDEN')
     }
 
-    // 存储到云端
-    await setStorageItem(StorageKeys.userSettings(session.user.id), newSettings)
+    const key = StorageKeys.userSettings(session.user.id)
+    const result = await updateUserDoc<UserSettings>(key, (current) =>
+      validateOrThrow(UserSettingsSchema, {
+        ...defaultSettings,
+        ...current,
+        userId: session.user.id,
+        isPro: !(current?.isPro ?? false),
+      })
+    )
 
-    return {
-      success: true,
-      isPro: newIsPro,
+    if (!result.value) {
+      throw new APIError('Failed to toggle Pro status', 500, 'SETTINGS_WRITE_FAILED')
     }
+
+    return { success: true, isPro: result.value.isPro === true }
   } catch (error) {
     if (error instanceof APIError) {
       throw error

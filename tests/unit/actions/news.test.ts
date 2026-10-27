@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getNews, getRSSNews, getUserCustomNews } from '@/lib/actions/news'
+import { getNews, getRSSNews, getUserCustomNews, resetNewsCaches } from '@/lib/actions/news'
 import { mockNewsItems } from '@/tests/utils/test-utils'
 
 vi.mock('@/lib/utils/error-handler', () => ({
@@ -56,6 +56,8 @@ function createXmlResponse(xml: string, init?: ResponseInit) {
 
 describe('News Actions', () => {
   beforeEach(() => {
+    // Module-level feed caches must not leak between tests.
+    resetNewsCaches()
     vi.clearAllMocks()
     process.env.NEWS_API_BASE_URL = 'https://news.ravelloh.top'
   })
@@ -417,8 +419,8 @@ describe('News Actions', () => {
 
       await getUserCustomNews()
 
-      // Capped at 30 fetches to stay within the free-tier subrequest budget.
-      expect(mockFetch).toHaveBeenCalledTimes(30)
+      // Capped at 10 fetches to stay within the free-tier subrequest budget.
+      expect(mockFetch).toHaveBeenCalledTimes(10)
     })
   })
 })

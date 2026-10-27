@@ -17,6 +17,7 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/storage', () => ({
   getStorageItem: vi.fn(),
+  getStorageItemStrict: vi.fn(),
   getMultipleStorageItems: vi.fn(),
   setStorageItem: vi.fn(),
   StorageKeys: {
@@ -43,7 +44,12 @@ vi.mock('@/lib/utils/error-handler', () => ({
 }))
 
 import { auth } from '@/lib/auth'
-import { getStorageItem, getMultipleStorageItems, setStorageItem } from '@/lib/storage'
+import {
+  getStorageItem,
+  getStorageItemStrict,
+  getMultipleStorageItems,
+  setStorageItem,
+} from '@/lib/storage'
 import { memoryRateLimit } from '@/lib/rate-limit'
 
 describe('Stats Actions', () => {
@@ -56,6 +62,11 @@ describe('Stats Actions', () => {
       reset: Date.now() + 60000,
     })
     vi.mocked(getMultipleStorageItems).mockResolvedValue([])
+    // Writes read through the strict accessor; keep it in sync with the
+    // lenient mock the tests configure per case.
+    vi.mocked(getStorageItemStrict).mockImplementation(
+      async (key: string) => (await vi.mocked(getStorageItem)(key)) as never
+    )
   })
 
   afterEach(() => {

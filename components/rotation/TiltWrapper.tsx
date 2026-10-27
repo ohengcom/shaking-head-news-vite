@@ -17,6 +17,10 @@ interface PendingRotation {
 }
 
 const BATCH_INTERVAL_MS = 5 * 60 * 1000 // Flush every 5 minutes
+const MAX_PENDING_ROTATIONS = 500
+// Mouse-follow updates below this delta are visually irrelevant and only cost a
+// React/Zustand render.
+const MIN_MOUSE_ANGLE_DELTA = 0.2
 const subscribeToHydration = () => () => {}
 const getHydratedSnapshot = () => true
 const getServerHydratedSnapshot = () => false
@@ -75,6 +79,9 @@ export function TiltWrapper({
   const lastRotationTime = useRef<number | null>(null)
   const previousAngle = useRef<number>(0)
   const pendingRotations = useRef<PendingRotation[]>([])
+  const flushInFlight = useRef(false)
+  const mouseFrame = useRef<number | null>(null)
+  const latestMouseAngle = useRef<number>(0)
   const pathname = usePathname()
   const prefersReducedMotion = useSyncExternalStore(
     subscribeToReducedMotion,
@@ -95,16 +102,36 @@ export function TiltWrapper({
 
   // Flush pending rotations to server (batch upload)
   const flushRotations = useCallback(() => {
+    if (flushInFlight.current) return
+
     const batch = pendingRotations.current
     if (batch.length === 0) return
-    pendingRotations.current = []
 
     // Send the latest rotation as a summary (total count preserved in duration sum)
     const lastEntry = batch[batch.length - 1]
     const totalDuration = batch.reduce((sum, r) => sum + r.duration, 0)
-    recordRotationViaApi(lastEntry.angle, totalDuration, batch.length).catch(() => {
-      // Silent failure — stats are non-critical
-    })
+
+    flushInFlight.current = true
+    recordRotationViaApi(lastEntry.angle, totalDuration, batch.length)
+      .then((delivered) => {
+        if (delivered) {
+          // Drop only the entries that were sent; rotations buffered while the
+          // request was in flight must survive.
+          pendingRotations.current = pendingRotations.current.slice(batch.length)
+          return
+        }
+
+        // Keep the batch so the next flush retries it instead of losing stats.
+        if (pendingRotations.current.length > MAX_PENDING_ROTATIONS) {
+          pendingRotations.current = pendingRotations.current.slice(-MAX_PENDING_ROTATIONS)
+        }
+      })
+      .catch(() => {
+        // Network failure: keep the batch for the next flush.
+      })
+      .finally(() => {
+        flushInFlight.current = false
+      })
   }, [])
 
   // Flush rotations on page unload
@@ -195,15 +222,32 @@ export function TiltWrapper({
     if (!isHydrated) return
 
     if (effectiveMode === 'fixed' && !prefersReducedMotion && !isSettingsPage) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const handleMouseMove = (e: any) => {
+      const handleMouseMove = (e: MouseEvent) => {
         const xFactor = (e.clientX / window.innerWidth) * 2 - 1
-        const targetAngle = xFactor * 15
-        setAngle(targetAngle)
+        latestMouseAngle.current = xFactor * 15
+
+        // Coalesce to one update per animation frame: mousemove can fire
+        // hundreds of times per second and each call re-rendered the whole
+        // tilt tree.
+        if (mouseFrame.current !== null) return
+
+        mouseFrame.current = window.requestAnimationFrame(() => {
+          mouseFrame.current = null
+          const next = latestMouseAngle.current
+          if (Math.abs(next - previousAngle.current) < MIN_MOUSE_ANGLE_DELTA) return
+          previousAngle.current = next
+          setAngle(next)
+        })
       }
 
       window.addEventListener('mousemove', handleMouseMove)
-      return () => window.removeEventListener('mousemove', handleMouseMove)
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove)
+        if (mouseFrame.current !== null) {
+          window.cancelAnimationFrame(mouseFrame.current)
+          mouseFrame.current = null
+        }
+      }
     }
   }, [effectiveMode, prefersReducedMotion, isSettingsPage, setAngle, isHydrated])
 

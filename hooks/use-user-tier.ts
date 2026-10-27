@@ -11,7 +11,8 @@ import {
   getFeaturesForTier,
   isFeatureEnabled,
 } from '@/lib/config/features'
-import { getSettingsViaApi, toggleProViaApi } from '@/lib/api/settings-client'
+import { toggleProViaApi } from '@/lib/api/settings-client'
+import { getCachedSettings, invalidateSettingsCache } from '@/lib/api/settings-cache'
 
 export interface UseUserTierReturn {
   /** ???? */
@@ -74,9 +75,11 @@ export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
     }
 
     void (async () => {
-      const result = await getSettingsViaApi()
+      // Shared cache: Header, Stats page and the ads loader used to fire one
+      // identical request each.
+      const result = await getCachedSettings()
       if (!isCancelled) {
-        setIsProEnabled(Boolean(result.success && result.settings?.isPro))
+        setIsProEnabled(Boolean(result?.success && result.settings?.isPro))
       }
     })()
 
@@ -93,6 +96,7 @@ export function useUserTier(props?: UseUserTierProps): UseUserTierReturn {
     setIsTogglingPro(true)
     try {
       const result = await toggleProViaApi()
+      invalidateSettingsCache()
       if (result.success && result.isPro !== undefined) {
         setIsProEnabled(result.isPro)
       }

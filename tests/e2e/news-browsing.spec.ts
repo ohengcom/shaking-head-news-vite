@@ -21,6 +21,22 @@ test.describe('News Browsing Flow', () => {
     await expect(page.locator('main .mb-6 p').first()).toBeVisible()
   })
 
+  // Regression guard: the API used to return 500 "Can't modify immutable
+  // headers" whenever the home feed was served from the Cache API, and the
+  // existing specs never asserted the response status, so the suite stayed
+  // green while production showed an error banner.
+  test('home feed API succeeds on a cold request and on a cache hit', async ({ request }) => {
+    const first = await request.get('/api/feed/home?locale=en')
+    expect(first.status()).toBe(200)
+
+    const second = await request.get('/api/feed/home?locale=en')
+    expect(second.status()).toBe(200)
+
+    const payload = (await second.json()) as { success?: boolean; error?: string }
+    expect(typeof payload.success).toBe('boolean')
+    expect(payload.error ?? '').not.toContain('immutable')
+  })
+
   test('should display news content area or empty state', async ({ page }) => {
     const newsList = page.getByTestId('news-list')
     await expect(async () => {

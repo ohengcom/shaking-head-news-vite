@@ -4,6 +4,11 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  # Clickjacking protection for every SPA route, not just the root document.
+  # Only frame-ancestors is set: a script-src policy would break the inline
+  # theme bootstrap in index.html and the AdSense loader.
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 # Vite emits content-hashed filenames under /assets — safe to cache forever.

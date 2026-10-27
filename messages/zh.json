@@ -154,7 +154,11 @@
     "adsEnabledState": "广告已开启",
     "adsDisabledState": "广告已关闭",
     "adsUpdateError": "更新广告设置失败",
-    "wellnessDescription": "管理每日目标和健康提醒"
+    "wellnessDescription": "管理每日目标和健康提醒",
+    "addSourceAria": "添加到已启用来源",
+    "removeSourceAria": "从已启用来源移除",
+    "moveUp": "上移",
+    "moveDown": "下移"
   },
   "rotation": {
     "pause": "暂停",
@@ -275,7 +279,12 @@
     "importing": "导入中...",
     "exportSuccess": "OPML 文件导出成功",
     "exportFailed": "导出 OPML 失败",
-    "exporting": "导出中..."
+    "exporting": "导出中...",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "toggleSource": "启用或停用该 RSS 源",
+    "removeSource": "删除该 RSS 源",
+    "reorderHint": "可用上移/下移按钮调整顺序"
   },
   "auth": {
     "signIn": "登录",

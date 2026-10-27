@@ -66,6 +66,13 @@ import { rateLimitByUser, rateLimitByAction } from '@/lib/rate-limit'
 import { getUserTier } from '@/lib/tier-server'
 import { validateOrThrow } from '@/lib/utils/error-handler'
 
+// A real Response with a feed-ish body: the URL check now reads a bounded
+// prefix of the document and rejects pages that are not RSS/Atom.
+const FEED_XML =
+  '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Feed</title><item><title>Item</title><link>https://example.com/a</link></item></channel></rss>'
+const feedResponse = () =>
+  new Response(FEED_XML, { status: 200, headers: { 'content-type': 'application/rss+xml' } })
+
 // Mock global fetch
 const mockFetch = vi.fn()
 global.fetch = mockFetch as unknown as typeof fetch
@@ -212,7 +219,7 @@ describe('RSS Actions', () => {
       })
       vi.mocked(getStorageItemStrict).mockResolvedValue([])
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
-      mockFetch.mockResolvedValue({ ok: true })
+      mockFetch.mockImplementation(async () => feedResponse())
 
       const result = await addRSSSource(newSource)
 
@@ -243,7 +250,7 @@ describe('RSS Actions', () => {
         expires: new Date().toISOString(),
       })
       vi.mocked(getStorageItemStrict).mockResolvedValue([])
-      mockFetch.mockResolvedValue({ ok: false })
+      mockFetch.mockImplementation(async () => new Response('not found', { status: 404 }))
 
       await expect(addRSSSource(newSource)).rejects.toThrow()
     })
@@ -267,7 +274,7 @@ describe('RSS Actions', () => {
       })
       vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
-      mockFetch.mockResolvedValue({ ok: true })
+      mockFetch.mockImplementation(async () => feedResponse())
 
       const result = await addRSSSource(newSource)
 
@@ -341,9 +348,13 @@ describe('RSS Actions', () => {
       vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
       vi.mocked(setStorageItem).mockResolvedValue(undefined)
 
+      // Changing the URL re-validates it through the SSRF-safe fetcher.
+      mockFetch.mockImplementation(async () => feedResponse())
+
       const result = await updateRSSSource('1', { url: 'https://example.com/updated.xml' })
 
       expect(result.url).toBe('https://example.com/updated.xml')
+      expect(mockFetch).toHaveBeenCalled()
     })
   })
 
@@ -412,7 +423,19 @@ describe('RSS Actions', () => {
       })
       vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
 
-      await expect(reorderRSSSources(['1', 'non-existent'])).rejects.toThrow('not found')
+      await expect(reorderRSSSources(['1', 'non-existent'])).rejects.toThrow(
+        'Unknown RSS source id'
+      )
+    })
+
+    it('should reject a partial reorder instead of dropping sources', async () => {
+      vi.mocked(auth).mockResolvedValue({
+        user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
+        expires: new Date().toISOString(),
+      })
+      vi.mocked(getStorageItemStrict).mockResolvedValue(mockRSSSources)
+
+      await expect(reorderRSSSources(['1'])).rejects.toThrow('must include every RSS source')
     })
   })
 

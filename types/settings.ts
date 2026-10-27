@@ -20,6 +20,22 @@ export const UserSettingsSchema = z.object({
 
 export type UserSettings = z.infer<typeof UserSettingsSchema>
 
+const UserSettingsUpdateSchema = UserSettingsSchema.omit({ userId: true, isPro: true }).partial()
+
+export type UserSettingsUpdate = z.infer<typeof UserSettingsUpdateSchema>
+
+function normalizeNewsSources(sources: readonly string[]): string[] {
+  return Array.from(new Set(sources.map((source) => source.trim()).filter(Boolean)))
+}
+
+export const UserSettingsInputSchema = UserSettingsUpdateSchema.transform((settings) =>
+  settings.newsSources
+    ? { ...settings, newsSources: normalizeNewsSources(settings.newsSources).slice(0, 20) }
+    : settings
+)
+
+export const MAX_NEWS_SOURCES = 20
+
 export const defaultSettings: Omit<UserSettings, 'userId'> = {
   language: 'zh',
   theme: 'system',

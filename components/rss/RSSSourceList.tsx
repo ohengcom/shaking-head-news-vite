@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { AlertCircle, GripVertical, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, ArrowDown, ArrowUp, GripVertical, Trash2 } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,8 +97,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
     }
 
     try {
-      const sourceIds = sources.map((source) => source.id)
-      await reorderRSSSourcesViaApi(sourceIds)
+      await reorderRSSSourcesViaApi(sources.map((source) => source.id))
       toast({
         title: t('success'),
         description: t('orderUpdated'),
@@ -115,6 +114,38 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
     }
   }
 
+  /**
+   * Keyboard-accessible reorder. Dragging alone excluded every keyboard and
+   * screen-reader user from changing the order.
+   */
+  const moveSource = async (index: number, delta: number) => {
+    const targetIndex = index + delta
+    if (targetIndex < 0 || targetIndex >= sources.length) {
+      return
+    }
+
+    const previous = sources
+    const next = [...sources]
+    const [moved] = next.splice(index, 1)
+    next.splice(targetIndex, 0, moved)
+    setSources(next)
+
+    try {
+      await reorderRSSSourcesViaApi(next.map((source) => source.id))
+      toast({
+        title: t('success'),
+        description: t('orderUpdated'),
+      })
+    } catch {
+      setSources(previous)
+      toast({
+        title: t('error'),
+        description: t('reorderFailed'),
+        variant: 'destructive',
+      })
+    }
+  }
+
   if (sources.length === 0) {
     return (
       <Card>
@@ -127,7 +158,8 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
 
   return (
     <div className="space-y-4">
-      {sources.map((source) => (
+      <p className="text-muted-foreground sr-only">{t('reorderHint')}</p>
+      {sources.map((source, index) => (
         <Card
           key={source.id}
           draggable
@@ -141,7 +173,7 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex flex-1 items-start gap-3">
-                <GripVertical className="text-muted-foreground mt-1 h-5 w-5" />
+                <GripVertical aria-hidden="true" className="text-muted-foreground mt-1 h-5 w-5" />
                 <div className="flex-1">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     {source.name}
@@ -158,17 +190,37 @@ export function RSSSourceList({ initialSources }: RSSSourceListProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${t('moveUp')}: ${source.name}`}
+                  disabled={index === 0}
+                  onClick={() => void moveSource(index, -1)}
+                >
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${t('moveDown')}: ${source.name}`}
+                  disabled={index === sources.length - 1}
+                  onClick={() => void moveSource(index, 1)}
+                >
+                  <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                </Button>
                 <Switch
                   checked={source.enabled}
+                  aria-label={`${t('toggleSource')}: ${source.name}`}
                   onCheckedChange={(checked) => handleToggleEnabled(source.id, checked)}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`${t('removeSource')}: ${source.name}`}
                   onClick={() => handleDelete(source.id)}
                   className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>

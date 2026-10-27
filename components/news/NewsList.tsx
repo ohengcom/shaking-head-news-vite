@@ -25,22 +25,25 @@ export function NewsList({ news, showLoginCTA = false }: NewsListProps) {
   }
 
   return (
-    <div
+    <ul
       className="divide-border max-h-[600px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent divide-y overflow-y-auto pr-2"
       data-testid="news-list"
     >
       {news.map((item) => (
-        <NewsItem key={item.id} item={item} />
+        // RSS guids are only unique per feed, so the source is part of the key.
+        <li key={`${item.source}::${item.id}`}>
+          <NewsItem item={item} />
+        </li>
       ))}
 
       {showLoginCTA && (
-        <div className="py-6 text-center">
+        <li className="py-6 text-center">
           <p className="text-muted-foreground mb-3 text-sm">{t('loginForMore')}</p>
           <Button asChild size="sm">
             <Link href="/login">{t('signInNow')}</Link>
           </Button>
-        </div>
+        </li>
       )}
-    </div>
+    </ul>
   )
 }

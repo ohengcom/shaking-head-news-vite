@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { getCurrentEnv, getCurrentRequest } from '@/lib/server/request-context'
 import type { KVNamespaceLike } from '@/lib/server/env'
+import { createCoordinatedAuthStorage, hasCoordination } from '@/lib/server/user-coordination'
 
 function getRuntimeEnvValue(key: keyof CloudflareEnv) {
   const workerValue = getCurrentEnv()?.[key as keyof CloudflareEnv]
@@ -61,13 +62,20 @@ function createSecondaryStorage(kv: KVNamespaceLike) {
       }
       return value
     },
-    // KV has no atomic increment; best-effort read-modify-write. Used by
-    // Better Auth's internal rate limiting, which is advisory only here.
-    increment: async (key: string, count: number = 1) => {
-      const raw = await kv.get(`${prefix}${key}`, 'text')
+    // KV fallback only: each call increments by 1 and sets the window TTL.
+    // KV cannot atomically preserve an existing TTL, so the fallback may
+    // refresh the window. Production uses the Durable Object implementation,
+    // which increments atomically and preserves the original expiry.
+    increment: async (key: string, ttl: number = 60) => {
+      if (!Number.isInteger(ttl) || ttl <= 0) {
+        throw new TypeError('Secondary storage increment TTL must be a positive integer')
+      }
+
+      const storageKey = `${prefix}${key}`
+      const raw = await kv.get(storageKey, 'text')
       const current = raw !== null ? Number.parseInt(raw, 10) : 0
-      const next = (Number.isFinite(current) ? current : 0) + count
-      await kv.put(`${prefix}${key}`, String(next))
+      const next = (Number.isFinite(current) ? current : 0) + 1
+      await kv.put(storageKey, String(next), { expirationTtl: ttl })
       return next
     },
   }
@@ -136,7 +144,11 @@ function createAuthServer(baseURL: string) {
       },
     },
     socialProviders: getSocialProviders(baseURL),
-    ...(kv ? { secondaryStorage: createSecondaryStorage(kv) } : {}),
+    ...(hasCoordination()
+      ? { secondaryStorage: createCoordinatedAuthStorage('better-auth:') }
+      : kv
+        ? { secondaryStorage: createSecondaryStorage(kv) }
+        : {}),
   })
 }
 

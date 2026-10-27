@@ -32,4 +32,18 @@
       "preview_id": "8e6ea6e268b9418f8ae198979c1f6c22",
     },
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "USER_COORDINATION",
+        "class_name": "UserCoordination",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["UserCoordination"],
+    },
+  ],
 }

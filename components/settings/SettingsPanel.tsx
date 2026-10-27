@@ -1,6 +1,16 @@
 ﻿import { useEffect, useState } from 'react'
 import { AnimatePresence, m } from 'framer-motion'
-import { Check, GripVertical, Loader2, Lock, Plus, RotateCcw, X } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  GripVertical,
+  Loader2,
+  Lock,
+  Plus,
+  RotateCcw,
+  X,
+} from 'lucide-react'
 import { useSetAppLocale, useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -107,6 +117,23 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
   useEffect(() => {
     setSettings((prev) => (prev.isPro === isPro ? prev : { ...prev, isPro }))
   }, [isPro])
+
+  /**
+   * Keyboard-accessible reorder of the enabled sources. Dragging was the only
+   * way to change the order before.
+   */
+  const moveNewsSource = (index: number, delta: number) => {
+    const current = settings.newsSources || []
+    const target = index + delta
+    if (target < 0 || target >= current.length) {
+      return
+    }
+
+    const next = [...current]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved)
+    updateSetting('newsSources', next)
+  }
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
@@ -491,23 +518,27 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
                           key={source.id}
-                          className="bg-card hover:border-primary/50 group flex cursor-pointer items-center justify-between rounded-md border p-2 text-sm transition-colors"
-                          onClick={() => {
-                            const currentSources = settings.newsSources || []
-                            updateSetting('newsSources', [...currentSources, source.id])
-                          }}
+                          className="bg-card hover:border-primary/50 rounded-md border text-sm transition-colors"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{source.icon}</span>
-                            <span>{source.name}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                          {/* A real button: the previous clickable div had no
+                              role, tabIndex or keyboard handler. */}
+                          <button
+                            type="button"
+                            aria-label={`${t('addSourceAria')}: ${source.name}`}
+                            className="focus-visible:ring-ring flex w-full items-center justify-between rounded-md p-2 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                            onClick={() => {
+                              const currentSources = settings.newsSources || []
+                              updateSetting('newsSources', [...currentSources, source.id])
+                            }}
                           >
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg" aria-hidden="true">
+                                {source.icon}
+                              </span>
+                              <span>{source.name}</span>
+                            </span>
+                            <Plus className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                          </button>
                         </m.div>
                       ))}
                     </AnimatePresence>
@@ -531,7 +562,7 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                 <div className="bg-card min-h-[300px] rounded-lg border p-2">
                   <div className="space-y-2">
                     <AnimatePresence initial={false}>
-                      {(settings.newsSources || []).map((sourceId) => {
+                      {(settings.newsSources || []).map((sourceId, sourceIndex) => {
                         const source = HOT_LIST_SOURCES.find((item) => item.id === sourceId)
                         if (!source) {
                           return null
@@ -557,21 +588,50 @@ export function SettingsPanel({ initialSettings }: SettingsPanelProps) {
                               <span className="text-lg">{source.icon}</span>
                               <span className="font-medium">{source.name}</span>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-destructive h-6 w-6"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                const currentSources = settings.newsSources || []
-                                updateSetting(
-                                  'newsSources',
-                                  currentSources.filter((id) => id !== source.id)
-                                )
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground h-6 w-6"
+                                aria-label={`${t('moveUp')}: ${source.name}`}
+                                disabled={sourceIndex === 0}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  moveNewsSource(sourceIndex, -1)
+                                }}
+                              >
+                                <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground h-6 w-6"
+                                aria-label={`${t('moveDown')}: ${source.name}`}
+                                disabled={sourceIndex === (settings.newsSources || []).length - 1}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  moveNewsSource(sourceIndex, 1)
+                                }}
+                              >
+                                <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive h-6 w-6"
+                                aria-label={`${t('removeSourceAria')}: ${source.name}`}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  const currentSources = settings.newsSources || []
+                                  updateSetting(
+                                    'newsSources',
+                                    currentSources.filter((id) => id !== source.id)
+                                  )
+                                }}
+                              >
+                                <X className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </div>
                           </m.div>
                         )
                       })}

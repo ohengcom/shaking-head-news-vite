@@ -1,18 +1,29 @@
 import { useEffect, type ReactNode } from 'react'
 import { LazyMotion, domAnimation } from 'framer-motion'
 import { useSession } from '@/lib/auth-client'
-import { getSettingsViaApi } from '@/lib/api/settings-client'
-import { SessionProvider } from '@/components/auth/SessionProvider'
+import { getCachedSettings } from '@/lib/api/settings-cache'
 import { UIWrapper } from '@/components/layout/UIWrapper'
 import { RuntimeRecovery } from '@/components/RuntimeRecovery'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider, useTheme } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { I18nProvider, useSetAppLocale } from '@/lib/client-i18n'
 import { AdsenseScript } from '@/src/providers/AdsenseScript'
+import { useUIStore } from '@/lib/stores/ui-store'
+import { useRotationStore } from '@/lib/stores/rotation-store'
 
-function AppLocaleSync() {
+/**
+ * Apply the signed-in user's cloud preferences at startup.
+ *
+ * Only the language used to be synced here, so a new device served the home
+ * page with local defaults (theme, font size, layout, rotation) until the user
+ * happened to open the settings page.
+ */
+function CloudSettingsSync() {
   const { status } = useSession()
   const setAppLocale = useSetAppLocale()
+  const { setTheme } = useTheme()
+  const { setFontSize, setLayoutMode } = useUIStore()
+  const { setMode: setRotationMode, setInterval: setRotationInterval } = useRotationStore()
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -22,24 +33,45 @@ function AppLocaleSync() {
     let cancelled = false
 
     void (async () => {
-      const result = await getSettingsViaApi()
-      if (
-        cancelled ||
-        !result.success ||
-        !result.authenticated ||
-        !result.settings ||
-        (result.settings.language !== 'zh' && result.settings.language !== 'en')
-      ) {
+      const result = await getCachedSettings()
+      if (cancelled || !result?.success || !result.authenticated || !result.settings) {
         return
       }
 
-      setAppLocale(result.settings.language)
+      const settings = result.settings
+
+      if (settings.language === 'zh' || settings.language === 'en') {
+        setAppLocale(settings.language)
+      }
+      if (settings.theme === 'light' || settings.theme === 'dark' || settings.theme === 'system') {
+        setTheme(settings.theme)
+      }
+      if (settings.fontSize) {
+        setFontSize(settings.fontSize)
+      }
+      if (settings.layoutMode) {
+        setLayoutMode(settings.layoutMode)
+      }
+      if (settings.rotationMode) {
+        setRotationMode(settings.rotationMode)
+      }
+      if (typeof settings.rotationInterval === 'number') {
+        setRotationInterval(settings.rotationInterval)
+      }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [setAppLocale, status])
+  }, [
+    setAppLocale,
+    setFontSize,
+    setLayoutMode,
+    setRotationInterval,
+    setRotationMode,
+    setTheme,
+    status,
+  ])
 
   return null
 }
@@ -50,17 +82,15 @@ export function AppProviders({ children }: { children: ReactNode }) {
     // chunk; strict mode forbids full `motion` imports anywhere in the tree.
     <LazyMotion features={domAnimation} strict>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <SessionProvider>
-          <I18nProvider>
-            <AppLocaleSync />
-            <RuntimeRecovery />
-            <UIWrapper>
-              {children}
-              <Toaster />
-              <AdsenseScript />
-            </UIWrapper>
-          </I18nProvider>
-        </SessionProvider>
+        <I18nProvider>
+          <CloudSettingsSync />
+          <RuntimeRecovery />
+          <UIWrapper>
+            {children}
+            <Toaster />
+            <AdsenseScript />
+          </UIWrapper>
+        </I18nProvider>
       </ThemeProvider>
     </LazyMotion>
   )

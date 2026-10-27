@@ -11,8 +11,27 @@ function toSafeCallbackUrl(callbackUrl: string | null): string {
     return '/'
   }
 
-  if (callbackUrl.startsWith('/')) {
-    return callbackUrl
+  // Must be a single-slash absolute path. `//evil.com` and `/\evil.com` are
+  // protocol-relative URLs that browsers resolve to another origin.
+  if (callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+    if (callbackUrl.startsWith('/\\')) {
+      return '/'
+    }
+
+    if (typeof window === 'undefined') {
+      return callbackUrl
+    }
+
+    try {
+      const resolved = new URL(callbackUrl, window.location.origin)
+      if (resolved.origin !== window.location.origin) {
+        return '/'
+      }
+
+      return `${resolved.pathname}${resolved.search}${resolved.hash}` || '/'
+    } catch {
+      return '/'
+    }
   }
 
   if (typeof window === 'undefined') {

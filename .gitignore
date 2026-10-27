@@ -54,3 +54,4 @@ worker-*-response.txt
 tmp-*.png
 tmp-*.jpg
 tmp-*.jpeg
+.workbuddy/

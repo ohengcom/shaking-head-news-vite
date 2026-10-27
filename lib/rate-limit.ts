@@ -9,6 +9,7 @@
  */
 
 import { getStorageItem, setStorageItemWithOptions, getTTL } from './storage'
+import { coordinatedRateLimit } from './server/user-coordination'
 
 export interface RateLimitResult {
   success: boolean
@@ -60,7 +61,11 @@ export async function rateLimit(
   const key = `${prefix}:${identifier}`
 
   try {
-    // KV-backed read-modify-write, acceptable for current low-volume usage.
+    const coordinated = await coordinatedRateLimit(key, limit, window)
+    if (coordinated) return coordinated
+
+    // KV-backed read-modify-write, fallback for environments without the
+    // Durable Object coordination binding (for example mocked unit tests).
     const current = await getStorageItem<number>(key)
     const count = current || 0
 

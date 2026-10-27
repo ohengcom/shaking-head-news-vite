@@ -88,35 +88,6 @@ jobs:
             echo "Warning: all VITE_ADSENSE_SLOT_* secrets are empty; ad slots will remain disabled until configured"
           fi
 
-      - name: Sync runtime auth secrets to Worker
-        run: |
-          put_secret_if_present () {
-            local key="$1"
-            local value="${!key:-}"
-
-            if [ -z "$value" ]; then
-              echo "Skip empty secret: $key"
-              return 0
-            fi
-
-            printf '%s' "$value" | npx wrangler secret put "$key" --name shaking-head-news-vite
-          }
-
-          put_secret_if_present BETTER_AUTH_URL
-          put_secret_if_present BETTER_AUTH_SECRET
-          put_secret_if_present GOOGLE_CLIENT_ID
-          put_secret_if_present GOOGLE_CLIENT_SECRET
-          put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_ID
-          put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_SECRET
-          put_secret_if_present AUTH_MICROSOFT_ENTRA_ID_TENANT_ID
-          put_secret_if_present NEWS_API_BASE_URL
-          put_secret_if_present VITE_LOG_LEVEL
-          put_secret_if_present VITE_ADSENSE_CLIENT_ID
-          put_secret_if_present VITE_ADSENSE_SLOT_SIDEBAR
-          put_secret_if_present VITE_ADSENSE_SLOT_HEADER
-          put_secret_if_present VITE_ADSENSE_SLOT_FOOTER
-          put_secret_if_present VITE_ADSENSE_SLOT_INLINE
-
       - name: Validate and build Vite output
         run: |
           set -euo pipefail
@@ -134,5 +105,54 @@ jobs:
 
           echo "$build_output"
 
-      - name: Deploy to Cloudflare Workers
-        run: npx wrangler deploy
+      - name: Upload version with secrets (no traffic change)
+        id: upload
+        run: |
+          set -euo pipefail
+
+          # `wrangler secret put` creates AND immediately deploys a new version,
+          # so the previous ordering pushed unvalidated code live one secret at a
+          # time. Instead, upload one version that carries the secrets and
+          # promote it only after it exists.
+          secrets_file="$RUNNER_TEMP/worker-secrets.json"
+          umask 077
+          node -e '
+            const fs = require("node:fs");
+            const keys = [
+              "BETTER_AUTH_URL",
+              "BETTER_AUTH_SECRET",
+              "GOOGLE_CLIENT_ID",
+              "GOOGLE_CLIENT_SECRET",
+              "AUTH_MICROSOFT_ENTRA_ID_ID",
+              "AUTH_MICROSOFT_ENTRA_ID_SECRET",
+              "AUTH_MICROSOFT_ENTRA_ID_TENANT_ID",
+              "NEWS_API_BASE_URL",
+              "VITE_LOG_LEVEL",
+              "VITE_ADSENSE_CLIENT_ID",
+              "VITE_ADSENSE_SLOT_SIDEBAR",
+              "VITE_ADSENSE_SLOT_HEADER",
+              "VITE_ADSENSE_SLOT_FOOTER",
+              "VITE_ADSENSE_SLOT_INLINE",
+            ];
+            const out = {};
+            for (const key of keys) {
+              const value = process.env[key];
+              if (value && value.trim()) out[key] = value;
+            }
+            fs.writeFileSync(process.argv[1], JSON.stringify(out), { mode: 0o600 });
+          ' "$secrets_file"
+
+          upload_output="$(npx wrangler versions upload --secrets-file "$secrets_file" 2>&1)"
+          echo "$upload_output"
+          rm -f "$secrets_file"
+
+          version_id="$(printf '%s\n' "$upload_output" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -n 1)"
+          if [ -z "$version_id" ]; then
+            echo "::error title=Version upload failed::Could not find a version id in the upload output"
+            exit 1
+          fi
+
+          echo "version_id=$version_id" >> "$GITHUB_OUTPUT"
+
+      - name: Promote version to production
+        run: npx wrangler versions deploy "${{ steps.upload.outputs.version_id }}@100%" --yes

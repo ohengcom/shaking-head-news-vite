@@ -24,30 +24,52 @@ interface HomeShellProps {
 }
 
 function HomeShell({ children, isPro, adsEnabled }: HomeShellProps) {
+  // Only mount the sidebar ad slots on wide viewports: they are `hidden` below
+  // xl, but the components still mounted, ran their retry timers and loaded
+  // the AdSense script for mobile visitors who never see them.
+  const [isWideViewport, setIsWideViewport] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 1280px)')
+    const sync = () => setIsWideViewport(mediaQuery.matches)
+
+    sync()
+    mediaQuery.addEventListener('change', sync)
+    return () => mediaQuery.removeEventListener('change', sync)
+  }, [])
+
   return (
     <div className="container mx-auto py-8">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[200px_1fr_200px] xl:gap-24">
-        <aside className="sticky top-0 hidden h-screen flex-col justify-center xl:flex">
-          <AdBanner
-            position="sidebar"
-            size="large"
-            className="min-h-[600px] w-full"
-            initialIsPro={isPro}
-            initialAdsEnabled={adsEnabled}
-          />
-        </aside>
+        {isWideViewport && (
+          <aside className="sticky top-0 hidden h-screen flex-col justify-center xl:flex">
+            <AdBanner
+              position="sidebar"
+              size="large"
+              className="min-h-[600px] w-full"
+              initialIsPro={isPro}
+              initialAdsEnabled={adsEnabled}
+            />
+          </aside>
+        )}
 
-        <main className="mx-auto w-full max-w-4xl">{children}</main>
+        <div className="mx-auto w-full max-w-4xl">{children}</div>
 
-        <aside className="sticky top-0 hidden h-screen flex-col justify-center xl:flex">
-          <AdBanner
-            position="sidebar"
-            size="large"
-            className="min-h-[600px] w-full"
-            initialIsPro={isPro}
-            initialAdsEnabled={adsEnabled}
-          />
-        </aside>
+        {isWideViewport && (
+          <aside className="sticky top-0 hidden h-screen flex-col justify-center xl:flex">
+            <AdBanner
+              position="sidebar"
+              size="large"
+              className="min-h-[600px] w-full"
+              initialIsPro={isPro}
+              initialAdsEnabled={adsEnabled}
+            />
+          </aside>
+        )}
       </div>
     </div>
   )

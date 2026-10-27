@@ -13,7 +13,21 @@ export const NewsItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  url: z.string().optional(),
+  url: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true
+        try {
+          const url = new URL(value)
+          return url.protocol === 'http:' || url.protocol === 'https:'
+        } catch {
+          return false
+        }
+      },
+      { message: 'News URL must be an absolute http(s) URL' }
+    ),
   source: z.string(),
   publishedAt: z.string(),
   category: z.string().optional(),
@@ -33,6 +47,7 @@ export type NewsResponse = z.infer<typeof NewsResponseSchema>
 export interface HomeFeedResponse {
   success: boolean
   error?: string
+  degraded?: boolean
   payload?: {
     dailyNews: NewsItem[]
     aiNews: NewsItem[]

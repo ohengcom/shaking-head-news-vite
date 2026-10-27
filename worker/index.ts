@@ -18,13 +18,17 @@ import {
   updateSettings,
 } from '@/lib/actions/settings'
 import { checkHealthReminder, getSummaryStats, recordRotation } from '@/lib/actions/stats'
+import { getUserTier } from '@/lib/tier-server'
 import { HOT_LIST_SOURCES } from '@/lib/constants/hot-list-sources'
 import { getAdSenseClientId } from '@/lib/config/adsense'
+import { isNonProductionRuntime } from '@/lib/config/runtime-env'
 import type { UserSettings } from '@/types/settings'
 import { APIError, ValidationError } from '@/lib/utils/error-handler'
 import type { AppWorkerEnv } from '@/lib/server/env'
 import { runWithRequestContext } from '@/lib/server/request-context'
 import type { HomeFeedResponse } from '@/types/news'
+
+export { UserCoordination } from './user-coordination'
 
 type Bindings = AppWorkerEnv
 type CloudflareCacheStorage = CacheStorage & { default: Cache }
@@ -38,6 +42,16 @@ const LEGACY_MICROSOFT_OAUTH2_CALLBACK_PATH = '/api/auth/oauth2/callback/microso
 // Guard against oversized OPML uploads burning the 10 ms CPU budget of the
 // Workers free tier while parsing.
 const MAX_OPML_IMPORT_BYTES = 512 * 1024
+const MAX_JSON_BODY_BYTES = 64 * 1024
+const homeFeedInFlight = new Map<string, Promise<HomeFeedResponse>>()
+// Paths whose state-changing requests must come from the same origin.
+// `/api/auth/*` is intentionally excluded: OAuth providers may POST back to the
+// callback URL from their own origin (form_post response mode), and those
+// requests must still be handled.
+const PRIVATE_API_PATH_PREFIXES = ['/api/settings', '/api/home', '/api/rss', '/api/stats'] as const
+// Paths whose responses must never be stored by a shared cache (they carry
+// session state or per-user data). The public home feed stays cacheable.
+const NO_STORE_API_PATH_PREFIXES = [...PRIVATE_API_PATH_PREFIXES, '/api/auth'] as const
 
 function toErrorPayload(error: unknown, fallback: string) {
   if (error instanceof APIError) {
@@ -54,8 +68,23 @@ function toErrorPayload(error: unknown, fallback: string) {
     status: 500,
     body: {
       success: false,
-      error: error instanceof Error ? error.message : fallback,
+      // Never leak internal messages (e.g. runtime TypeErrors) to clients in
+      // production; they are still logged server-side.
+      error: isNonProductionRuntime() && error instanceof Error ? error.message : fallback,
     },
+  }
+}
+
+/**
+ * Strip query strings and fragments before logging a URL: OAuth callbacks carry
+ * authorization codes and state in the query.
+ */
+function redactUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl)
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return rawUrl
   }
 }
 
@@ -172,12 +201,41 @@ async function buildHomeFeedResponse(locale: 'zh' | 'en'): Promise<HomeFeedRespo
     getAiNewsItems(),
   ])
 
+  const dailyNews = dailyNewsResult.status === 'fulfilled' ? dailyNewsResult.value.items : []
+  const aiNews = aiNewsResult.status === 'fulfilled' ? aiNewsResult.value : []
+  const dailyFailed = dailyNewsResult.status === 'rejected'
+  const aiFailed = aiNewsResult.status === 'rejected'
+
+  if (dailyFailed && aiFailed) {
+    return {
+      success: false,
+      error: 'Unable to load news feeds right now. Please try again shortly.',
+    }
+  }
+
   return {
     success: true,
+    degraded: dailyFailed || aiFailed,
     payload: {
-      dailyNews: dailyNewsResult.status === 'fulfilled' ? dailyNewsResult.value.items : [],
-      aiNews: aiNewsResult.status === 'fulfilled' ? aiNewsResult.value : [],
+      dailyNews,
+      aiNews,
     },
+  }
+}
+
+async function getHomeFeedResponse(locale: 'zh' | 'en'): Promise<HomeFeedResponse> {
+  const existing = homeFeedInFlight.get(locale)
+  if (existing) {
+    return existing
+  }
+
+  const pending = buildHomeFeedResponse(locale)
+  homeFeedInFlight.set(locale, pending)
+
+  try {
+    return await pending
+  } finally {
+    homeFeedInFlight.delete(locale)
   }
 }
 
@@ -186,7 +244,16 @@ async function putHomeFeedCache(
   cacheRequest: Request,
   locale: 'zh' | 'en'
 ): Promise<Response> {
-  const response = withHomeFeedCacheHeaders(Response.json(await buildHomeFeedResponse(locale)))
+  const data = await getHomeFeedResponse(locale)
+  if (!data.success || data.degraded) {
+    return Response.json(data, {
+      headers: {
+        'cache-control': 'no-store',
+      },
+    })
+  }
+
+  const response = withHomeFeedCacheHeaders(Response.json(data))
   await cache.put(cacheRequest, response.clone())
   return response
 }
@@ -206,7 +273,77 @@ async function injectHomeFeedSnapshot(html: string, locale: 'zh' | 'en', data: H
 }
 
 async function parseJsonBody<T>(request: Request): Promise<T> {
-  return (await request.json()) as T
+  const contentLengthHeader = request.headers.get('content-length')
+  const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : NaN
+  if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
+    throw new ValidationError('Request body is too large')
+  }
+
+  const text = await request.text()
+  if (text.length > MAX_JSON_BODY_BYTES) {
+    throw new ValidationError('Request body is too large')
+  }
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new ValidationError('Request body must be valid JSON')
+  }
+}
+
+function isPrivateApiPath(pathname: string): boolean {
+  return PRIVATE_API_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
+function isNoStoreApiPath(pathname: string): boolean {
+  return NO_STORE_API_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
+function isCrossSiteStateChange(request: Request): boolean {
+  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
+    return false
+  }
+
+  const url = new URL(request.url)
+  const origin = request.headers.get('origin')
+
+  if (origin) {
+    try {
+      return new URL(origin).origin !== url.origin
+    } catch {
+      return true
+    }
+  }
+
+  const fetchSite = request.headers.get('sec-fetch-site')
+  if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
+    return true
+  }
+
+  return false
+}
+
+function toMutableResponse(response: Response): Response {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  })
+}
+
+function applyApiHardeningHeaders(response: Response, pathname: string): void {
+  response.headers.set('x-content-type-options', 'nosniff')
+  response.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+
+  if (isNoStoreApiPath(pathname)) {
+    // The client `cache: 'no-store'` option is a request hint, not a response
+    // privacy policy: per-user payloads must also be marked uncacheable here.
+    response.headers.set('cache-control', 'no-store')
+  }
 }
 
 app.use('*', async (c, continueMiddleware) => {
@@ -223,9 +360,31 @@ app.use('*', async (c, continueMiddleware) => {
 })
 
 app.use('/api/*', async (c, next) => {
+  const pathname = new URL(c.req.url).pathname
+  const rejected =
+    isPrivateApiPath(pathname) && isCrossSiteStateChange(c.req.raw)
+      ? c.json(
+          {
+            success: false,
+            error: 'Cross-site API requests are not allowed',
+          },
+          403
+        )
+      : null
+
+  if (rejected) {
+    // Still apply hardening headers to the rejection itself.
+    const response = toMutableResponse(rejected)
+    applyApiHardeningHeaders(response, pathname)
+    return response
+  }
+
   await next()
-  c.res.headers.set('x-content-type-options', 'nosniff')
-  c.res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+
+  // Cache API responses expose immutable headers; rebuild the response before
+  // mutating it so cache hits never fail with "Can't modify immutable headers".
+  c.res = toMutableResponse(c.res)
+  applyApiHardeningHeaders(c.res, pathname)
 })
 
 app.get('/', async (c) => {
@@ -272,13 +431,24 @@ app.get('/api/feed/home', async (c) => {
     const locale = getRequestLocale(c.req.raw)
     const cacheRequest = getHomeFeedCacheRequest(c.req.raw, locale)
     const homeFeedCache = getDefaultCache()
-    const cachedResponse = await homeFeedCache.match(cacheRequest)
+    // `?refresh=1` lets the client revalidate instead of receiving the same
+    // hour-old payload from the edge cache.
+    const forceRefresh = c.req.query('refresh') === '1'
+    const cachedResponse = forceRefresh ? undefined : await homeFeedCache.match(cacheRequest)
     if (cachedResponse) {
       return cachedResponse
     }
 
-    const response = withHomeFeedCacheHeaders(Response.json(await buildHomeFeedResponse(locale)))
+    const data = await getHomeFeedResponse(locale)
+    if (!data.success || data.degraded) {
+      return Response.json(data, {
+        headers: {
+          'cache-control': 'no-store',
+        },
+      })
+    }
 
+    const response = withHomeFeedCacheHeaders(Response.json(data))
     c.executionCtx.waitUntil(homeFeedCache.put(cacheRequest, response.clone()))
     return response
   } catch (error) {
@@ -301,12 +471,17 @@ app.get('/api/home', async (c) => {
       )
     }
 
-    const enabledSourceIds = settings.newsSources
-      .filter((id) => id !== 'everydaynews')
-      .filter((id) => HOT_LIST_SOURCES.some((source) => source.id === id))
+    const enabledSourceIds = Array.from(
+      new Set(
+        settings.newsSources
+          .filter((id) => id !== 'everydaynews')
+          .filter((id) => HOT_LIST_SOURCES.some((source) => source.id === id))
+      )
+    )
 
+    const { features } = await getUserTier()
     const [customNews, ...dynamicSourcesData] = await Promise.all([
-      settings.isPro ? getUserCustomNews().catch(() => []) : Promise.resolve([]),
+      features.customRssEnabled ? getUserCustomNews().catch(() => []) : Promise.resolve([]),
       ...enabledSourceIds.map((id) => {
         const sourceName = HOT_LIST_SOURCES.find((source) => source.id === id)?.name || id
         return getHotListNews(id, sourceName).catch(() => [])
@@ -386,6 +561,18 @@ app.post('/api/settings', async (c) => {
 app.get('/api/stats/summary', async (c) => {
   try {
     const date = c.req.query('date')
+    const { features } = await getUserTier()
+
+    if (!features.statsFullEnabled) {
+      return c.json(
+        {
+          success: false,
+          error: 'Full statistics require a Pro subscription',
+        },
+        403
+      )
+    }
+
     const settings = await getUserSettings()
 
     return c.json({
@@ -404,6 +591,11 @@ app.get('/api/stats/summary', async (c) => {
 
 app.get('/api/stats/health-reminder', async (c) => {
   try {
+    const { features } = await getUserTier()
+    if (!features.healthRemindersEnabled) {
+      return c.json({ shouldRemind: false, lastRotationTime: null })
+    }
+
     return c.json(await checkHealthReminder(c.req.query('date')))
   } catch {
     return c.json({ shouldRemind: false, lastRotationTime: null })
@@ -429,8 +621,12 @@ app.post('/api/stats/rotation', async (c) => {
 
     const result = await recordRotation(angle, duration, count, date)
     if (result && typeof result === 'object' && 'error' in result) {
-      if (result.error === 'UNAUTHORIZED' || result.error === 'RATE_LIMIT') {
-        return c.body(null, 204)
+      if (result.error === 'UNAUTHORIZED') {
+        return c.json({ success: false, error: 'Unauthorized' }, 401)
+      }
+
+      if (result.error === 'RATE_LIMIT') {
+        return c.json({ success: false, error: 'Rate limit exceeded' }, 429)
       }
 
       return c.json(
@@ -540,6 +736,18 @@ app.post('/api/rss/reorder', async (c) => {
 
 app.get('/api/rss/export', async (c) => {
   try {
+    const { features } = await getUserTier()
+
+    if (!features.opmlImportExportEnabled) {
+      return c.json(
+        {
+          success: false,
+          error: 'OPML export requires a Pro subscription',
+        },
+        403
+      )
+    }
+
     return c.body(await exportOPML(), 200, {
       'content-type': 'application/xml; charset=utf-8',
     })
@@ -632,8 +840,8 @@ app.onError((error, c) => {
       level: 'error',
       message: 'Worker runtime error',
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      url: c.req.url,
+      // Logged for debugging; redacted because auth callbacks carry codes.
+      url: redactUrl(c.req.url),
       method: c.req.method,
       status,
     })

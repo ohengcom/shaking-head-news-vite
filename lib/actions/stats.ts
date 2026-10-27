@@ -1,10 +1,13 @@
 import { auth } from '@/lib/auth'
-import { getStorageItem, setStorageItem, getMultipleStorageItems, StorageKeys } from '@/lib/storage'
+import { readUserDocs, updateUserDoc } from '@/lib/server/user-doc'
+import { hasCoordination } from '@/lib/server/user-coordination'
+import { getMultipleStorageItems, StorageKeys } from '@/lib/storage'
 import { UserStatsSchema, RotationRecord, UserStats } from '@/types/stats'
 import { AuthError, RateLimitError, logError, validateOrThrow } from '@/lib/utils/error-handler'
 import { memoryRateLimit, RateLimitTiers } from '@/lib/rate-limit'
 
 const MAX_ROTATION_BATCH_COUNT = 300
+const STATS_RETENTION_SECONDS = 60 * 60 * 24 * 90
 
 function formatLocalDate(date = new Date()): string {
   const year = date.getFullYear()
@@ -83,16 +86,9 @@ export async function recordRotation(angle: number, duration: number, count = 1,
 
     const today = normalizeStatsDate(date)
     const key = StorageKeys.userStats(session.user.id, today)
-    const existingStats = await getStorageItem<UserStats>(key)
 
-    const stats: UserStats = existingStats || {
-      userId: session.user.id,
-      date: today,
-      rotationCount: 0,
-      totalDuration: 0,
-      records: [],
-    }
-
+    // The record is created once and appended inside the updater so retries
+    // cannot duplicate or reshuffle timestamps.
     const record: RotationRecord = {
       timestamp: Date.now(),
       angle,
@@ -100,18 +96,34 @@ export async function recordRotation(angle: number, duration: number, count = 1,
       ...(count > 1 ? { count } : {}),
     }
 
-    stats.rotationCount += count
-    stats.totalDuration += duration
-    stats.records.push(record)
+    const result = await updateUserDoc<UserStats>(
+      key,
+      (current) => {
+        const stats: UserStats = current ?? {
+          userId: session.user.id,
+          date: today,
+          rotationCount: 0,
+          totalDuration: 0,
+          records: [],
+        }
 
-    if (stats.records.length > 100) {
-      stats.records = stats.records.slice(-100)
+        const next: UserStats = {
+          ...stats,
+          rotationCount: stats.rotationCount + count,
+          totalDuration: stats.totalDuration + duration,
+          records: [...stats.records, record].slice(-100),
+        }
+
+        return validateOrThrow(UserStatsSchema, next)
+      },
+      { expirationSeconds: STATS_RETENTION_SECONDS }
+    )
+
+    if (!result.value) {
+      throw new Error('Failed to persist rotation statistics')
     }
 
-    const validatedStats = validateOrThrow(UserStatsSchema, stats)
-    await setStorageItem(key, validatedStats, 60 * 60 * 24 * 90)
-
-    return validatedStats
+    return result.value
   } catch (error) {
     logError(error, {
       action: 'recordRotation',
@@ -168,7 +180,11 @@ export async function getStats(startDate: string, endDate: string) {
       dateKeys.push(StorageKeys.userStats(session.user.id, dateStr))
     }
 
-    const rawResults = await getMultipleStorageItems(dateKeys)
+    // With the coordination binding each document lives in its own object, so
+    // reads happen per key; without it, one batched KV read is cheaper.
+    const rawResults = hasCoordination()
+      ? await readUserDocs(dateKeys)
+      : await getMultipleStorageItems(dateKeys)
 
     rawResults.forEach((raw, index) => {
       if (raw) {

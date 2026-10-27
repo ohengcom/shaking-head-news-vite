@@ -21,14 +21,32 @@ const NEWS_FETCH_TIMEOUT_MS = 10 * 1000
 const RSS_FETCH_TIMEOUT_MS = 10 * 1000
 const MAX_RSS_FEED_BYTES = 1024 * 1024
 // Workers free tier allows 50 subrequests per request; cap custom RSS fetches
-// so a fully-loaded Pro account stays inside the budget alongside auth,
-// settings, and hot list reads.
-const MAX_RSS_SOURCES_PER_REQUEST = 30
+// so a fully-loaded account stays inside the budget alongside auth, settings,
+// and hot list reads. Every feed is also cached briefly, so a page reload does
+// not re-download all of them.
+const MAX_RSS_SOURCES_PER_REQUEST = 10
+const MAX_ITEMS_PER_RSS_FEED = 20
+const MAX_TOTAL_CUSTOM_ITEMS = 200
+const RSS_FEED_CACHE_TTL_MS = 5 * 60 * 1000
+const RSS_FEED_CACHE_MAX_ENTRIES = 100
+const NEWS_MAX_RETRIES = 1
 const suppressedNewsFetchWarnings = new Set<string>()
 const newsCache = new Map<string, { expiresAt: number; value: NewsResponse }>()
+const rssFeedCache = new Map<string, { expiresAt: number; value: NewsItem[] }>()
+const rssFeedInFlight = new Map<string, Promise<NewsItem[]>>()
 
 function getNewsApiBaseUrl() {
   return getEnvValue('NEWS_API_BASE_URL') || DEFAULT_NEWS_API_BASE_URL
+}
+
+/**
+ * Test helper: drop module-level caches so one test cannot observe another
+ * test's feeds.
+ */
+export function resetNewsCaches(): void {
+  newsCache.clear()
+  rssFeedCache.clear()
+  rssFeedInFlight.clear()
 }
 
 function getUrlHostname(url: string): string | null {
@@ -146,17 +164,22 @@ async function fetchNews(language: 'zh' | 'en' = 'zh', source?: string): Promise
     : `${newsApiBaseUrl}/latest.json?lang=${language}`
 
   try {
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(url, {
-        signal: AbortSignal.timeout(NEWS_FETCH_TIMEOUT_MS),
-      })
+    const response = await retryWithBackoff(
+      async () => {
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(NEWS_FETCH_TIMEOUT_MS),
+        })
 
-      if (!res.ok) {
-        throw new NewsAPIError(`Failed to fetch news: ${res.statusText}`, res.status, source)
-      }
+        if (!res.ok) {
+          throw new NewsAPIError(`Failed to fetch news: ${res.statusText}`, res.status, source)
+        }
 
-      return res
-    })
+        return res
+      },
+      // One retry keeps the worst-case latency near 20s; the previous three
+      // retries could hold a request open for ~47s with no client timeout.
+      { maxRetries: NEWS_MAX_RETRIES }
+    )
 
     const rawData = await response.json()
 
@@ -222,6 +245,46 @@ export async function getNews(language: 'zh' | 'en' = 'zh', source?: string) {
 }
 
 /**
+ * Fetch a feed through a short-lived cache with in-flight merging.
+ *
+ * Without this, every personalised home request re-downloaded up to 30 feeds
+ * (multiple MiB and dozens of subrequests) even when nothing had changed.
+ */
+async function getCachedRSSNews(url: string): Promise<NewsItem[]> {
+  const cached = rssFeedCache.get(url)
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.value
+  }
+
+  const existing = rssFeedInFlight.get(url)
+  if (existing) {
+    return existing
+  }
+
+  const pending = getRSSNews(url)
+  rssFeedInFlight.set(url, pending)
+
+  try {
+    const value = await pending
+    rssFeedCache.set(url, {
+      value,
+      expiresAt: Date.now() + RSS_FEED_CACHE_TTL_MS,
+    })
+
+    if (rssFeedCache.size > RSS_FEED_CACHE_MAX_ENTRIES) {
+      const oldest = rssFeedCache.keys().next()
+      if (!oldest.done) {
+        rssFeedCache.delete(oldest.value)
+      }
+    }
+
+    return value
+  } finally {
+    rssFeedInFlight.delete(url)
+  }
+}
+
+/**
  * Get user's custom news from RSS feeds
  */
 export async function getUserCustomNews(): Promise<NewsItem[]> {
@@ -232,19 +295,24 @@ export async function getUserCustomNews(): Promise<NewsItem[]> {
     const rssSources = await getRSSSources()
     if (rssSources.length === 0) return []
 
-    // Fetch enabled RSS feeds in parallel, capped per request to stay within
-    // the Workers free-tier subrequest budget.
-    const enabledSources = rssSources
-      .filter((s) => s.enabled !== false)
-      .slice(0, MAX_RSS_SOURCES_PER_REQUEST)
+    // Deduplicate by URL and cap the number of feeds fetched per request so a
+    // single account cannot amplify one page view into dozens of subrequests.
+    const enabledSources = Array.from(
+      new Map(
+        rssSources
+          .filter((s) => s.enabled !== false)
+          .map((source) => [source.url.toLowerCase(), source] as const)
+      ).values()
+    ).slice(0, MAX_RSS_SOURCES_PER_REQUEST)
+
     if (enabledSources.length === 0) return []
 
-    const results = await Promise.allSettled(enabledSources.map((s) => getRSSNews(s.url)))
+    const results = await Promise.allSettled(enabledSources.map((s) => getCachedRSSNews(s.url)))
     const allItems: NewsItem[] = []
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
-        const itemsWithSource = result.value.map((item) => ({
+        const itemsWithSource = result.value.slice(0, MAX_ITEMS_PER_RSS_FEED).map((item) => ({
           ...item,
           source: item.source || enabledSources[index].name,
         }))
@@ -258,7 +326,7 @@ export async function getUserCustomNews(): Promise<NewsItem[]> {
       allItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     }
 
-    return allItems
+    return allItems.slice(0, MAX_TOTAL_CUSTOM_ITEMS)
   } catch (error) {
     console.error('Error in getUserCustomNews:', error)
     return []

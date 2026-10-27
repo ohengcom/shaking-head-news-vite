@@ -154,7 +154,11 @@
     "adsEnabledState": "Ads enabled",
     "adsDisabledState": "Ads disabled",
     "adsUpdateError": "Failed to update ad preferences",
-    "wellnessDescription": "Manage your daily goal and health reminders"
+    "wellnessDescription": "Manage your daily goal and health reminders",
+    "addSourceAria": "Add to enabled sources",
+    "removeSourceAria": "Remove from enabled sources",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   },
   "rotation": {
     "pause": "Pause",
@@ -275,7 +279,12 @@
     "importing": "Importing...",
     "exportSuccess": "OPML file exported successfully",
     "exportFailed": "Failed to export OPML",
-    "exporting": "Exporting..."
+    "exporting": "Exporting...",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "toggleSource": "Enable or disable this RSS source",
+    "removeSource": "Remove this RSS source",
+    "reorderHint": "Use the move up / move down buttons to change the order"
   },
   "auth": {
     "signIn": "Sign In",

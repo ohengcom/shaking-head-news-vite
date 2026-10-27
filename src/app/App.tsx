@@ -51,7 +51,10 @@ export function App() {
 
 function AppErrorBoundary() {
   const error = useRouteError()
-  const message = error instanceof Error ? error.message : 'Something went wrong.'
+  // Internal error text (component names, stack hints) is only useful while
+  // developing; production users get the generic message.
+  const message =
+    import.meta.env.DEV && error instanceof Error ? error.message : 'Something went wrong.'
 
   return (
     <AppProviders>

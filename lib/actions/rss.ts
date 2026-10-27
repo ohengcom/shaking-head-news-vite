@@ -1,8 +1,11 @@
 import { auth } from '@/lib/auth'
 import { XMLParser } from 'fast-xml-parser'
-import { getStorageItemStrict, setStorageItem, StorageKeys } from '@/lib/storage'
+import { StorageKeys } from '@/lib/storage'
+import { readUserDoc, updateUserDoc } from '@/lib/server/user-doc'
+import { safeFetch, UnsafeUrlError } from '@/lib/utils/safe-fetch'
 import { RSSSourceSchema, RSSSource } from '@/types/rss'
 import {
+  APIError,
   AuthError,
   NotFoundError,
   RateLimitError,
@@ -11,8 +14,13 @@ import {
   validateOrThrow,
 } from '@/lib/utils/error-handler'
 import { rateLimitByAction, RateLimitTiers } from '@/lib/rate-limit'
-import { sanitizeUrl, sanitizeString, sanitizeObject } from '@/lib/utils/input-validation'
+import { sanitizeUrl, sanitizeString } from '@/lib/utils/input-validation'
 import { getUserTier } from '@/lib/tier-server'
+
+const MAX_RSS_SOURCES = 50
+const FEED_PROBE_TIMEOUT_MS = 8 * 1000
+// Only the beginning of the document is needed to confirm it is a feed.
+const FEED_PROBE_MAX_BYTES = 64 * 1024
 
 // 默认 RSS 源（Guest 用户可见）
 const DEFAULT_RSS_SOURCES: RSSSource[] = [
@@ -65,9 +73,9 @@ export async function getRSSSources(): Promise<RSSSource[]> {
   }
 
   const key = StorageKeys.userRSSSources(session.user.id)
-  // Strict read: a transient KV failure must abort the caller instead of
+  // Strict read: a transient storage failure must abort the caller instead of
   // returning an empty list that a later write would persist over the data.
-  const sources = (await getStorageItemStrict<unknown[]>(key)) || []
+  const sources = (await readUserDoc<unknown[]>(key, { strict: true })) || []
 
   // Skip individually invalid entries instead of dropping the whole list, so
   // one corrupted source can never wipe the stored list on the next write.
@@ -84,6 +92,85 @@ export async function getRSSSources(): Promise<RSSSource[]> {
   })
 
   return validSources
+}
+
+async function readResponsePrefix(response: Response, maxBytes: number): Promise<string> {
+  if (!response.body) {
+    return ''
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let receivedBytes = 0
+  let text = ''
+
+  try {
+    while (receivedBytes < maxBytes) {
+      const { done, value } = await reader.read()
+      if (done) break
+      receivedBytes += value.byteLength
+      text += decoder.decode(value, { stream: true })
+    }
+    text += decoder.decode()
+    return text
+  } finally {
+    // Stop downloading the rest of the feed; only the prefix was needed.
+    await reader.cancel().catch(() => undefined)
+    reader.releaseLock()
+  }
+}
+
+function looksLikeFeed(payload: string): boolean {
+  return /<(rss|feed|rdf:RDF)\b/i.test(payload)
+}
+
+/**
+ * Verify a user-supplied feed URL before storing it.
+ *
+ * This runs through `safeFetch`, which validates the scheme, the port, embedded
+ * credentials, private/reserved hosts and every redirect hop. The previous
+ * implementation issued a bare `fetch(url, { method: 'HEAD' })`, which followed
+ * redirects to internal addresses and turned "add source" into a blind SSRF
+ * probe. Only a small prefix of the body is read, so a hostile or huge document
+ * cannot exhaust memory or CPU.
+ */
+async function assertReachableFeed(url: string): Promise<void> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FEED_PROBE_TIMEOUT_MS)
+
+  try {
+    const response = await safeFetch(url, {
+      method: 'GET',
+      headers: {
+        accept:
+          'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
+        'user-agent': 'ShakingHeadNews/1.0 (+https://sn.oheng.com)',
+      },
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new ValidationError('RSS URL is not accessible')
+    }
+
+    const prefix = await readResponsePrefix(response, FEED_PROBE_MAX_BYTES)
+    if (!looksLikeFeed(prefix)) {
+      throw new ValidationError('URL does not look like an RSS or Atom feed')
+    }
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw error
+    }
+
+    if (error instanceof UnsafeUrlError) {
+      throw new ValidationError('RSS URL is blocked for security reasons')
+    }
+
+    throw new ValidationError('Invalid RSS URL or URL is not accessible')
+  } finally {
+    clearTimeout(timeoutId)
+    controller.abort()
+  }
 }
 
 // 添加 RSS 源
@@ -120,50 +207,41 @@ export async function addRSSSource(source: Omit<RSSSource, 'id' | 'order' | 'fai
       tags: source.tags.map((tag) => sanitizeString(tag, { maxLength: 50 })),
     }
 
-    const sources = await getRSSSources()
-
-    // 限制每个用户最多50个RSS源
-    if (sources.length >= 50) {
-      throw new ValidationError('Maximum number of RSS sources (50) reached')
+    const existing = await getRSSSources()
+    // Fail fast before opening a network connection.
+    if (existing.length >= MAX_RSS_SOURCES) {
+      throw new ValidationError(`Maximum number of RSS sources (${MAX_RSS_SOURCES}) reached`)
     }
 
-    const newSource: RSSSource = {
+    if (existing.some((item) => item.url.toLowerCase() === sanitizedUrl.toLowerCase())) {
+      throw new ValidationError('This RSS feed is already in your list')
+    }
+
+    await assertReachableFeed(sanitizedUrl)
+
+    const newSource: RSSSource = validateOrThrow(RSSSourceSchema, {
       ...sanitizedSource,
       id: globalThis.crypto.randomUUID(),
-      order: sources.length,
+      order: existing.length,
       failureCount: 0,
+    })
+
+    const result = await updateUserDoc<unknown[]>(
+      StorageKeys.userRSSSources(session.user.id),
+      (current) => {
+        const list = Array.isArray(current) ? current : []
+        if (list.length >= MAX_RSS_SOURCES) {
+          throw new ValidationError(`Maximum number of RSS sources (${MAX_RSS_SOURCES}) reached`)
+        }
+        return [...list, newSource]
+      }
+    )
+
+    if (!Array.isArray(result.value)) {
+      throw new APIError('Failed to save RSS source', 500, 'RSS_WRITE_FAILED')
     }
 
-    // 验证 RSS URL
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch(newSource.url, {
-        method: 'HEAD',
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new ValidationError('RSS URL is not accessible')
-      }
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        throw error
-      }
-      throw new ValidationError('Invalid RSS URL or URL is not accessible')
-    }
-
-    // Validate the source data
-    const validatedSource = validateOrThrow(RSSSourceSchema, newSource)
-
-    sources.push(validatedSource)
-    const key = StorageKeys.userRSSSources(session.user.id)
-    await setStorageItem(key, sources)
-
-    return validatedSource
+    return newSource
   } catch (error) {
     logError(error, {
       action: 'addRSSSource',
@@ -172,6 +250,9 @@ export async function addRSSSource(source: Omit<RSSSource, 'id' | 'order' | 'fai
     throw error
   }
 }
+
+// 允许客户端修改的字段白名单。id/order/failureCount 由服务端维护。
+const UPDATABLE_RSS_FIELDS = ['name', 'url', 'description', 'language', 'enabled', 'tags'] as const
 
 // 更新 RSS 源
 export async function updateRSSSource(id: string, updates: Partial<RSSSource>) {
@@ -192,48 +273,90 @@ export async function updateRSSSource(id: string, updates: Partial<RSSSource>) {
       throw new RateLimitError('Too many requests. Please try again later.')
     }
 
-    // 清理输入数据
-    const sanitizedUpdates = sanitizeObject(updates, {
-      maxLength: 500,
-      allowHtml: false,
-    })
+    const patch: Record<string, unknown> = {}
+    for (const field of UPDATABLE_RSS_FIELDS) {
+      const value = (updates as Record<string, unknown>)[field]
+      if (value === undefined) continue
 
-    // 如果更新URL，验证它
-    if (sanitizedUpdates.url) {
-      const sanitizedUrl = sanitizeUrl(sanitizedUpdates.url)
-      if (!sanitizedUrl) {
-        throw new ValidationError('Invalid RSS URL')
+      if (field === 'url') {
+        const sanitizedUrl = sanitizeUrl(String(value))
+        if (!sanitizedUrl) {
+          throw new ValidationError('Invalid RSS URL')
+        }
+        patch.url = sanitizedUrl
+        continue
       }
-      sanitizedUpdates.url = sanitizedUrl
+
+      if (field === 'name') {
+        patch.name = sanitizeString(String(value), { maxLength: 200 })
+        continue
+      }
+
+      if (field === 'description') {
+        patch.description = sanitizeString(String(value), { maxLength: 500 })
+        continue
+      }
+
+      if (field === 'tags') {
+        if (!Array.isArray(value)) {
+          throw new ValidationError('RSS tags must be an array of strings')
+        }
+        patch.tags = value.map((tag) => sanitizeString(String(tag), { maxLength: 50 }))
+        continue
+      }
+
+      if (field === 'language') {
+        patch.language = value
+        continue
+      }
+
+      if (field === 'enabled') {
+        patch.enabled = value
+      }
     }
 
-    const sources = await getRSSSources()
-    const index = sources.findIndex((s) => s.id === id)
+    if (typeof patch.url === 'string') {
+      await assertReachableFeed(patch.url)
+    }
 
-    if (index === -1) {
+    const result = await updateUserDoc<unknown[]>(
+      StorageKeys.userRSSSources(session.user.id),
+      (current) => {
+        const list = Array.isArray(current) ? current : []
+        const index = list.findIndex((item) => (item as RSSSource)?.id === id)
+        if (index === -1) {
+          throw new NotFoundError('RSS source not found')
+        }
+
+        const next = [...list]
+        next[index] = validateOrThrow(RSSSourceSchema, {
+          ...(list[index] as RSSSource),
+          ...patch,
+          id,
+        })
+        return next
+      }
+    )
+
+    if (!result.updated || !Array.isArray(result.value)) {
       throw new NotFoundError('RSS source not found')
     }
 
-    const source = sources[index]
+    const saved = result.value
+      .map((item) => validateOrThrow(RSSSourceSchema, item))
+      .find((item) => item.id === id)
 
-    const updatedSource = { ...source, ...sanitizedUpdates }
+    if (!saved) {
+      throw new NotFoundError('RSS source not found')
+    }
 
-    // Validate the updated source
-    const validatedSource = validateOrThrow(RSSSourceSchema, updatedSource)
-
-    sources[index] = validatedSource
-    const key = StorageKeys.userRSSSources(session.user.id)
-    await setStorageItem(key, sources)
-
-    // 清除该源的缓存
-    return validatedSource
+    return saved
   } catch (error) {
     logError(error, {
       action: 'updateRSSSource',
       id,
       updates,
     })
-    console.error('Error updating RSS source:', error)
     throw error
   }
 }
@@ -247,17 +370,23 @@ export async function deleteRSSSource(id: string) {
       throw new AuthError('Please sign in to delete RSS sources')
     }
 
-    const sources = await getRSSSources()
-    const sourceToDelete = sources.find((s) => s.id === id)
+    const result = await updateUserDoc<unknown[]>(
+      StorageKeys.userRSSSources(session.user.id),
+      (current) => {
+        const list = Array.isArray(current) ? current : []
+        if (!list.some((item) => (item as RSSSource)?.id === id)) {
+          throw new NotFoundError('RSS source not found')
+        }
 
-    if (!sourceToDelete) {
+        return list
+          .filter((item) => (item as RSSSource)?.id !== id)
+          .map((item, index) => ({ ...(item as RSSSource), order: index }))
+      }
+    )
+
+    if (!result.updated) {
       throw new NotFoundError('RSS source not found')
     }
-
-    const filtered = sources.filter((s) => s.id !== id)
-
-    const key = StorageKeys.userRSSSources(session.user.id)
-    await setStorageItem(key, filtered)
   } catch (error) {
     logError(error, {
       action: 'deleteRSSSource',
@@ -276,18 +405,38 @@ export async function reorderRSSSources(sourceIds: string[]) {
       throw new AuthError('Please sign in to reorder RSS sources')
     }
 
-    const sources = await getRSSSources()
-    const reordered = sourceIds.map((id, index) => {
-      const source = sources.find((s) => s.id === id)
-      if (!source) {
-        throw new NotFoundError(`Source ${id} not found`)
-      }
-      return { ...source, order: index }
-    })
+    if (new Set(sourceIds).size !== sourceIds.length) {
+      throw new ValidationError('Reorder payload must not contain duplicate ids')
+    }
 
-    const key = StorageKeys.userRSSSources(session.user.id)
-    await setStorageItem(key, reordered)
-    return reordered
+    const result = await updateUserDoc<unknown[]>(
+      StorageKeys.userRSSSources(session.user.id),
+      (current) => {
+        const list = Array.isArray(current) ? current : []
+        // A reorder is a permutation: it must include every source exactly
+        // once. Accepting a subset used to delete the missing sources, and
+        // duplicates used to clone entries.
+        if (list.length !== sourceIds.length) {
+          throw new ValidationError('Reorder payload must include every RSS source once')
+        }
+
+        const byId = new Map(list.map((item) => [(item as RSSSource).id, item as RSSSource]))
+
+        return sourceIds.map((id, index) => {
+          const source = byId.get(id)
+          if (!source) {
+            throw new ValidationError(`Unknown RSS source id: ${id}`)
+          }
+          return { ...source, order: index }
+        })
+      }
+    )
+
+    if (!result.updated || !Array.isArray(result.value)) {
+      throw new APIError('Failed to reorder RSS sources', 500, 'RSS_WRITE_FAILED')
+    }
+
+    return result.value.map((item) => validateOrThrow(RSSSourceSchema, item))
   } catch (error) {
     logError(error, {
       action: 'reorderRSSSources',
@@ -377,57 +526,58 @@ export async function importOPML(
     }
 
     // 解析 OPML
-    const sources = parseOPML(opmlContent)
+    const parsedSources = parseOPML(opmlContent)
 
-    if (sources.length === 0) {
+    if (parsedSources.length === 0) {
       throw new ValidationError('No valid RSS sources found in OPML file')
     }
 
-    // 获取现有源
-    const existingSources = await getRSSSources()
-    const importedUrls = new Set(existingSources.map((s) => s.url.toLowerCase()))
-
-    // 限制总数
-    const maxSources = 50
-    const availableSlots = maxSources - existingSources.length
-
-    if (availableSlots <= 0) {
-      throw new ValidationError('Maximum number of RSS sources (50) reached')
-    }
-
-    // 过滤重复并限制数量
-    const newSources: RSSSource[] = []
+    let imported = 0
     let skipped = 0
 
-    for (const source of sources) {
-      if (newSources.length >= availableSlots) {
-        skipped++
-        continue
+    // The whole merge runs inside one versioned update so a concurrent add or
+    // delete cannot be lost between reading and writing the list.
+    await updateUserDoc<unknown[]>(StorageKeys.userRSSSources(session.user.id), (current) => {
+      const list = Array.isArray(current) ? current : []
+      const seenUrls = new Set(
+        list.map((item) => String((item as RSSSource)?.url ?? '').toLowerCase())
+      )
+      const next = [...list]
+      imported = 0
+      skipped = 0
+
+      for (const source of parsedSources) {
+        if (next.length >= MAX_RSS_SOURCES) {
+          skipped += 1
+          continue
+        }
+
+        const normalizedUrl = source.url.toLowerCase()
+        if (seenUrls.has(normalizedUrl)) {
+          skipped += 1
+          continue
+        }
+
+        seenUrls.add(normalizedUrl)
+        next.push(
+          validateOrThrow(RSSSourceSchema, {
+            ...source,
+            id: globalThis.crypto.randomUUID(),
+            order: next.length,
+            failureCount: 0,
+          })
+        )
+        imported += 1
       }
 
-      if (importedUrls.has(source.url.toLowerCase())) {
-        skipped++
-        continue
+      if (imported === 0) {
+        return null
       }
 
-      importedUrls.add(source.url.toLowerCase())
-      newSources.push({
-        ...source,
-        id: globalThis.crypto.randomUUID(),
-        order: existingSources.length + newSources.length,
-        failureCount: 0,
-      })
-    }
+      return next
+    })
 
-    // 保存
-    const allSources = [...existingSources, ...newSources]
-    const key = StorageKeys.userRSSSources(session.user.id)
-    await setStorageItem(key, allSources)
-
-    return {
-      imported: newSources.length,
-      skipped,
-    }
+    return { imported, skipped }
   } catch (error) {
     logError(error, {
       action: 'importOPML',

@@ -18,14 +18,39 @@ interface RecentWriteCacheEntry {
 }
 
 const RECENT_WRITE_CACHE_WINDOW_MS = 2 * 60 * 1000
+// Module-level caches live for the whole isolate lifetime. Without a bound, a
+// busy worker accumulated one entry per settings/stats/rate-limit key and never
+// released it unless the exact same key was read again.
+const RECENT_WRITE_CACHE_MAX_ENTRIES = 256
 
 let workersEnvLookupAttempted = false
 const recentWriteCache = new Map<string, RecentWriteCacheEntry>()
 
+function pruneRecentWriteCache(now: number): void {
+  for (const [key, entry] of recentWriteCache) {
+    if (now - entry.cachedAt > RECENT_WRITE_CACHE_WINDOW_MS) {
+      recentWriteCache.delete(key)
+    }
+  }
+
+  // Map preserves insertion order, so deleting from the front evicts the
+  // oldest writes first (LRU-ish) once the cache is over its budget.
+  while (recentWriteCache.size > RECENT_WRITE_CACHE_MAX_ENTRIES) {
+    const oldest = recentWriteCache.keys().next()
+    if (oldest.done) break
+    recentWriteCache.delete(oldest.value)
+  }
+}
+
 function cacheRecentWrite<T>(key: string, envelope: StoredEnvelope<T>): void {
+  const now = Date.now()
+  if (recentWriteCache.size >= RECENT_WRITE_CACHE_MAX_ENTRIES) {
+    pruneRecentWriteCache(now)
+  }
+
   recentWriteCache.set(key, {
     envelope: envelope as StoredEnvelope<unknown>,
-    cachedAt: Date.now(),
+    cachedAt: now,
   })
 }
 

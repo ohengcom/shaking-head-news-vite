@@ -204,7 +204,7 @@ function WeekBarChart({
     <svg
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       className="h-[300px] w-full overflow-visible"
-      role="img"
+      role="group"
       aria-label={rotationCountLabel}
       onMouseLeave={onDeactivate}
     >
@@ -278,7 +278,7 @@ function WeekBarChart({
               height={CHART_INNER_HEIGHT + CHART_PADDING.bottom}
               fill="transparent"
               tabIndex={0}
-              role="button"
+              role="img"
               aria-label={`${item.label}, ${rotationCountLabel}: ${item.count}, ${durationLabel}: ${item.durationMinutes} ${minutesLabel}`}
               onMouseEnter={() => onActivate(index)}
               onFocus={() => onActivate(index)}
@@ -326,7 +326,7 @@ function MonthLineChart({
     <svg
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       className="h-[300px] w-full overflow-visible"
-      role="img"
+      role="group"
       aria-label={`${rotationCountLabel} and ${durationLabel}`}
       onMouseLeave={onDeactivate}
     >
@@ -420,7 +420,7 @@ function MonthLineChart({
               height={CHART_INNER_HEIGHT + CHART_PADDING.bottom}
               fill="transparent"
               tabIndex={0}
-              role="button"
+              role="img"
               aria-label={`${item.label}, ${rotationCountLabel}: ${item.count}, ${durationLabel}: ${item.durationMinutes} ${minutesLabel}`}
               onMouseEnter={() => onActivate(index)}
               onFocus={() => onActivate(index)}
